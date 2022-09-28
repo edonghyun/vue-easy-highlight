@@ -1,4 +1,4 @@
-import VueEasyHighlighter from './Highlighter.vue';
+import VueEasyHighlighter from './EasyHighlight.vue';
 
 export default VueEasyHighlighter;
 export { VueEasyHighlighter };
