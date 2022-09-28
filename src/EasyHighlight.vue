@@ -13,11 +13,11 @@ export default defineComponent({
             type: String,
             required: true,
         },
-        selectedTexts: {
+        textsToHighlight: {
             type: Set,
             required: true,
         },
-        selectedTextColor: {
+        higlightColor: {
             type: String,
             default: '#ddd6ff',
         },
@@ -25,7 +25,7 @@ export default defineComponent({
     setup(props, context) {
         const indexRangesToHighlight = computed(() => {
             const result = [];
-            props.selectedTexts.forEach((textToSearch) => {
+            props.textsToHighlight.forEach((textToSearch) => {
                 const escapedTextToSearch = textToSearch.replace(
                     /[.*+?^${}()|[\]\\]/g,
                     '\\$&',
@@ -60,7 +60,7 @@ export default defineComponent({
 
         return {
             text: props.text,
-            selectedTextColor: props.selectedTextColor,
+            higlightColor: props.higlightColor,
 
             indexRangesToHighlight,
 
@@ -78,7 +78,7 @@ export default defineComponent({
                 <HighlightedText
                     :text="text"
                     :indexRangesToHighlight="indexRangesToHighlight"
-                    :baseColor="selectedTextColor"
+                    :baseColor="higlightColor"
                 />
             </div>
         </div>
