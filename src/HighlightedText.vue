@@ -22,22 +22,22 @@ export default defineComponent({
         },
         indexRangesToHighlight: {
             type: Array,
-            default: [],
+            default: () => [],
         },
-        baseColor: {
+        baseHighlighColor: {
             type: String,
-            default: '#d9fbd5',
+            default: () => '#d9fbd5',
         },
-        colors: {
+        highlightColors: {
             type: Array,
-            default: [],
+            default: () => [],
         },
     },
     setup(props) {
         const colors =
-            props.colors.length > 0
-                ? props.colors
-                : getDarkendColors(props.baseColor);
+            props.highlightColors.length > 0
+                ? props.highlightColors
+                : getDarkendColors(props.baseHighlighColor);
 
         const textData = computed(() => {
             const sweeper = [];
@@ -81,9 +81,6 @@ export default defineComponent({
             isHighligted,
             getHighlightColor,
             textData,
-
-            baseColor: props.baseColor,
-            indexRangesToHighlight: props.indexRangesToHighlight,
         };
     },
 });
