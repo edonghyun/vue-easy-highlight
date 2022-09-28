@@ -1,4 +1,4 @@
-import VueEasyHighlighter from './Highlighter.vue';
+import EasyHighlight from './EasyHighlight.vue';
 
-export default VueEasyHighlighter;
-export { VueEasyHighlighter };
+export default EasyHighlight;
+export { EasyHighlight };

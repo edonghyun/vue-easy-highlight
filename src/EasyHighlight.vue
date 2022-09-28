@@ -1,6 +1,6 @@
 <script>
 import { defineComponent, computed } from 'vue';
-import HighlightedText from '@/components/common/HighlightedText';
+import HighlightedText from './HighlightedText';
 
 export default defineComponent({
     name: 'EasyHighlight',
@@ -19,7 +19,7 @@ export default defineComponent({
         },
         higlightColor: {
             type: String,
-            default: '#ddd6ff',
+            default: () => '#ddd6ff',
         },
     },
     setup(props, context) {
@@ -59,9 +59,6 @@ export default defineComponent({
         }
 
         return {
-            text: props.text,
-            higlightColor: props.higlightColor,
-
             indexRangesToHighlight,
 
             handleMouseUpEvent,
@@ -78,7 +75,7 @@ export default defineComponent({
                 <HighlightedText
                     :text="text"
                     :indexRangesToHighlight="indexRangesToHighlight"
-                    :baseColor="higlightColor"
+                    :baseHighlighColor="higlightColor"
                 />
             </div>
         </div>
