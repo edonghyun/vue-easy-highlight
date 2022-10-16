@@ -142,7 +142,12 @@ const text = `Lorem Ipsum is simply dummy text of the printing and typesetting i
 
 const higlightColor = '#87cefa';
 
-const textsToHighlight = new Set(['unknown printer took a galley']);
+const textsToHighlight = new Set([
+    'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the in',
+    'text of the printing and typesetting industry. Lorem',
+    'printing and typesetting',
+    'printing',
+]);
 
 const selectedTextColor = '#000000';
 
