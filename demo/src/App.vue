@@ -10,9 +10,14 @@
             <div class="col-12 col-md-6 p-0 m-0">
                 <div class="component-wrapper">
                     <EasyHighlight
+                        :key="renderKey"
                         :text="options.text"
                         :textsToHighlight="options.textsToHighlight"
                         :higlightColor="options.higlightColor"
+                        :selectedTextColor="options.selectedTextColor"
+                        :selectedTextBackgroundColor="
+                            options.selectedTextBackgroundColor
+                        "
                     />
                 </div>
             </div>
@@ -89,6 +94,30 @@
                         </div>
                         <div class="form-group col-12 mb-3">
                             <label for="inputEmail4" class="mb-2">
+                                <h6>Selected Text Color</h6>
+                            </label>
+                            <input
+                                v-model="options.selectedTextColor"
+                                type="color"
+                                class="form-control"
+                                aria-label="selectedTextColor"
+                                aria-describedby="basic-addon1"
+                            />
+                        </div>
+                        <div class="form-group col-12 mb-3">
+                            <label for="inputEmail4" class="mb-2">
+                                <h6>Selected Text Background Color</h6>
+                            </label>
+                            <input
+                                v-model="options.selectedTextBackgroundColor"
+                                type="color"
+                                class="form-control"
+                                aria-label="selectedTextBackgroundColor"
+                                aria-describedby="basic-addon1"
+                            />
+                        </div>
+                        <div class="form-group col-12 mb-3">
+                            <label for="inputEmail4" class="mb-2">
                                 <h6>Text</h6>
                             </label>
                             <textarea
@@ -105,7 +134,7 @@
 </template>
 
 <script>
-import { defineComponent, reactive, ref } from 'vue';
+import { defineComponent, reactive, ref, watch } from 'vue';
 import TheHeader from './TheHeader.vue';
 import EasyHighlight from '../../src/EasyHighlight.vue';
 
@@ -115,6 +144,10 @@ const higlightColor = '#87cefa';
 
 const textsToHighlight = new Set(['unknown printer took a galley']);
 
+const selectedTextColor = '#000000';
+
+const selectedTextBackgroundColor = '#dddddd';
+
 export default defineComponent({
     name: 'App',
     components: {
@@ -122,11 +155,14 @@ export default defineComponent({
         EasyHighlight,
     },
     setup() {
+        const renderKey = ref(0);
         const textToHighlight = ref('');
         const options = reactive({
             text,
             higlightColor,
             textsToHighlight,
+            selectedTextColor,
+            selectedTextBackgroundColor,
         });
 
         function deleteTextToHighlight(textToHighlight) {
@@ -142,7 +178,22 @@ export default defineComponent({
             textToHighlight.value = '';
         }
 
+        watch(
+            () => [
+                options.selectedTextColor,
+                options.selectedTextBackgroundColor,
+            ],
+            () => {
+                console.log(renderKey.value);
+                renderKey.value += 1;
+            },
+            {
+                deep: true,
+            },
+        );
+
         return {
+            renderKey,
             options,
             textToHighlight,
             deleteTextToHighlight,

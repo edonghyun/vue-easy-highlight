@@ -1,5 +1,11 @@
 <script>
 import { defineComponent, computed } from 'vue';
+import {
+    DEFAULT_HIGHLIGHT_COLOR,
+    DEFAULT_SELECTED_BACKGROUND_COLOR,
+    DEFAULT_SELECTED_COLOR,
+} from './config';
+
 import HighlightedText from './HighlightedText';
 
 export default defineComponent({
@@ -19,10 +25,23 @@ export default defineComponent({
         },
         higlightColor: {
             type: String,
-            default: () => '#ddd6ff',
+            default: () => DEFAULT_HIGHLIGHT_COLOR,
+        },
+        selectedTextColor: {
+            type: String,
+            default: () => DEFAULT_SELECTED_COLOR,
+        },
+        selectedTextBackgroundColor: {
+            type: String,
+            default: () => DEFAULT_SELECTED_BACKGROUND_COLOR,
         },
     },
     setup(props, context) {
+        const selectionColors = computed(() => ({
+            '--selected-color': props.selectedTextColor,
+            '--selected-background-color': props.selectedTextBackgroundColor,
+        }));
+
         const indexRangesToHighlight = computed(() => {
             const result = [];
             props.textsToHighlight.forEach((textToSearch) => {
@@ -62,6 +81,7 @@ export default defineComponent({
 
         return {
             indexRangesToHighlight,
+            selectionColors,
 
             handleMouseUpEvent,
             handleClickEvent,
@@ -82,6 +102,7 @@ export default defineComponent({
                     :text="text"
                     :indexRangesToHighlight="indexRangesToHighlight"
                     :baseHighlighColor="higlightColor"
+                    :selectionColors="selectionColors"
                 />
             </div>
         </div>

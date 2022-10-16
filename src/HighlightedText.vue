@@ -1,7 +1,6 @@
 <script>
 import { defineComponent, computed } from 'vue';
-
-const MAX_COLOR_DARKNESS = 10;
+import { MAX_COLOR_DARKNESS, DEFAULT_BASE_HIGHLIGHT_COLOR } from './config';
 
 function getDarkendColors(colorCode) {
     const colors = [colorCode, colorCode];
@@ -26,11 +25,15 @@ export default defineComponent({
         },
         baseHighlighColor: {
             type: String,
-            default: () => '#d9fbd5',
+            default: () => DEFAULT_BASE_HIGHLIGHT_COLOR,
         },
         highlightColors: {
             type: Array,
             default: () => [],
+        },
+        selectionColors: {
+            type: Object,
+            default: () => ({}),
         },
     },
     setup(props) {
@@ -93,7 +96,7 @@ export default defineComponent({
         :key="index"
         class="active-sentence-text-container"
     >
-        <span class="text">{{ data.char }}</span>
+        <span class="text" :style="selectionColors">{{ data.char }}</span>
         <svg
             v-if="data.selectedCount > 0"
             :stroke="getHighlightColor(data.selectedCount)"
@@ -122,6 +125,11 @@ export default defineComponent({
         white-space: pre;
         position: relative;
         z-index: 2;
+
+        &::selection {
+            color: var(--selected-color);
+            background-color: var(--selected-background-color);
+        }
     }
 
     svg {
