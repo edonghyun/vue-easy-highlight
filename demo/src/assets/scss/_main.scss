@@ -1,0 +1,66 @@
+html {
+    width: 100%;
+    height: 100%;
+
+    body {
+        margin: 0;
+        padding: 0;
+
+        .header {
+            display: flex;
+            align-items: center;
+            min-height: 50px;
+            background-color: #191d3a;
+
+            .menu {
+                @include transition-drawing;
+
+                cursor: pointer;
+                color: #eee;
+                padding: 1rem;
+
+                &:hover {
+                    color: #42b883;
+                }
+
+                &.github-badge-container {
+                    background-color: #eee;
+                }
+            }
+        }
+
+        .title {
+            padding: 2rem 0 2rem 0;
+
+            h1 {
+                display: inline-block;
+                padding-left: 20px;
+                border-left: 10px solid #42b883;
+            }
+        }
+        
+        .content {
+            margin-bottom: 1rem;
+
+            .component-wrapper {
+                margin: 5px;
+                padding: 1rem;
+                border: 2px solid grey;
+                border-radius: 10px;
+
+                .options-form-container {
+                    textarea {
+                        padding: 1rem;
+                        min-height: 300px; 
+                        resize: none;
+                    }
+
+                    .text-to-highlight-container {
+                        border: 1px solid #ced4da;
+                        margin: 3px;
+                    }
+                }
+            }
+        }
+    }
+}
