@@ -49,7 +49,9 @@ export default defineComponent({
 
         function handleMouseUpEvent() {
             const selection = window.getSelection();
-            const localSelectedText = selection.toString();
+            const localSelectedText = selection
+                .toString()
+                .replaceAll(/\n/g, '');
             const oRect = selection.getRangeAt(0).getBoundingClientRect();
             context.emit('text:selected', localSelectedText, oRect);
         }
@@ -71,21 +73,17 @@ export default defineComponent({
 <template>
     <div class="selectable-text">
         <div class="selcttions-wrapper">
-            <div class="selectable-text-overlay">
+            <div
+                class="selectable-text-overlay"
+                @mouseup="handleMouseUpEvent"
+                @click="handleClickEvent"
+            >
                 <HighlightedText
                     :text="text"
                     :indexRangesToHighlight="indexRangesToHighlight"
                     :baseHighlighColor="higlightColor"
                 />
             </div>
-        </div>
-        <div>{{ text }}</div>
-        <div
-            class="display"
-            @mouseup="handleMouseUpEvent"
-            @click="handleClickEvent"
-        >
-            {{ text }}
         </div>
     </div>
 </template>
@@ -94,21 +92,12 @@ export default defineComponent({
 .selectable-text {
     position: relative;
 
-    .display {
-        z-index: 6;
-        top: 0;
-        position: absolute;
-        color: transparent;
-    }
-
     .selcttions-wrapper {
         top: 0;
-        position: absolute;
         width: 100%;
 
         .selectable-text-overlay {
             top: 0;
-            position: absolute;
             width: 100%;
         }
     }

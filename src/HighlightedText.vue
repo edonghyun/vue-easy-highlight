@@ -34,10 +34,11 @@ export default defineComponent({
         },
     },
     setup(props) {
-        const colors =
+        const colors = computed(() =>
             props.highlightColors.length > 0
                 ? props.highlightColors
-                : getDarkendColors(props.baseHighlighColor);
+                : getDarkendColors(props.baseHighlighColor),
+        );
 
         const textData = computed(() => {
             const sweeper = [];
@@ -72,8 +73,8 @@ export default defineComponent({
 
         function getHighlightColor(selectedCount) {
             return selectedCount <= MAX_COLOR_DARKNESS
-                ? colors[selectedCount]
-                : colors[MAX_COLOR_DARKNESS];
+                ? colors.value[selectedCount]
+                : colors.value[MAX_COLOR_DARKNESS];
         }
 
         return {
@@ -116,7 +117,6 @@ export default defineComponent({
     background: none;
     margin: 0;
     padding: 0;
-    color: transparent;
 
     span.text {
         white-space: pre;
