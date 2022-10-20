@@ -1,18 +1,8 @@
 <script>
-import { defineComponent, computed } from 'vue';
-import { MAX_COLOR_DARKNESS, DEFAULT_BASE_HIGHLIGHT_COLOR } from './config';
+import { computed } from 'vue';
+import { MAX_COLOR_DARKNESS } from './config';
 
-function getDarkendColors(colorCode) {
-    const colors = [colorCode, colorCode];
-    let color = Number(colorCode.replace('#', '0x'));
-    for (let i = 0; i < MAX_COLOR_DARKNESS; i++) {
-        color = color = color - 0x101010;
-        colors.push(`#${color.toString(16)}`);
-    }
-    return colors;
-}
-
-export default defineComponent({
+export default {
     name: 'HighlightedText',
     props: {
         text: {
@@ -22,10 +12,6 @@ export default defineComponent({
         indexRangesToHighlight: {
             type: Array,
             default: () => [],
-        },
-        baseHighlighColor: {
-            type: String,
-            default: () => DEFAULT_BASE_HIGHLIGHT_COLOR,
         },
         highlightColors: {
             type: Array,
@@ -37,12 +23,6 @@ export default defineComponent({
         },
     },
     setup(props) {
-        const colors = computed(() =>
-            props.highlightColors.length > 0
-                ? props.highlightColors
-                : getDarkendColors(props.baseHighlighColor),
-        );
-
         const textData = computed(() => {
             const sweeper = [];
             for (let i = 0; i < props.text.length; i++) {
@@ -56,7 +36,7 @@ export default defineComponent({
                 }
             });
 
-            const charArray = props.text.split('').map((char) => ({
+            const characters = props.text.split('').map((char) => ({
                 char,
                 selectedCount: 0,
             }));
@@ -64,56 +44,67 @@ export default defineComponent({
             let accumulator = 0;
             sweeper.forEach((e, index) => {
                 accumulator = accumulator + e;
-                charArray[index].selectedCount = accumulator;
+                characters[index].selectedCount = accumulator;
             });
 
-            return charArray;
+            return characters;
         });
 
         function isHighligted(index) {
             return textData.value[index]?.selectedCount > 0;
         }
 
+        function isNewLine(charcter) {
+            return charcter === '\n';
+        }
+
+        function getClasses(character) {
+            return isNewLine(character)
+                ? 'active-sentence-text-container new-line'
+                : 'active-sentence-text-container';
+        }
+
         function getHighlightColor(selectedCount) {
             return selectedCount <= MAX_COLOR_DARKNESS
-                ? colors.value[selectedCount]
-                : colors.value[MAX_COLOR_DARKNESS];
+                ? props.highlightColors[selectedCount]
+                : props.highlightColors[MAX_COLOR_DARKNESS];
         }
 
         return {
-            colors,
             isHighligted,
+            isNewLine,
             getHighlightColor,
+            getClasses,
             textData,
         };
     },
-});
+};
 </script>
 
 <template>
     <div
         v-for="(data, index) in textData"
+        :id="index + 1"
         :key="index"
-        class="active-sentence-text-container"
+        :class="getClasses(data.char)"
     >
-        <span class="text" :style="selectionColors">{{ data.char }}</span>
-        <svg
-            v-if="data.selectedCount > 0"
-            :stroke="getHighlightColor(data.selectedCount)"
-            class="hightlight"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 400 60"
-            preserveAspectRatio="none"
-        >
-            <path
-                pathLength="400"
-                d="m 3.518915,27.827324 c 55.429038,4.081 111.581115,5.822 167.117815,2.867 22.70911,-1.208 45.39827,-0.601 68.126,-0.778 28.38172,-0.223 56.76078,-1.024 85.13721,-1.33 24.17378,-0.261 48.4273,0.571 72.58114,0.571"
-            />
-        </svg>
+        <div class="text-container" :style="selectionColors">
+            <div
+                class="text-highlight"
+                :style="{
+                    'background-color':
+                        data.selectedCount > 0 &&
+                        getHighlightColor(data.selectedCount),
+                }"
+            >
+                &nbsp;
+            </div>
+            <span class="text">{{ data.char }}</span>
+        </div>
     </div>
 </template>
 
-<style lang="scss" scoped>
+<style lang="scss">
 .active-sentence-text-container {
     position: relative;
     display: inline-flex;
@@ -121,46 +112,35 @@ export default defineComponent({
     margin: 0;
     padding: 0;
 
-    span.text {
-        white-space: pre;
-        position: relative;
-        z-index: 2;
-
-        &::selection {
-            color: var(--selected-color);
-            background-color: var(--selected-background-color);
-        }
+    &.new-line {
+        display: inline;
     }
 
-    svg {
-        position: absolute;
-        top: -10%;
-        left: -10%;
-        right: -10%;
-        bottom: -10%;
+    .text-container {
         width: 100%;
-        height: 100%;
-        overflow: hidden;
-        margin: auto;
-        padding: 0;
-        fill: none;
+        position: relative;
+        .text-highlight {
+            padding: 2px 5px 2px 5px;
+            position: absolute;
+            width: 100%;
+            transform: rotate(10deg);
+            top: -1px;
+            left: -1px;
+            border-radius: 20% 5% 15% 5%;
 
-        &.hightlight {
-            z-index: 0;
-            opacity: 0.4;
-            stroke-width: 54px;
-            stroke-dasharray: 400;
-            stroke-dashoffset: 0;
-            mix-blend-mode: multiply;
-            animation: drawing 0.1s linear;
+            &::selection {
+                background: transparent;
+            }
+        }
 
-            @keyframes drawing {
-                0% {
-                    stroke-dashoffset: 400;
-                }
-                100% {
-                    stroke-dashoffset: 0;
-                }
+        span.text {
+            white-space: pre;
+            position: relative;
+            z-index: 2;
+
+            &::selection {
+                color: var(--selected-color);
+                background-color: var(--selected-background-color);
             }
         }
     }

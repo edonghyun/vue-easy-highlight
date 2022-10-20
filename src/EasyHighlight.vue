@@ -1,14 +1,34 @@
 <script>
-import { defineComponent, computed } from 'vue';
+import { computed } from 'vue';
 import {
     DEFAULT_HIGHLIGHT_COLOR,
     DEFAULT_SELECTED_BACKGROUND_COLOR,
     DEFAULT_SELECTED_COLOR,
+    MAX_COLOR_DARKNESS,
 } from './config';
-
 import HighlightedText from './HighlightedText';
 
-export default defineComponent({
+function getPlainText(textData) {
+    return textData.replace(/\s/g, '');
+}
+
+function getDarkendColors(colorCode) {
+    const colors = [colorCode, colorCode];
+    let color = Number(colorCode.replace('#', '0x'));
+    for (let i = 0; i < MAX_COLOR_DARKNESS; i++) {
+        color = color - 0x101010;
+        if (color <= 0) {
+            color = 0;
+        }
+        const stringifiedColor = color.toString(16);
+        colors.push(
+            stringifiedColor.length === 6 ? `#${stringifiedColor}` : '#000000',
+        );
+    }
+    return colors;
+}
+
+export default {
     name: 'EasyHighlight',
     components: {
         HighlightedText,
@@ -27,6 +47,10 @@ export default defineComponent({
             type: String,
             default: () => DEFAULT_HIGHLIGHT_COLOR,
         },
+        highlightColors: {
+            type: Array,
+            default: () => [],
+        },
         selectedTextColor: {
             type: String,
             default: () => DEFAULT_SELECTED_COLOR,
@@ -41,6 +65,12 @@ export default defineComponent({
             '--selected-color': props.selectedTextColor,
             '--selected-background-color': props.selectedTextBackgroundColor,
         }));
+
+        const colors = computed(() =>
+            props.highlightColors.length > 0
+                ? props.highlightColors
+                : getDarkendColors(props.highlightColors[0]),
+        );
 
         const indexRangesToHighlight = computed(() => {
             const result = [];
@@ -75,25 +105,77 @@ export default defineComponent({
             context.emit('text:selected', localSelectedText, oRect);
         }
 
-        function handleClickEvent() {
+        function handleClickEvent(event) {
+            switch (event.detail) {
+                case 1:
+                    handleSingleClickEvent();
+                    break;
+                case 2:
+                    handleDoubleClickEvent();
+                    break;
+            }
+        }
+
+        function handleSingleClickEvent() {
             context.emit('text:clicked');
+        }
+
+        function handleDoubleClickEvent() {
+            let selection = window.getSelection();
+            let parentNode =
+                selection.anchorNode.parentNode.parentNode.parentNode;
+            let containerNode = parentNode.parentNode;
+
+            let range = new Range();
+            const parentNodeId = +parentNode.id;
+            const siblings = containerNode.childNodes;
+
+            let startNodeIndex = null;
+            for (let i = parentNodeId; i >= 0; i--) {
+                if (getPlainText(siblings[i].textContent).length === 0) {
+                    startNodeIndex = i + 1;
+                    break;
+                }
+            }
+
+            let endNodeIndex = null;
+            for (
+                let i = parentNodeId;
+                i < containerNode.childNodes.length;
+                i++
+            ) {
+                if (getPlainText(siblings[i].textContent).length === 0) {
+                    endNodeIndex = i;
+                    break;
+                }
+            }
+
+            range.setStart(containerNode, startNodeIndex ? startNodeIndex : 0);
+            range.setEnd(
+                containerNode,
+                endNodeIndex ? endNodeIndex : siblings.length - 1,
+            );
+
+            document.getSelection().removeAllRanges();
+            document.getSelection().addRange(range);
         }
 
         return {
             indexRangesToHighlight,
             selectionColors,
+            colors,
 
             handleMouseUpEvent,
             handleClickEvent,
         };
     },
-});
+};
 </script>
 
 <template>
     <div class="selectable-text">
         <div class="selcttions-wrapper">
-            <div
+            <p
                 class="selectable-text-overlay"
                 @mouseup="handleMouseUpEvent"
                 @click="handleClickEvent"
@@ -101,10 +183,10 @@ export default defineComponent({
                 <HighlightedText
                     :text="text"
                     :indexRangesToHighlight="indexRangesToHighlight"
-                    :baseHighlighColor="higlightColor"
+                    :highlightColors="colors"
                     :selectionColors="selectionColors"
                 />
-            </div>
+            </p>
         </div>
     </div>
 </template>
