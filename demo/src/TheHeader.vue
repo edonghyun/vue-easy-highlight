@@ -25,7 +25,6 @@ export default defineComponent({
             const response = await fetch(gitHubRepositoryApiUrl);
             const data = await response.json();
 
-            console.log(data);
             gitHubStarGazersUrl.value = data.stargazers_url;
             gitHubStarGazersCount.value = data.stargazers_count;
         })();

@@ -14,6 +14,7 @@
                         :text="options.text"
                         :textsToHighlight="options.textsToHighlight"
                         :higlightColor="options.higlightColor"
+                        :highlightColors="options.highlightColors"
                         :selectedTextColor="options.selectedTextColor"
                         :selectedTextBackgroundColor="
                             options.selectedTextBackgroundColor
@@ -57,21 +58,20 @@
                                     </div>
                                 </div>
                                 <div class="row mt-3">
-                                    <div class="col-12 col-md-11">
+                                    <div class="col-12 col-md-12 col-lg-10">
                                         <input
                                             v-model="textToHighlight"
                                             type="text"
                                             class="form-control w-100"
-                                            aria-describedby="basic-addon2"
                                             @keyup.enter="addTextToHighlight"
                                         />
                                     </div>
                                     <div
-                                        class="input-group-append col-12 col-md-1 d-flex justify-content-end"
+                                        class="input-group-append col-12 col-md-12 col-lg-2 d-flex justify-content-end"
                                     >
                                         <button
                                             @click="addTextToHighlight"
-                                            class="btn btn-outline-secondary btn-block"
+                                            class="btn btn-outline-secondary btn-block w-100"
                                             type="button"
                                         >
                                             add
@@ -89,7 +89,6 @@
                                 type="color"
                                 class="form-control"
                                 aria-label="higlightColor"
-                                aria-describedby="basic-addon1"
                             />
                         </div>
                         <div class="form-group col-12 mb-3">
@@ -101,7 +100,6 @@
                                 type="color"
                                 class="form-control"
                                 aria-label="selectedTextColor"
-                                aria-describedby="basic-addon1"
                             />
                         </div>
                         <div class="form-group col-12 mb-3">
@@ -113,7 +111,6 @@
                                 type="color"
                                 class="form-control"
                                 aria-label="selectedTextBackgroundColor"
-                                aria-describedby="basic-addon1"
                             />
                         </div>
                         <div class="form-group col-12 mb-3">
@@ -138,9 +135,20 @@ import { defineComponent, reactive, ref, watch } from 'vue';
 import TheHeader from './TheHeader.vue';
 import EasyHighlight from '../../src/EasyHighlight.vue';
 
-const text = `Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.`;
+const text = `Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. 
+Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.`;
 
 const higlightColor = '#87cefa';
+
+const highlightColors = [
+    '#E8D9FF',
+    '#D1B2FF',
+    '#A566FF',
+    '#8041D9',
+    '#3F0099',
+    '#2A0066',
+];
 
 const textsToHighlight = new Set([
     'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the in',
@@ -165,6 +173,7 @@ export default defineComponent({
         const options = reactive({
             text,
             higlightColor,
+            highlightColors,
             textsToHighlight,
             selectedTextColor,
             selectedTextBackgroundColor,
@@ -189,7 +198,6 @@ export default defineComponent({
                 options.selectedTextBackgroundColor,
             ],
             () => {
-                console.log(renderKey.value);
                 renderKey.value += 1;
             },
             {
