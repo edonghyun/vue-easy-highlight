@@ -201,6 +201,7 @@ export default {
         .selectable-text-overlay {
             top: 0;
             width: 100%;
+            margin: 0;
         }
     }
 }
