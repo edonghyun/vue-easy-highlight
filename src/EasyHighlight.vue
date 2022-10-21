@@ -97,8 +97,14 @@ export default {
             const selection = window.getSelection();
             const localSelectedText = selection
                 .toString()
+                /*eslint-disable */
                 .replaceAll(/ /g, '')
+                /*eslint-enable */
                 .replaceAll(/\n/g, '');
+
+            if (localSelectedText.length < 2) {
+                return;
+            }
 
             const oRect = selection.getRangeAt(0).getBoundingClientRect();
             context.emit('text:selected', localSelectedText, oRect);
@@ -157,6 +163,8 @@ export default {
 
             document.getSelection().removeAllRanges();
             document.getSelection().addRange(range);
+
+            emitCurrentSelectedText();
         }
 
         return {
@@ -172,10 +180,10 @@ export default {
 </script>
 
 <template>
-    <div class="selectable-text">
-        <div class="selcttions-wrapper">
+    <div class="easy-highlight-selectable-text">
+        <div class="easy-highlight-selcttions-wrapper">
             <p
-                class="selectable-text-overlay"
+                class="easy-highlight-selectable-text-overlay"
                 @mouseup="handleMouseUpEvent"
                 @click="handleClickEvent"
             >
@@ -191,14 +199,14 @@ export default {
 </template>
 
 <style lang="scss" scoped>
-.selectable-text {
+.easy-highlight-selectable-text {
     position: relative;
 
-    .selcttions-wrapper {
+    .easy-highlight-selcttions-wrapper {
         top: 0;
         width: 100%;
 
-        .selectable-text-overlay {
+        .easy-highlight-selectable-text-overlay {
             top: 0;
             width: 100%;
             margin: 0;

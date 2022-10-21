@@ -60,8 +60,8 @@ export default {
 
         function getClasses(character) {
             return isNewLine(character)
-                ? 'active-sentence-text-container new-line'
-                : 'active-sentence-text-container';
+                ? 'easy-highlight-active-sentence-text-container easy-highlihgt-new-line'
+                : 'easy-highlight-active-sentence-text-container';
         }
 
         function getHighlightColor(selectedCount) {
@@ -88,9 +88,9 @@ export default {
         :key="index"
         :class="getClasses(data.char)"
     >
-        <div class="text-container" :style="selectionColors">
+        <div class="easy-highlight-text-container" :style="selectionColors">
             <div
-                class="text-highlight"
+                class="easy-highlight-text-highlight"
                 :style="{
                     'background-color':
                         data.selectedCount > 0 &&
@@ -105,21 +105,22 @@ export default {
 </template>
 
 <style lang="scss">
-.active-sentence-text-container {
+.easy-highlight-active-sentence-text-container {
     position: relative;
     display: inline-flex;
     background: none;
     margin: 0;
     padding: 0;
 
-    &.new-line {
+    &.easy-highlihgt-new-line {
         display: inline;
     }
 
-    .text-container {
+    .easy-highlight-text-container {
         width: 100%;
         position: relative;
-        .text-highlight {
+
+        .easy-highlight-text-highlight {
             padding: 2px 5px 2px 5px;
             position: absolute;
             width: 100%;
