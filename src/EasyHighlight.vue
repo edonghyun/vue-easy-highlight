@@ -12,8 +12,9 @@ function getPlainText(textData) {
     return textData.replace(/\s/g, '');
 }
 
-function getDarkendColors(colorCode) {
-    const colors = [colorCode, colorCode];
+function getDarkendColors(colorCodes) {
+    const colorCode = colorCodes[0];
+    const colors = colorCodes;
     let color = Number(colorCode.replace('#', '0x'));
     for (let i = 0; i < MAX_COLOR_DARKNESS; i++) {
         color = color - 0x101010;
@@ -43,13 +44,9 @@ export default {
             type: Set,
             required: true,
         },
-        higlightColor: {
-            type: String,
-            default: () => DEFAULT_HIGHLIGHT_COLOR,
-        },
         highlightColors: {
             type: Array,
-            default: () => [],
+            default: () => [DEFAULT_HIGHLIGHT_COLOR],
         },
         selectedTextColor: {
             type: String,
@@ -66,11 +63,7 @@ export default {
             '--selected-background-color': props.selectedTextBackgroundColor,
         }));
 
-        const colors = computed(() =>
-            props.highlightColors.length > 0
-                ? props.highlightColors
-                : getDarkendColors(props.highlightColors[0]),
-        );
+        const colors = computed(() => getDarkendColors(props.highlightColors));
 
         const indexRangesToHighlight = computed(() => {
             const result = [];
@@ -97,10 +90,16 @@ export default {
         });
 
         function handleMouseUpEvent() {
+            emitCurrentSelectedText();
+        }
+
+        function emitCurrentSelectedText() {
             const selection = window.getSelection();
             const localSelectedText = selection
                 .toString()
+                .replaceAll(/ /g, '')
                 .replaceAll(/\n/g, '');
+
             const oRect = selection.getRangeAt(0).getBoundingClientRect();
             context.emit('text:selected', localSelectedText, oRect);
         }

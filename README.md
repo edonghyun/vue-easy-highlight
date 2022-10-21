@@ -1,32 +1,34 @@
 # vue-easy-highlight
 
-vue-easy-highlight is for displaying texts with easily hilightable functionality. 
+vue-easy-highlight is for displaying texts with easily hilightable functionality.
 
 ## Installation
+
 ```
 npm install --save vue-easy-highlight
 ```
 
-### Running Demo 
+### Running Demo
+
 ```
 npm run serve demo/src/main.js
 ```
 
 ### Usage
+
 ```vue
 <template>
     <HighlightableText
         :text="text"
         :textsToHighlight="textsToHighlight"
-        :higlightColor="higlightColor"
+        :higlightColors="higlightColors"
     />
 </template>
 
 <script>
-import { defineComponent } from 'vue';
 import HighlightableText from '../../src/EasyHighlight.vue';
 
-export default defineComponent({
+export default {
     name: 'App',
     components: {
         HighlightableText,
@@ -49,27 +51,28 @@ export default defineComponent({
             versions of Lorem Ipsum.
         `;
 
-        const higlightColor = '#87cefa';
+        const higlightColors = ['#87cefa'];
 
         const textsToHighlight = new Set(['unknown printer took a galley']);
 
         return {
             text,
-            higlightColor,
+            higlightColors,
             textsToHighlight,
         };
     },
-});
+};
 </script>
-
 ```
 
 ### Props
-|Property|Type|Required|Description|
-|--------|----|--------|-----------|
-|text|String|✓|Original text.|
-|textsToHighlight|Set|✓|Texts to highlight within given original text.|
-|higlightColor|String||Color in hex to highlight. default value is '#ddd6ff'|
+
+| Property         | Type   | Required | Description                                              |
+| ---------------- | ------ | -------- | -------------------------------------------------------- |
+| text             | String | ✓        | Original text.                                           |
+| textsToHighlight | Set    | ✓        | Texts to highlight within given original text.           |
+| higlightColors   | Array  |          | Colors in hex to highlight. default value is ['#ddd6ff'] |
 
 ### License
+
 MIT License - fork, modify and use freely as much as you want.

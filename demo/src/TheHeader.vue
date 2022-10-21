@@ -9,9 +9,9 @@
 </template>
 
 <script>
-import { defineComponent, ref } from 'vue';
+import { ref } from 'vue';
 
-export default defineComponent({
+export default {
     name: 'TheHeader',
     setup() {
         const gitHubRepositoryApiUrl =
@@ -35,5 +35,5 @@ export default defineComponent({
             gitHubStarGazersCount,
         };
     },
-});
+};
 </script>
