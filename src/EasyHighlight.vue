@@ -5,6 +5,7 @@ import {
     DEFAULT_SELECTED_BACKGROUND_COLOR,
     DEFAULT_SELECTED_COLOR,
     MAX_COLOR_DARKNESS,
+    BASE_CHARACTER_ID,
 } from './config';
 import HighlightedText from './HighlightedText';
 
@@ -89,6 +90,10 @@ export default {
             return result;
         });
 
+        function getIndexFromElementId(elementId) {
+            return elementId.split(`${BASE_CHARACTER_ID}`)[1];
+        }
+
         function handleMouseUpEvent() {
             emitCurrentSelectedText();
         }
@@ -111,21 +116,31 @@ export default {
         }
 
         function handleClickEvent(event) {
+            console.log(event);
             switch (event.detail) {
                 case 1:
-                    handleSingleClickEvent();
+                    handleSingleClickEvent(event);
                     break;
                 case 2:
-                    handleDoubleClickEvent();
+                    handleDoubleClickEvent(event);
                     break;
             }
         }
 
-        function handleSingleClickEvent() {
-            context.emit('text:clicked');
+        function handleSingleClickEvent(event) {
+            const {
+                path: [targetElement],
+            } = event;
+            const targetIndex = getIndexFromElementId(targetElement.id);
+            const targetCharacter = targetElement.textContent;
+            context.emit('text:clicked', {
+                event,
+                targetIndex,
+                targetCharacter,
+            });
         }
 
-        function handleDoubleClickEvent() {
+        function handleDoubleClickEvent(event) {
             let selection = window.getSelection();
             let parentNode =
                 selection.anchorNode.parentNode.parentNode.parentNode;

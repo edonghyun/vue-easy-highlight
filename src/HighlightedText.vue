@@ -1,6 +1,6 @@
 <script>
 import { computed } from 'vue';
-import { MAX_COLOR_DARKNESS } from './config';
+import { MAX_COLOR_DARKNESS, BASE_CHARACTER_ID } from './config';
 
 export default {
     name: 'HighlightedText',
@@ -70,9 +70,14 @@ export default {
                 : props.highlightColors[MAX_COLOR_DARKNESS];
         }
 
+        function getId(index) {
+            return `${BASE_CHARACTER_ID}${index}`;
+        }
+
         return {
             isHighligted,
             isNewLine,
+            getId,
             getHighlightColor,
             getClasses,
             textData,
@@ -99,7 +104,7 @@ export default {
             >
                 &nbsp;
             </div>
-            <span class="text">{{ data.char }}</span>
+            <span :id="getId(index)" class="text">{{ data.char }}</span>
         </div>
     </div>
 </template>
