@@ -116,7 +116,6 @@ export default {
         }
 
         function handleClickEvent(event) {
-            console.log(event);
             switch (event.detail) {
                 case 1:
                     handleSingleClickEvent(event);
