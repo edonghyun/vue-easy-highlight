@@ -130,7 +130,7 @@ export default {
             const {
                 path: [targetElement],
             } = event;
-            const targetIndex = getIndexFromElementId(targetElement.id);
+            const targetIndex = +getIndexFromElementId(targetElement.id);
             const targetCharacter = targetElement.textContent;
             context.emit('text:clicked', {
                 event,
