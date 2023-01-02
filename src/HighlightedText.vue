@@ -65,6 +65,10 @@ export default {
         }
 
         function getHighlightColor(selectedCount) {
+            if(selectedCount === 0) {
+                return 'transparent';
+            };
+
             return selectedCount <= MAX_COLOR_DARKNESS
                 ? props.highlightColors[selectedCount]
                 : props.highlightColors[MAX_COLOR_DARKNESS];
@@ -93,12 +97,14 @@ export default {
         :key="index"
         :class="getClasses(data.char)"
     >
-        <div class="easy-highlight-text-container" :style="selectionColors">
+        <div :class="[
+            'easy-highlight-text-container',
+            `${data.selectedCount > 0 ? 'highligted': ''}`
+        ]" :style="selectionColors">
             <div
                 class="easy-highlight-text-highlight"
                 :style="{
                     'background-color':
-                        data.selectedCount > 0 &&
                         getHighlightColor(data.selectedCount),
                 }"
             >
