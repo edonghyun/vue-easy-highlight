@@ -2,6 +2,22 @@
 import { computed } from 'vue';
 import { MAX_COLOR_DARKNESS, BASE_CHARACTER_ID } from './config';
 
+function getDarkendColors(baseColor) {
+    const colors = [baseColor];
+    let color = Number(baseColor.replace('#', '0x'));
+    for (let i = 0; i < MAX_COLOR_DARKNESS; i++) {
+        color = color - 0x101010;
+        if (color <= 0) {
+            color = 0;
+        }
+        const stringifiedColor = color.toString(16);
+        colors.push(
+            stringifiedColor.length === 6 ? `#${stringifiedColor}` : '#000000',
+        );
+    }
+    return colors;
+}
+
 export default {
     name: 'HighlightedText',
     props: {
@@ -13,9 +29,9 @@ export default {
             type: Array,
             default: () => [],
         },
-        highlightColors: {
-            type: Array,
-            default: () => [],
+        indexBaseColorMap: {
+            type: Object,
+            default: () => ({}),
         },
         selectionColors: {
             type: Object,
@@ -64,14 +80,18 @@ export default {
                 : 'easy-highlight-active-sentence-text-container';
         }
 
-        function getHighlightColor(selectedCount) {
-            if(selectedCount === 0) {
+        function getHighlightColor(index, selectedCount) {
+            const highlightColors = getDarkendColors(
+                props.indexBaseColorMap[index],
+            );
+
+            if (selectedCount === 0) {
                 return 'transparent';
-            };
+            }
 
             return selectedCount <= MAX_COLOR_DARKNESS
-                ? props.highlightColors[selectedCount]
-                : props.highlightColors[MAX_COLOR_DARKNESS];
+                ? highlightColors[selectedCount]
+                : highlightColors[MAX_COLOR_DARKNESS];
         }
 
         function getId(index) {
@@ -97,15 +117,20 @@ export default {
         :key="index"
         :class="getClasses(data.char)"
     >
-        <div :class="[
-            'easy-highlight-text-container',
-            `${data.selectedCount > 0 ? 'highligted': ''}`
-        ]" :style="selectionColors">
+        <div
+            :class="[
+                'easy-highlight-text-container',
+                `${data.selectedCount > 0 ? 'highligted' : ''}`,
+            ]"
+            :style="selectionColors"
+        >
             <div
                 class="easy-highlight-text-highlight"
                 :style="{
-                    'background-color':
-                        getHighlightColor(data.selectedCount),
+                    'background-color': getHighlightColor(
+                        index,
+                        data.selectedCount,
+                    ),
                 }"
             >
                 &nbsp;

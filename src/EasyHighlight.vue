@@ -4,30 +4,12 @@ import {
     DEFAULT_HIGHLIGHT_COLOR,
     DEFAULT_SELECTED_BACKGROUND_COLOR,
     DEFAULT_SELECTED_COLOR,
-    MAX_COLOR_DARKNESS,
     BASE_CHARACTER_ID,
 } from './config';
 import HighlightedText from './HighlightedText';
 
 function getPlainText(textData) {
     return textData.replace(/\s/g, '');
-}
-
-function getDarkendColors(colorCodes) {
-    const colorCode = colorCodes[0];
-    const colors = colorCodes;
-    let color = Number(colorCode.replace('#', '0x'));
-    for (let i = 0; i < MAX_COLOR_DARKNESS; i++) {
-        color = color - 0x101010;
-        if (color <= 0) {
-            color = 0;
-        }
-        const stringifiedColor = color.toString(16);
-        colors.push(
-            stringifiedColor.length === 6 ? `#${stringifiedColor}` : '#000000',
-        );
-    }
-    return colors;
 }
 
 export default {
@@ -45,9 +27,13 @@ export default {
             type: Set,
             required: true,
         },
-        highlightColors: {
-            type: Array,
-            default: () => [DEFAULT_HIGHLIGHT_COLOR],
+        baseColor: {
+            type: String,
+            default: () => DEFAULT_HIGHLIGHT_COLOR,
+        },
+        textsBaseColorMap: {
+            type: Object,
+            default: () => ({}),
         },
         selectedTextColor: {
             type: String,
@@ -63,22 +49,31 @@ export default {
             '--selected-color': props.selectedTextColor,
             '--selected-background-color': props.selectedTextBackgroundColor,
         }));
+        
+        const baseColorsIndexesMap = computed(() => {
+            const map = {};
+            for(let i = 0; i < props.text.length; i ++) {
+                map[i] = props.baseColor;
+            };
 
-        const colors = computed(() => getDarkendColors(props.highlightColors));
+            Object.entries(props.textsBaseColorMap).map(([textToSearch, color]) => {
+                const escapedTextToSearch = getEscapedText(textToSearch);
+                const textIndices = getAllTextIndices(props.text, escapedTextToSearch);
+
+                textIndices.forEach(i => {
+                    for(let j = 0; j < textToSearch.length; j ++) {
+                        map[i+j] = color;
+                    }
+                });
+            })
+            return map;
+        });
 
         const indexRangesToHighlight = computed(() => {
             const result = [];
             props.textsToHighlight.forEach((textToSearch) => {
-                const escapedTextToSearch = textToSearch.replace(
-                    /[.*+?^${}()|[\]\\]/g,
-                    '\\$&',
-                );
-
-                const textIndices = [
-                    ...props.text.matchAll(
-                        new RegExp(escapedTextToSearch, 'gi'),
-                    ),
-                ].map((a) => a.index);
+                const escapedTextToSearch = getEscapedText(textToSearch);
+                const textIndices = getAllTextIndices(props.text, escapedTextToSearch);
 
                 textIndices.forEach((index) =>
                     result.push({
@@ -89,6 +84,21 @@ export default {
             });
             return result;
         });
+
+        function getAllTextIndices(texts, textToSearch) {
+            return [
+                ...texts.matchAll(
+                    new RegExp(textToSearch, 'gi'),
+                ),
+            ].map((a) => a.index);
+        }
+
+        function getEscapedText(text) {
+            return text.replace(
+                    /[.*+?^${}()|[\]\\]/g,
+                    '\\$&',
+                );
+        }
 
         function getIndexFromElementId(elementId) {
             return elementId.split(`${BASE_CHARACTER_ID}`)[1];
@@ -184,7 +194,7 @@ export default {
         return {
             indexRangesToHighlight,
             selectionColors,
-            colors,
+            baseColorsIndexesMap,
 
             handleMouseUpEvent,
             handleClickEvent,
@@ -204,7 +214,7 @@ export default {
                 <HighlightedText
                     :text="text"
                     :indexRangesToHighlight="indexRangesToHighlight"
-                    :highlightColors="colors"
+                    :indexBaseColorMap="baseColorsIndexesMap"
                     :selectionColors="selectionColors"
                 />
             </p>
