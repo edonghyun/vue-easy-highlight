@@ -49,23 +49,28 @@ export default {
             '--selected-color': props.selectedTextColor,
             '--selected-background-color': props.selectedTextBackgroundColor,
         }));
-        
+
         const baseColorsIndexesMap = computed(() => {
             const map = {};
-            for(let i = 0; i < props.text.length; i ++) {
+            for (let i = 0; i < props.text.length; i++) {
                 map[i] = props.baseColor;
-            };
+            }
 
-            Object.entries(props.textsBaseColorMap).map(([textToSearch, color]) => {
-                const escapedTextToSearch = getEscapedText(textToSearch);
-                const textIndices = getAllTextIndices(props.text, escapedTextToSearch);
+            Object.entries(props.textsBaseColorMap).map(
+                ([textToSearch, color]) => {
+                    const escapedTextToSearch = getEscapedText(textToSearch);
+                    const textIndices = getAllTextIndices(
+                        props.text,
+                        escapedTextToSearch,
+                    );
 
-                textIndices.forEach(i => {
-                    for(let j = 0; j < textToSearch.length; j ++) {
-                        map[i+j] = color;
-                    }
-                });
-            })
+                    textIndices.forEach((i) => {
+                        for (let j = 0; j < textToSearch.length; j++) {
+                            map[i + j] = color;
+                        }
+                    });
+                },
+            );
             return map;
         });
 
@@ -73,7 +78,10 @@ export default {
             const result = [];
             props.textsToHighlight.forEach((textToSearch) => {
                 const escapedTextToSearch = getEscapedText(textToSearch);
-                const textIndices = getAllTextIndices(props.text, escapedTextToSearch);
+                const textIndices = getAllTextIndices(
+                    props.text,
+                    escapedTextToSearch,
+                );
 
                 textIndices.forEach((index) =>
                     result.push({
@@ -86,18 +94,13 @@ export default {
         });
 
         function getAllTextIndices(texts, textToSearch) {
-            return [
-                ...texts.matchAll(
-                    new RegExp(textToSearch, 'gi'),
-                ),
-            ].map((a) => a.index);
+            return [...texts.matchAll(new RegExp(textToSearch, 'gi'))].map(
+                (a) => a.index,
+            );
         }
 
         function getEscapedText(text) {
-            return text.replace(
-                    /[.*+?^${}()|[\]\\]/g,
-                    '\\$&',
-                );
+            return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
         function getIndexFromElementId(elementId) {
@@ -137,9 +140,7 @@ export default {
         }
 
         function handleSingleClickEvent(event) {
-            const {
-                path: [targetElement],
-            } = event;
+            const [targetElement] = event.composedPath();
             const targetIndex = +getIndexFromElementId(targetElement.id);
             const targetCharacter = targetElement.textContent;
             context.emit('text:clicked', {
