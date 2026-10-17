@@ -8,9 +8,25 @@ npm install --save vue-easy-highlight
 ```
 
 ### Running Demo 
+```sh
+npm ci
+npm run serve
 ```
-npm run serve demo/src/main.js
+
+The scripts use `demo/src/main.js` as the application entry. To build the demo into `dist/`:
+
+```sh
+npm run build
 ```
+
+### Current verification and limits
+
+- Checked the demo install and production build with Node.js 22.22.0 and npm 10.9.4, then opened the built demo in Chromium.
+- The demo build is checked by [GitHub CI](https://github.com/edonghyun/vue-easy-highlight/actions/workflows/demo-build.yml). This builds the example app; it does not create a distributable library bundle or verify an npm release.
+- The existing multiline demo can display highlights out of alignment with the visible phrase. This remains a known issue; rendering a highlight does not establish correct alignment under wrapping and whitespace changes.
+- The public prop name remains `higlightColor`, including its original spelling. Selection-event edge cases have not been verified in this cleanup.
+
+이번 정리는 실행 경로와 빌드 재현을 보완한 것입니다. 컴포넌트의 줄바꿈·공백 정렬 문제는 후속 수정 대상으로 남아 있습니다.
 
 ### Usage
 ```vue
