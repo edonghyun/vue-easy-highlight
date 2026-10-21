@@ -32,5 +32,8 @@
         "build": "tsup",
         "test": "vitest run",
         "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@overlapmark/adapter-contract": "workspace:*"
     }
 }

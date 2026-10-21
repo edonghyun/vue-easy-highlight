@@ -6,6 +6,9 @@ const core = (p: string): string =>
     fileURLToPath(new URL(`../core/src/${p}`, import.meta.url));
 
 export default defineConfig({
+    // Source aliases: @overlapmark/adapter-contract imports @overlapmark/core
+    // without declaring it, so both this package and the suite must resolve
+    // core to the same sources (one module instance).
     resolve: {
         alias: [
             {
@@ -17,6 +20,15 @@ export default defineConfig({
                 replacement: core('dom/index.ts'),
             },
             { find: /^@overlapmark\/core$/, replacement: core('index.ts') },
+            {
+                find: /^@overlapmark\/adapter-contract$/,
+                replacement: fileURLToPath(
+                    new URL(
+                        '../adapter-contract/src/index.ts',
+                        import.meta.url,
+                    ),
+                ),
+            },
         ],
     },
     test: {

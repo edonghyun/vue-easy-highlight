@@ -92,6 +92,36 @@ export function createHighlighter<T>(
 
     render();
 
+    // Core tracks hover by element, and render() replaces every element, so
+    // after update() the pointer can no longer leave the hovered one. Its
+    // leave is reported here instead, and the late leave core still reports
+    // for that segment (on the next pointer move, or on detach) is dropped, so
+    // each enter gets exactly one leave.
+    let hovered: Segment<T> | null = null;
+    let leftOnRender: Segment<T> | null = null;
+
+    const onHover = (d: HoverDetail<T>): void => {
+        if (d.type === 'leave' && d.segment === leftOnRender) {
+            leftOnRender = null;
+            return;
+        }
+        hovered = d.type === 'enter' ? d.segment : null;
+        emit('hover', d);
+    };
+
+    const leaveRenderedAway = (): void => {
+        if (!hovered) return;
+        const segment = hovered;
+        hovered = null;
+        leftOnRender = segment;
+        emit('hover', {
+            type: 'leave',
+            segment,
+            highlights: segment.highlights,
+            event: null,
+        });
+    };
+
     // attachInteractions reads its options live, so these getters pick up
     // update() changes without re-attaching (which would drop pending state).
     const detach = attachInteractions<T>(el, {
@@ -106,7 +136,7 @@ export function createHighlighter<T>(
         onSelect: (d) => emit('select', d),
         onClick: (d) => emit('click', d),
         onDblclick: (d) => emit('dblclick', d),
-        onHover: (d) => emit('hover', d),
+        onHover,
     });
 
     return {
@@ -124,6 +154,7 @@ export function createHighlighter<T>(
 
             opts = { ...opts, ...next };
             render();
+            leaveRenderedAway();
 
             if (saved) {
                 const range = createRangeFromOffsets(

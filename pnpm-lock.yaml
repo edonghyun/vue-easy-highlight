@@ -75,6 +75,10 @@ importers:
       '@overlapmark/core':
         specifier: workspace:*
         version: link:../core
+    devDependencies:
+      '@overlapmark/adapter-contract':
+        specifier: workspace:*
+        version: link:../adapter-contract
 
 packages:
 

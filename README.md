@@ -101,6 +101,8 @@ Overlap strategies (`strategy` option): `layers` (default) stacks one element pe
 
 `select` fires one macrotask after `pointerup`/`keyup` (on touch, after `touchSelectionDelay` ms, default 500, without a selection change). On the keyboard, `keyup` confirms only once no modifier (Shift/Ctrl/Alt/Meta) is held, so a Shift+Arrow run emits a single `select` when Shift is released.
 
+Every hover `enter` is followed by one `leave` for the same `segment` object. Besides the mouse moving away, a `leave` is also emitted when the adapter is destroyed (or unmounted) or re-renders the hovered segment while it is hovered; such a `leave` has `event: null`.
+
 ## Migrating from `vue-easy-highlight`
 
 | `vue-easy-highlight` | overlapmark                                                                    |
