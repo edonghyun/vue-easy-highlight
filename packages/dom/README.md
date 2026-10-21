@@ -48,7 +48,7 @@ Replaces the content of `el` with the rendered text and returns a `Highlighter`.
 | `click` / `dblclick` | `{ offset, segment, highlights, event }` (`event` is a `MouseEvent` or, for Enter/Space, a `KeyboardEvent`) |
 | `hover`              | `{ type: 'enter' \| 'leave', segment, highlights, event }`; desktop mouse only                              |
 
-`select` fires one macrotask after `pointerup`/`keyup`, or after `touchSelectionDelay` ms without a selection change on touch. Keyboard Shift+Arrow selections emit once per step. `highlights` in every event follow the library order: `start` ascending, then longer first, then input order.
+`select` fires one macrotask after `pointerup`/`keyup`, or after `touchSelectionDelay` ms without a selection change on touch. On the keyboard, `keyup` confirms only once no modifier (Shift/Ctrl/Alt/Meta) is held, so a Shift+Arrow run emits a single `select` when Shift is released. `highlights` in every event follow the library order: `start` ascending, then longer first, then input order.
 
 ## DOM contract
 

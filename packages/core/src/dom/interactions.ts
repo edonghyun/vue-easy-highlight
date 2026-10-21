@@ -92,6 +92,14 @@ export function attachInteractions<T>(
         releaseTimer = setTimeout(confirm, 0);
     };
 
+    // Shift+Arrow (and Ctrl/Alt/Meta-modified) selections grow one key at a
+    // time; confirm only once every modifier is released, so a run of steps
+    // emits a single `select` (on the modifier's own keyup).
+    const onKeyUp = (e: KeyboardEvent): void => {
+        if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+        confirmSoon();
+    };
+
     const onPointerDown = (e: PointerEvent): void => {
         lastPointerType = e.pointerType;
     };
@@ -216,7 +224,7 @@ export function attachInteractions<T>(
     document.addEventListener('selectionchange', onSelectionChange);
     document.addEventListener('pointerdown', onPointerDown, true);
     document.addEventListener('pointerup', onPointerUp, true);
-    document.addEventListener('keyup', confirmSoon, true);
+    document.addEventListener('keyup', onKeyUp, true);
     root.addEventListener('click', onClick);
     root.addEventListener('dblclick', onDblclick);
     root.addEventListener('keydown', onKeyDown);
@@ -229,7 +237,7 @@ export function attachInteractions<T>(
         document.removeEventListener('selectionchange', onSelectionChange);
         document.removeEventListener('pointerdown', onPointerDown, true);
         document.removeEventListener('pointerup', onPointerUp, true);
-        document.removeEventListener('keyup', confirmSoon, true);
+        document.removeEventListener('keyup', onKeyUp, true);
         root.removeEventListener('click', onClick);
         root.removeEventListener('dblclick', onDblclick);
         root.removeEventListener('keydown', onKeyDown);

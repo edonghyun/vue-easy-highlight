@@ -202,16 +202,35 @@ describe('attachInteractions: select', () => {
         select(root, 0, 1);
         await tick();
         expect(onSelect).not.toHaveBeenCalled();
-        await userEvent.keyboard('{Shift>}{ArrowRight}{ArrowRight}{/Shift}');
-        await expect
-            .poll(() => onSelect.mock.lastCall?.[0])
-            .toMatchObject({ start: 0, end: 3, text: 'Hel', highlights: [a] });
-        // Each key's keyup may confirm an intermediate range; never a stale or duplicate one.
-        const ranges = onSelect.mock.calls.map(([d]) => `${d.start}-${d.end}`);
-        expect(new Set(ranges).size).toBe(ranges.length);
-        for (const [d] of onSelect.mock.calls) {
-            expect(d.text).toBe(text.slice(d.start, d.end));
+        await userEvent.keyboard(
+            '{Shift>}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{/Shift}',
+        );
+        await expect.poll(() => onSelect.mock.calls.length).toBe(1);
+        await tick(50);
+        // Arrow keyups while Shift is still held do not confirm; releasing Shift does, once.
+        expect(onSelect).toHaveBeenCalledTimes(1);
+        expect(onSelect.mock.calls[0][0]).toMatchObject({
+            start: 0,
+            end: 5,
+            text: 'Hello',
+            highlights: [a],
+        });
+    });
+
+    it('does not confirm on keyup while a modifier is still held', async () => {
+        const { root, onSelect } = setup();
+        select(root, 2, 6);
+        await tick();
+        for (const mod of ['shiftKey', 'ctrlKey', 'metaKey', 'altKey']) {
+            document.dispatchEvent(
+                new KeyboardEvent('keyup', { key: 'ArrowRight', [mod]: true }),
+            );
         }
+        await tick();
+        expect(onSelect).not.toHaveBeenCalled();
+        document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift' }));
+        await expect.poll(() => onSelect.mock.calls.length).toBe(1);
+        expect(onSelect.mock.calls[0][0]).toMatchObject({ start: 2, end: 6 });
     });
 
     it('emits select for touch after touchSelectionDelay without pointerup', async () => {

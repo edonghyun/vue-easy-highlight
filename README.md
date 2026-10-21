@@ -97,7 +97,7 @@ Overlap strategies (`strategy` option): `layers` (default) stacks one element pe
 | `click` / `dblclick` | Click or tap with no active selection; Enter/Space on a focused highlight (`click`) | `{ offset, segment, highlights, event }`                   |
 | `hover`              | Mouse enters or leaves a highlighted segment (desktop only)                         | `{ type: 'enter' \| 'leave', segment, highlights, event }` |
 
-`select` fires one macrotask after `pointerup`/`keyup` (on touch, after `touchSelectionDelay` ms, default 500, without a selection change). Keyboard Shift+Arrow selections emit once per step.
+`select` fires one macrotask after `pointerup`/`keyup` (on touch, after `touchSelectionDelay` ms, default 500, without a selection change). On the keyboard, `keyup` confirms only once no modifier (Shift/Ctrl/Alt/Meta) is held, so a Shift+Arrow run emits a single `select` when Shift is released.
 
 ## Migrating from `vue-easy-highlight`
 
