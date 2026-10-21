@@ -9,20 +9,29 @@ const profiles = {
     'mobile-safari': devices['iPhone 15'],
 };
 
+// The `ssr` variant runs a reduced set on the desktop engines: ssr.spec.ts
+// and the `@core` tests, against the hydrated page.
+const ssrProfiles = new Set(['chromium', 'firefox', 'webkit']);
+const ssrSpecs = /ssr\.spec\.ts|@core/;
+
 // One project per built app and browser profile, named
-// `<app>-<variant>-<profile>`; every project runs the same specs.
+// `<app>-<variant>-<profile>`.
 const apps = builtApps();
 const projects: Project[] = Object.keys(apps)
     .sort()
-    .flatMap((app) =>
-        Object.entries(profiles).map(([profile, device]) => ({
-            name: `${app}-${profile}`,
-            use: {
-                ...device,
-                baseURL: `http://127.0.0.1:${portOf(apps, app)}`,
-            },
-        })),
-    );
+    .flatMap((app) => {
+        const ssr = app.endsWith('-ssr');
+        return Object.entries(profiles)
+            .filter(([profile]) => !ssr || ssrProfiles.has(profile))
+            .map(([profile, device]) => ({
+                name: `${app}-${profile}`,
+                use: {
+                    ...device,
+                    baseURL: `http://127.0.0.1:${portOf(apps, app)}`,
+                },
+                ...(ssr ? { grep: ssrSpecs } : { testIgnore: 'ssr.spec.ts' }),
+            }));
+    });
 
 export default defineConfig({
     testDir: './specs',

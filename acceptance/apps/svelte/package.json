@@ -4,7 +4,8 @@
     "version": "0.0.0",
     "type": "module",
     "scripts": {
-        "build": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings && vite build"
+        "build": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings && vite build",
+        "build:ssr": "vite build --mode ssr && vite build --mode ssr --ssr src/entry-server.ts && node --experimental-strip-types ../../scripts/ssr-build.ts"
     },
     "dependencies": {
         "@overlapmark/core": "*",

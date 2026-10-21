@@ -4,7 +4,8 @@
     "version": "0.0.0",
     "type": "module",
     "scripts": {
-        "build": "vue-tsc --noEmit && vite build"
+        "build": "vue-tsc --noEmit && vite build",
+        "build:ssr": "vite build --mode ssr && vite build --mode ssr --ssr src/entry-server.ts && node --experimental-strip-types ../../scripts/ssr-build.ts"
     },
     "dependencies": {
         "@overlapmark/core": "*",
@@ -12,6 +13,7 @@
         "vue": "^3.5.0"
     },
     "devDependencies": {
+        "@types/node": "^22.20.5",
         "@vitejs/plugin-vue": "^6.0.10",
         "typescript": "~6.0.3",
         "vite": "^8.3.4",

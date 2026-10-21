@@ -1,6 +1,6 @@
 <script lang="ts">
     import '@overlapmark/core/styles.css';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import type {
         Highlight,
         HoverDetail,
@@ -12,7 +12,9 @@
     import { Highlighter } from '@overlapmark/svelte';
     import fixtures from '../../../fixtures.json';
 
-    const params = Object.fromEntries(new URLSearchParams(location.search));
+    const props: { params: Record<string, string> } = $props();
+    // The page reads its query once, as the other apps' harnesses do.
+    const params = untrack(() => props.params);
 
     const fixture =
         fixtures[(params.fixture ?? 'overlaps') as keyof typeof fixtures];

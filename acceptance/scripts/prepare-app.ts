@@ -58,19 +58,24 @@ export async function prepareApp(
         await cp(source, dest, {
             recursive: true,
             filter: (path) =>
-                !['node_modules', 'dist', 'dist-ssr'].includes(basename(path)),
+                !['node_modules', 'dist', 'dist-ssr', 'dist-server'].includes(
+                    basename(path),
+                ),
         });
     }
     // The apps import the shared fixtures (`../../../fixtures.json` from
-    // src/) and the provenance plugin (`../../scripts/`) by relative path.
-    // `.work/apps/<name>` is as deep as `apps/<app>`, so copies at the same
-    // places under `.work/` keep those paths valid in the work dir.
+    // src/) and the provenance plugin and SSR build (`../../scripts/`) by
+    // relative path. `.work/apps/<name>` is as deep as `apps/<app>`, so
+    // copies at the same places under `.work/` keep those paths valid in the
+    // work dir.
     await mkdir(join(work, 'scripts'), { recursive: true });
     await cp(join(acceptance, 'fixtures.json'), join(work, 'fixtures.json'));
-    await cp(
-        join(acceptance, 'scripts/provenance-plugin.ts'),
-        join(work, 'scripts/provenance-plugin.ts'),
-    );
+    for (const script of ['provenance-plugin.ts', 'ssr-build.ts']) {
+        await cp(
+            join(acceptance, 'scripts', script),
+            join(work, 'scripts', script),
+        );
+    }
 
     const manifestPath = join(dest, 'package.json');
     const manifest: Manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
