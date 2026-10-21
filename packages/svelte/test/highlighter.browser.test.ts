@@ -125,6 +125,20 @@ describe('Highlighter: root element', () => {
         expect(root.getAttribute('aria-label')).toBe('Article body');
     });
 
+    it('keeps its own root class and strategy attribute over those the caller passes', () => {
+        const host = givenMounted(Highlighter, {
+            text: TEXT,
+            highlights: [a],
+            class: 'article',
+            'data-om-strategy': 'depth',
+        });
+
+        const root = host.firstElementChild!;
+
+        expect([...root.classList]).toEqual(['om-root', 'article']);
+        expect(root.getAttribute('data-om-strategy')).toBe('layers');
+    });
+
     it('gives a DOM handler passed as an attribute the DOM event', () => {
         const received: Event[] = [];
         const host = givenMounted(Highlighter, {

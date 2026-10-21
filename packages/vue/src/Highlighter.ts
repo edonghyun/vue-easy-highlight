@@ -26,6 +26,7 @@ import {
     computed,
     defineComponent,
     h,
+    mergeProps,
     onActivated,
     onBeforeUnmount,
     onBeforeUpdate,
@@ -128,6 +129,9 @@ function segmentVNode(
  */
 export const Highlighter = defineComponent({
     name: 'Highlighter',
+    // Merged by hand in the render function: Vue's own fallthrough would let
+    // a caller's `data-om-strategy` override the root attributes core sets.
+    inheritAttrs: false,
     props: {
         /** The source text. Positions are UTF-16 indices. */
         text: { type: String, required: true },
@@ -163,7 +167,7 @@ export const Highlighter = defineComponent({
         hover: (_detail: HoverDetail) => true,
     },
     slots: Object as SlotsType<HighlighterSlots>,
-    setup(props, { emit, slots }) {
+    setup(props, { attrs, emit, slots }) {
         const root = ref<HTMLElement>();
         const segments = computed(() =>
             segmentsOf(props.text, props.highlights),
@@ -220,11 +224,16 @@ export const Highlighter = defineComponent({
                 defaultColor: props.defaultColor,
                 brush: props.brush,
             };
-            const { className, attrs } = rootAttributes(options);
+            const rootSpec = rootAttributes(options);
             rendered = segments.value;
             return h(
                 'div',
-                { ref: root, class: className, ...attrs },
+                // The caller's classes follow `om-root`; core's attributes
+                // come last so the caller's cannot replace them.
+                mergeProps({ class: rootSpec.className }, attrs, {
+                    ref: root,
+                    ...rootSpec.attrs,
+                }),
                 rendered.map((segment) =>
                     segmentVNode(
                         segment,

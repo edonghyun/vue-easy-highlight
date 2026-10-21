@@ -111,6 +111,40 @@ describe('Highlighter: root element', () => {
         expect(root.id).toBe('body-text');
         expect(root.getAttribute('aria-label')).toBe('Article body');
     });
+
+    it('keeps its own root class and strategy attribute over those the caller passes', () => {
+        const host = givenApp(() =>
+            h(Highlighter, {
+                text: TEXT,
+                highlights: [a],
+                class: 'article',
+                'data-om-strategy': 'depth',
+            }),
+        );
+
+        const root = host.firstElementChild!;
+
+        expect([...root.classList].sort()).toEqual(['article', 'om-root']);
+        expect(root.getAttribute('data-om-strategy')).toBe('layers');
+    });
+
+    it('updates an attribute the caller changes after mounting', async () => {
+        const label = ref('Article body');
+        const host = givenApp(() =>
+            h(Highlighter, {
+                text: TEXT,
+                highlights: [a],
+                'aria-label': label.value,
+            }),
+        );
+
+        label.value = 'Summary';
+        await nextTick();
+
+        expect(host.firstElementChild!.getAttribute('aria-label')).toBe(
+            'Summary',
+        );
+    });
 });
 
 describe('Highlighter: decoration slot', () => {

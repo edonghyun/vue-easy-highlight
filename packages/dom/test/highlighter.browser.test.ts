@@ -81,6 +81,18 @@ describe('createHighlighter: rendering', () => {
         expect(el.textContent).toBe(TEXT);
     });
 
+    it('sets its own root class and strategy attribute over those the element had', () => {
+        const el = givenElement();
+        el.className = 'article';
+        el.setAttribute('data-om-strategy', 'depth');
+
+        const h = createHighlighter(el, { text: TEXT, highlights: [a] });
+        onTestFinished(() => h.destroy());
+
+        expect([...el.classList]).toEqual(['article', 'om-root']);
+        expect(el.getAttribute('data-om-strategy')).toBe('layers');
+    });
+
     it('paints highlights translucently with the shipped stylesheet', () => {
         const { el } = givenHighlighter();
 

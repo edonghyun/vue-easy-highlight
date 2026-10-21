@@ -114,6 +114,22 @@ describe('Highlighter: root element', () => {
         expect(root.dataset.testid).toBe('highlighter');
     });
 
+    it('keeps its own root class and strategy attribute over those the caller passes', () => {
+        const { host } = givenRendered(
+            <Highlighter
+                text={TEXT}
+                highlights={[a]}
+                className="article"
+                data-om-strategy="depth"
+            />,
+        );
+
+        const root = host.firstElementChild as HTMLElement;
+
+        expect([...root.classList]).toEqual(['om-root', 'article']);
+        expect(root.getAttribute('data-om-strategy')).toBe('layers');
+    });
+
     it('hands the root div to an object ref', () => {
         const ref = createRef<HTMLDivElement>();
 
