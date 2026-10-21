@@ -12,7 +12,6 @@ export default defineConfig({
     // renderOnServer command), never by the page, so it needs no entry.
     optimizeDeps: { include: ['svelte'] },
     test: {
-        passWithNoTests: true,
         projects: [
             {
                 extends: true,

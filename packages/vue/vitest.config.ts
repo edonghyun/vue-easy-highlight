@@ -14,7 +14,6 @@ export default defineConfig({
     // Pre-bundled up front: discovering them mid-run reloads the test page.
     optimizeDeps: { include: ['vue', 'vue/server-renderer'] },
     test: {
-        passWithNoTests: true,
         projects: [
             {
                 extends: true,

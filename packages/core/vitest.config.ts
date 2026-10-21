@@ -5,7 +5,6 @@ import { workspaceAliases } from '../../vitest.workspace-aliases.ts';
 export default defineConfig({
     resolve: { alias: workspaceAliases },
     test: {
-        passWithNoTests: true,
         projects: [
             {
                 extends: true,

@@ -79,7 +79,7 @@ importers:
   packages/dom:
     dependencies:
       '@overlapmark/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
     devDependencies:
       '@overlapmark/adapter-contract':
@@ -89,7 +89,7 @@ importers:
   packages/react:
     dependencies:
       '@overlapmark/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
     devDependencies:
       '@overlapmark/adapter-contract':
@@ -111,7 +111,7 @@ importers:
   packages/svelte:
     dependencies:
       '@overlapmark/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
     devDependencies:
       '@overlapmark/adapter-contract':
@@ -133,7 +133,7 @@ importers:
   packages/vue:
     dependencies:
       '@overlapmark/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
     devDependencies:
       '@overlapmark/adapter-contract':
