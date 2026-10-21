@@ -52,7 +52,7 @@ hl.on('click', ({ highlights: covering }) =>
 );
 ```
 
-Select text with the mouse, finger or Shift+Arrow keys and a new highlight is added. Overlapping parts show up denser. Clicking (or pressing Enter/Space on a focused highlight) reports every highlight covering that point.
+Select text with the mouse or a finger, or extend a selection with Shift+Arrow keys, and a new highlight is added. Overlapping parts show up denser. Clicking (or pressing Enter/Space on a focused highlight) reports every highlight covering that point.
 
 To add highlights from a search instead of a selection:
 
@@ -193,7 +193,11 @@ Overlap strategies (`strategy` option): `layers` (default) stacks one element pe
 
 The names follow each framework: `on('select', fn)` in `@overlapmark/dom`, `@select` in Vue, `onSelect` in React (`onDblClick` for `dblclick`), `onselect` in Svelte. The detail types (`SelectDetail`, `PointDetail`, `HoverDetail`) come from `@overlapmark/core`.
 
-`select` fires one macrotask after `pointerup`/`keyup` (on touch, after `touchSelectionDelay` ms, default 500, without a selection change). On the keyboard, `keyup` confirms only once no modifier (Shift/Ctrl/Alt/Meta) is held, so a Shift+Arrow run emits a single `select` when Shift is released.
+`select` fires one macrotask after `pointerup`/`keyup` (on touch, after `touchSelectionDelay` ms, default 500, without a selection change). On the keyboard, `keyup` confirms only once no modifier (Shift/Ctrl/Alt/Meta) is held, so a Shift+Arrow run emits a single `select` when Shift is released. Shift+Arrow extends a selection the user already has; in Chrome and Safari, Shift+Arrow from a caret in static text selects nothing.
+
+Touch is verified in the acceptance tests on emulated mobile profiles (Pixel 7 in Chromium, iPhone 15 in WebKit): a tap reports `click` with the covering highlights and no `hover`, in both. A long press that selects text, and the `select` that follows once the selection settles, is verified in Chromium on macOS only, with a real press-and-hold that the browser turns into a selection; Playwright's Chromium on Linux CI runners does not turn an emulated long press into a selection. Automation cannot hold a touch in WebKit, so there that gesture is not tested; nor are the selection handles you drag after a long press.
+
+A left mouse press on a focusable highlight focuses it when the button is released, if the press made no selection (a click), not when it goes down: Chrome would otherwise not start a drag selection on a highlight's first character.
 
 Every hover `enter` is followed by one `leave` for the same `segment` object. Besides the mouse moving away, a `leave` is also emitted when the adapter is destroyed (or the component unmounted) and when an update removes the hovered highlight from under the mouse. Such a programmatic `leave` has no pointer event behind it, so its `event` is `null`. An update that re-renders the hovered segment unchanged (same `start` and highlight ids) emits nothing.
 
@@ -208,8 +212,10 @@ In Vue, render `Highlighter` from [`@overlapmark/vue`](packages/vue) in place of
 
 ## Known limitations
 
-- **Untested peer lower bounds.** `@overlapmark/react` declares React 18 or later, `@overlapmark/vue` Vue 3.3 or later and `@overlapmark/svelte` Svelte 5 or later, but the test suites run on React 19, Vue 3.5 and Svelte 5.57 only; React 18, Vue 3.3–3.4 and earlier Svelte 5 releases are not tested yet.
-- **Chromium only.** The browser tests run in Chromium; Firefox and WebKit are not tested yet.
+- **Peer lower bounds get a reduced test.** `@overlapmark/react` declares React 18 or later, `@overlapmark/vue` Vue 3.3 or later and `@overlapmark/svelte` Svelte 5 or later. The full suites run on React 19, Vue 3.5 and Svelte 5.57. On React 18.3, Vue 3.3 and Svelte 5.0 an app type-checks against the published types and runs the core scenarios (select, click, keyboard activation, update) in Chromium; releases in between are not tested.
+- **Svelte 5.0 needs an older esrap.** `Highlighter.svelte` ships as TypeScript source. Svelte 5.0 accepts any esrap 1.x, and a fresh install picks esrap 1.4, which fails to compile TypeScript in any component (`Not implemented type annotation EmptyStatement`). Pin esrap to 1.2.3 (npm `overrides`, pnpm `pnpm.overrides`), or use a later Svelte.
+- **Verified browsers and devices.** Each app (vanilla, Vue, React and Svelte), installed from the packed tarballs, runs the full acceptance suite in Playwright's desktop Chromium, Firefox and WebKit and in its emulated Pixel 7 (Chromium) and iPhone 15 (WebKit) profiles, on Linux in CI. These are Playwright's engine builds and device emulation, not branded Chrome, Edge or Safari, and no real phone or tablet is tested. The packages' own browser tests run in Chromium only. A long press that selects text is verified only in Chromium's mobile emulation on macOS (see [Events](#events)).
+- **Server rendering is verified on development builds.** The Vue, React and Svelte apps render on the server and hydrate in desktop Chromium, Firefox and WebKit with the frameworks' development builds, which report hydration mismatches. What their production builds do on a mismatch is not tested.
 - **ESM only for the framework adapters.** `@overlapmark/vue`, `@overlapmark/react` and `@overlapmark/svelte` ship ES modules only; `@overlapmark/core` and `@overlapmark/dom` ship both ES modules and CommonJS.
 - **Programmatic hover `leave`.** A `leave` caused by unmounting, destroying or an update, not by the mouse, carries `event: null`. Hiding the component also emits one for a hovered segment: React's `<Activity mode="hidden">` and Vue's `<KeepAlive>` deactivating it.
 - **Vue `data` is untyped.** The Vue `Highlighter` is not generic over `Highlight<T>`, so `data` in its events and slot is `unknown`; cast it where you read it. The React and Svelte components are generic.

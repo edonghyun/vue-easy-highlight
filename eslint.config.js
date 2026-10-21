@@ -13,6 +13,7 @@ export default tseslint.config(
             'node_modules/**',
             'docs/**',
             '.superpowers/**',
+            'acceptance/.work/**',
         ],
     },
     js.configs.recommended,

@@ -151,6 +151,105 @@ describe('attachInteractions: select on release', () => {
         expect(d.end).toBeGreaterThanOrEqual(18);
     });
 
+    // Chromium neither starts a drag selection nor places a caret when the
+    // press lands at the very start of a focusable element's text.
+    it('emits select after a real mouse drag that starts on the first character of a highlight', async () => {
+        const { root, events } = givenInteractiveRoot();
+        const from = charPosition(root, 6);
+        const to = charPosition(root, 18);
+
+        await userEvent.dragAndDrop(
+            page.elementLocator(from.el),
+            page.elementLocator(to.el),
+            {
+                sourcePosition: {
+                    x: from.position.x - 2,
+                    y: from.position.y,
+                },
+                targetPosition: to.position,
+            },
+        );
+
+        await expect.poll(() => selectsOf(events)).toHaveLength(1);
+        const [d] = detailsOf({ events }, 'select');
+        expect(d.start).toBe(6);
+        expect(d.text).toBe(TEXT.slice(d.start, d.end));
+    });
+
+    it('still focuses a highlight a real click lands on', async () => {
+        const { root } = givenInteractiveRoot();
+        const { el, position } = charPosition(root, 6);
+
+        await userEvent.click(el, {
+            position: { x: position.x - 2, y: position.y },
+        });
+
+        expect(document.activeElement).toBe(segmentElement(root, 6));
+        expect(segmentElement(root, 6).getAttribute('tabindex')).toBe('0');
+    });
+
+    // A framework patching the pressed segment in place to unfocusable
+    // removes its tabindex attribute; the release must not put it back.
+    it('leaves a pressed segment unfocusable when it is patched unfocusable before the release', () => {
+        const { root } = givenInteractiveRoot();
+        const pressed = segmentElement(root, 6);
+        pointer('pointerdown', pressed);
+        pressed.removeAttribute('tabindex');
+
+        settle(release);
+
+        expect(pressed.hasAttribute('tabindex')).toBe(false);
+        expect(document.activeElement).not.toBe(pressed);
+    });
+
+    // A right press may open the context menu, after which no pointerup arrives.
+    it('leaves the tabindex of a highlight pressed with the right button untouched', () => {
+        const { root } = givenInteractiveRoot();
+        const pressed = segmentElement(root, 6);
+
+        pointer('pointerdown', pressed, { button: 2 });
+
+        expect(pressed.getAttribute('tabindex')).toBe('0');
+        // Live positive control: a left press on the same highlight lifts it.
+        pointer('pointerdown', pressed, { button: 0 });
+        expect(pressed.getAttribute('tabindex')).not.toBe('0');
+    });
+
+    // On macOS Ctrl+click opens the context menu.
+    it('leaves the tabindex of a highlight pressed with Ctrl held untouched', () => {
+        const { root } = givenInteractiveRoot();
+        const pressed = segmentElement(root, 6);
+
+        pointer('pointerdown', pressed, { button: 0, ctrlKey: true });
+
+        expect(pressed.getAttribute('tabindex')).toBe('0');
+        // Live positive control: the same press without Ctrl lifts it.
+        pointer('pointerdown', pressed, { button: 0 });
+        expect(pressed.getAttribute('tabindex')).not.toBe('0');
+    });
+
+    it('puts the tabindex back when a context menu opens during a press', () => {
+        const { root } = givenInteractiveRoot();
+        const pressed = segmentElement(root, 6);
+        pointer('pointerdown', pressed);
+
+        pressed.dispatchEvent(
+            new MouseEvent('contextmenu', { bubbles: true, cancelable: true }),
+        );
+
+        expect(pressed.getAttribute('tabindex')).toBe('0');
+    });
+
+    it('puts the tabindex back when the window loses focus during a press', () => {
+        const { root } = givenInteractiveRoot();
+        const pressed = segmentElement(root, 6);
+        pointer('pointerdown', pressed);
+
+        window.dispatchEvent(new FocusEvent('blur'));
+
+        expect(pressed.getAttribute('tabindex')).toBe('0');
+    });
+
     it('emits select for the word a double click selects', async () => {
         const { root, events } = givenInteractiveRoot();
         const { el, position } = charPosition(root, 10);

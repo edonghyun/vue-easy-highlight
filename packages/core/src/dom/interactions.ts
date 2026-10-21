@@ -112,11 +112,49 @@ export function attachInteractions<T>(
         confirmSoon();
     };
 
+    // Chromium neither starts a drag selection nor places a caret when a mouse
+    // press on a focusable element lands at the very start of its text. So a
+    // press on a focusable segment lifts its tabindex until the button is
+    // released: the attribute holds LIFTED, which is not an integer and so
+    // makes the element unfocusable. A renderer that patches the segment in
+    // the meantime overwrites or removes that value, and what it rendered
+    // stays; only an untouched LIFTED gets the old value back. A mouse press
+    // on a highlight therefore focuses it on release, when it ends without a
+    // selection (a click), instead of on press. Only a plain left press lifts
+    // it: another button, or Ctrl+click on macOS, may open a context menu,
+    // after which no pointerup arrives. The menu opening, or the window
+    // losing focus, also puts the tabindex back.
+    const LIFTED = 'om-lifted';
+    let lifted: { el: HTMLElement; tabindex: string } | null = null;
+
+    /** Puts the lifted tabindex back; returns the segment when it did. */
+    const putBackTabindex = (): HTMLElement | null => {
+        if (!lifted) return null;
+        const { el, tabindex } = lifted;
+        lifted = null;
+        if (el.getAttribute('tabindex') !== LIFTED) return null;
+        el.setAttribute('tabindex', tabindex);
+        return el;
+    };
+
     const onPointerDown = (e: PointerEvent): void => {
         lastPointerType = e.pointerType;
+        putBackTabindex();
+        if (e.pointerType === 'touch' || e.button !== 0 || e.ctrlKey) return;
+        const el = segmentElementOf(e.target);
+        const tabindex = el?.getAttribute('tabindex');
+        if (!(el instanceof HTMLElement) || tabindex == null) return;
+        lifted = { el, tabindex };
+        el.setAttribute('tabindex', LIFTED);
     };
 
     const onPointerUp = (): void => {
+        const pressed = putBackTabindex();
+        if (
+            pressed?.isConnected &&
+            window.getSelection()?.isCollapsed !== false
+        )
+            pressed.focus({ preventScroll: true });
         // Touch selections are confirmed by the settle timer, not by lifting the finger.
         if (lastPointerType !== 'touch') confirmSoon();
     };
@@ -277,6 +315,9 @@ export function attachInteractions<T>(
     document.addEventListener('selectionchange', onSelectionChange);
     document.addEventListener('pointerdown', onPointerDown, true);
     document.addEventListener('pointerup', onPointerUp, true);
+    document.addEventListener('pointercancel', putBackTabindex, true);
+    document.addEventListener('contextmenu', putBackTabindex, true);
+    window.addEventListener('blur', putBackTabindex);
     document.addEventListener('keyup', onKeyUp, true);
     root.addEventListener('click', onClick);
     root.addEventListener('dblclick', onDblclick);
@@ -290,12 +331,16 @@ export function attachInteractions<T>(
         document.removeEventListener('selectionchange', onSelectionChange);
         document.removeEventListener('pointerdown', onPointerDown, true);
         document.removeEventListener('pointerup', onPointerUp, true);
+        document.removeEventListener('pointercancel', putBackTabindex, true);
+        document.removeEventListener('contextmenu', putBackTabindex, true);
+        window.removeEventListener('blur', putBackTabindex);
         document.removeEventListener('keyup', onKeyUp, true);
         root.removeEventListener('click', onClick);
         root.removeEventListener('dblclick', onDblclick);
         root.removeEventListener('keydown', onKeyDown);
         root.removeEventListener('pointerover', onPointerOver);
         root.removeEventListener('pointerout', onPointerOut);
+        putBackTabindex();
         pending = false;
         last = null;
         // The pointer can no longer be tracked, so the hovered segment ends

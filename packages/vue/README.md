@@ -6,7 +6,29 @@ Vue 3 component for overlapmark: render overlapping text highlights and listen t
 npm install @overlapmark/vue @overlapmark/core
 ```
 
-Requires Vue 3.3 or later. The tests run on Vue 3.5; 3.3 and 3.4 are not tested yet.
+Requires Vue 3.3 or later. The tests run on Vue 3.5; on Vue 3.3 the type declarations are checked and the core scenarios run, and 3.4 is not tested.
+
+```vue
+<script setup lang="ts">
+import '@overlapmark/core/styles.css';
+import { ref } from 'vue';
+import type { Highlight, SelectDetail } from '@overlapmark/core';
+import { Highlighter } from '@overlapmark/vue';
+
+const text = 'Overlapping highlights get darker where they overlap.';
+const highlights = ref<Highlight[]>([{ id: 'a', start: 0, end: 20 }]);
+const add = ({ start, end }: SelectDetail) =>
+    highlights.value.push({ id: crypto.randomUUID(), start, end });
+</script>
+
+<template>
+    <Highlighter :text="text" :highlights="highlights" @select="add" />
+</template>
+```
+
+## More
+
+A class on the root, and handlers for clicks:
 
 ```vue
 <script setup lang="ts">

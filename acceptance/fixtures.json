@@ -1,0 +1,28 @@
+{
+    "overlaps": {
+        "text": "Overlapping highlights get darker where they overlap.",
+        "highlights": [
+            { "id": "a", "start": 0, "end": 30 },
+            { "id": "b", "start": 12, "end": 40 },
+            { "id": "c", "start": 18, "end": 26 }
+        ]
+    },
+    "unicode": {
+        "text": "문장 분석 🧪 은 겹친 👩‍💻 하이라이트를 봅니다.",
+        "highlights": [
+            { "id": "k", "start": 0, "end": 5 },
+            { "id": "e", "start": 6, "end": 8 }
+        ]
+    },
+    "wrap": {
+        "text": "One analysis may cover a sentence that wraps across several lines, and another may cover only a few words inside it, so both must stay on their characters at any width.",
+        "highlights": [
+            { "id": "long", "start": 0, "end": 120 },
+            { "id": "short", "start": 40, "end": 60 }
+        ]
+    },
+    "whitespace": {
+        "text": "Two  spaces\nand a newline   stay counted.",
+        "highlights": [{ "id": "w", "start": 5, "end": 16 }]
+    }
+}
