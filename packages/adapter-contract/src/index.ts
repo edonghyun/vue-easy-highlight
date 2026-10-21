@@ -447,6 +447,48 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             for (const el of root.querySelectorAll('[data-om-skip]'))
                 expect(el.closest('[aria-hidden="true"]')).not.toBeNull();
         });
+
+        it('renders the decorations of a decoration function given in place of the first', async () => {
+            const adapter = await givenDecoratedAdapter(decorated);
+            const depthOf = (segment: Segment): string => `×${segment.depth}`;
+
+            await adapter.update({ decoration: depthOf });
+
+            expect(serializeRoot(adapter.root)).toEqual(
+                expectedTree({ ...decorated, decoration: depthOf }),
+            );
+            expect(
+                [...adapter.root.querySelectorAll('[data-om-skip]')].map(
+                    (el) => el.textContent,
+                ),
+            ).toEqual(['×1', '×2', '×1']);
+        });
+
+        it('keeps the selection across an update of the decorated tree', async () => {
+            const adapter = await givenDecoratedAdapter(decorated);
+            setSelection(createRangeFromOffsets(adapter.root, 3, 20)!);
+
+            await adapter.update({ highlights: [a, b, c] });
+
+            expect(getSelectionOffsets(adapter.root)).toEqual({
+                start: 3,
+                end: 20,
+            });
+        });
+
+        it('returns focus to the same segment after an update of the decorated tree', async () => {
+            const adapter = await givenDecoratedAdapter(decorated);
+            segmentElement(adapter.root, 6).focus();
+            expect(document.activeElement).toBe(
+                segmentElement(adapter.root, 6),
+            );
+
+            await adapter.update({ highlights: [a, b, c] });
+
+            expect(document.activeElement).toBe(
+                segmentElement(adapter.root, 6),
+            );
+        });
     });
 
     describe(`${name} — event payloads (§6)`, () => {
