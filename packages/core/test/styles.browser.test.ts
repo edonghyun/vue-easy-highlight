@@ -26,8 +26,19 @@ const three = [
     { id: '3', start: 10, end: 14 },
 ];
 
+const userStyles: HTMLStyleElement[] = [];
+/** Adds a user stylesheet before (`first`) or after every other stylesheet in <head>. */
+function userCss(css: string, position: 'first' | 'last'): void {
+    const style = document.createElement('style');
+    style.textContent = css;
+    if (position === 'first') document.head.prepend(style);
+    else document.head.append(style);
+    userStyles.push(style);
+}
+
 afterEach(() => {
     document.body.textContent = '';
+    while (userStyles.length) userStyles.pop()!.remove();
 });
 
 describe('default stylesheet', () => {
@@ -69,6 +80,50 @@ describe('default stylesheet', () => {
         const alone = mount('abcdef', [{ id: 'c', start: 2, end: 4 }]).querySelector('mark[data-id="c"]')!;
         expect(bg(inner)).toBe(bg(alone));
         expect(bg(inner)).not.toBe(bg(nested.querySelector('mark[data-id="a"]')!));
+    });
+
+    it('theme variables set on an ancestor of the root take effect', () => {
+        const red = mount('abc', [{ id: 'r', start: 0, end: 3, color: '#ff0000' }]).querySelector('mark')!;
+        const plain = mount('abc', [{ id: 'p', start: 0, end: 3 }]).querySelector('mark')!;
+        const wrapper = document.createElement('section');
+        wrapper.style.setProperty('--om-default-color', '#ff0000');
+        const themed = mount('abc', [{ id: 't', start: 0, end: 3 }]);
+        wrapper.appendChild(themed);
+        document.body.appendChild(wrapper);
+        const mark = themed.querySelector('mark')!;
+        expect(bg(mark)).toBe(bg(red));
+        expect(bg(mark)).not.toBe(bg(plain));
+    });
+
+    it('an ancestor --om-alpha override takes effect', () => {
+        const base = mount('abc', [{ id: 'p', start: 0, end: 3 }]).querySelector('mark')!;
+        const wrapper = document.createElement('section');
+        wrapper.style.setProperty('--om-alpha', '100%');
+        const root = mount('abc', [{ id: 'q', start: 0, end: 3 }]);
+        wrapper.appendChild(root);
+        document.body.appendChild(wrapper);
+        expect(rgba(bg(root.querySelector('mark')!))[3]).toBe(1);
+        expect(rgba(bg(base))[3]).toBeLessThan(1);
+    });
+
+    for (const position of ['first', 'last'] as const) {
+        it(`a user class from highlight.className wins over library rules (user CSS ${position})`, () => {
+            userCss('.memo { background-color: rgb(255, 192, 203); } .tint { --om-color: #00ff00; }', position);
+            const root = mount('abcdef', [
+                { id: 'm', start: 0, end: 3, className: 'memo' },
+                { id: 't', start: 3, end: 6, className: 'tint' },
+            ]);
+            expect(bg(root.querySelector('mark[data-id="m"]')!)).toBe('rgb(255, 192, 203)');
+            const green = mount('abc', [{ id: 'g', start: 0, end: 3, color: '#00ff00' }]).querySelector('mark')!;
+            expect(bg(root.querySelector('mark[data-id="t"]')!)).toBe(bg(green));
+        });
+    }
+
+    it('inline highlight.color still wins over a user --om-color class', () => {
+        userCss('.tint { --om-color: #00ff00; }', 'last');
+        const root = mount('abc', [{ id: 'x', start: 0, end: 3, color: '#ff0000', className: 'tint' }]);
+        const red = mount('abc', [{ id: 'r', start: 0, end: 3, color: '#ff0000' }]).querySelector('mark')!;
+        expect(bg(root.querySelector('mark')!)).toBe(bg(red));
     });
 
     it('marker preset paints --om-brush instead of a background color', () => {

@@ -70,9 +70,9 @@ A runnable playground lives in [`examples/vanilla`](examples/vanilla): `pnpm --f
 
 Three levels, from least to most control:
 
-1. **Theme with CSS variables.** Set them on `.om-root` or any ancestor (values shown are the defaults).
+1. **Theme with CSS variables.** Set them on `.om-root` or any ancestor, such as `:root` (values shown are the defaults; the stylesheet only uses them as `var()` fallbacks, so an ancestor value is never overridden).
     ```css
-    .om-root {
+    :root {
         --om-default-color: #ddd6ff; /* color of highlights that have no `color` */
         --om-depth-step: 12%; /* how much darker per overlap level (depth strategy) */
         --om-max-depth: 6; /* depth at which darkening stops */
@@ -84,7 +84,7 @@ Three levels, from least to most control:
     ```ts
     { id: 'note', start: 0, end: 12, color: '#ffd6d6', className: 'om-style-underline' }
     ```
-    You can also write your own CSS against the DOM contract (`.om-hl`, `[data-depth]`, `[data-ids]`, `--om-level`); see the package README.
+    You can also write your own CSS against the DOM contract (`.om-hl`, `[data-depth]`, `[data-ids]`, `--om-level`); see the package README. Every library selector is wrapped in `:where()` (zero specificity), so a plain class rule such as `.memo { background-color: pink }` or `.memo { --om-color: pink }` wins regardless of stylesheet order.
 3. **Full control.** Skip `@overlapmark/core/styles.css` and style the DOM contract yourself. The library never injects CSS.
 
 Overlap strategies (`strategy` option): `layers` (default) stacks one element per highlight; `depth` renders one element per segment and darkens it with the overlap count.

@@ -67,6 +67,6 @@ Replaces the content of `el` with the rendered text and returns a `Highlighter`.
 | CSS variable | `--om-color`, `--om-brush`, `--om-level`, `--om-depth`                  | Set by the library per element                                       |
 | CSS variable | `--om-default-color`, `--om-depth-step`, `--om-max-depth`, `--om-alpha` | Theme variables you can set on `.om-root` or an ancestor             |
 
-Setting `--om-color` on the root has no effect (it is reset on each `.om-hl`); use `--om-default-color`.
+Setting `--om-color` on the root has no effect (it is reset on each `.om-hl`); use `--om-default-color`. All rules in `styles.css` have zero specificity (`:where()`), so your own class rules always win.
 
 Vue, React and Svelte adapters are coming soon.

@@ -63,4 +63,4 @@ Browser-only helpers.
 | CSS variable | `--om-depth-step`, `--om-max-depth`                     | Theme: darkening per level and its cap (depth strategy)         |
 | CSS variable | `--om-alpha`                                            | Theme: layer opacity (layers strategy)                          |
 
-Set theme variables on `.om-root` or an ancestor. Setting `--om-color` on the root has no effect.
+Set theme variables on `.om-root` or any ancestor; the stylesheet only reads them through `var()` fallbacks. Every rule in `styles.css` is wrapped in `:where()` (zero specificity), so your own class rules (for example from `highlight.className`) always win. Setting `--om-color` on the root has no effect, but setting it in a per-highlight class does.
