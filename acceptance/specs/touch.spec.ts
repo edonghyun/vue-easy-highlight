@@ -43,7 +43,9 @@ test.describe('Tapping a highlight', () => {
 // Only Chromium turns a long press into a native selection under automation:
 // `Input.synthesizeTapGesture` with a duration is a real touch press-and-hold,
 // and the browser selects the word under it. WebKit's `page.touchscreen`
-// can only tap, so no long press is tested there.
+// can only tap, so no long press is tested there. Chromium on Linux selects
+// nothing on a long press (nor opens a context menu), so CI runs this test in
+// a macOS leg.
 test.describe('Long-pressing text', () => {
     test('reports select once the selection settles', async ({
         page,
@@ -53,6 +55,10 @@ test.describe('Long-pressing text', () => {
         test.skip(
             !isMobile || browserName !== 'chromium',
             'only Chromium selects text on a long press under automation',
+        );
+        test.skip(
+            process.platform === 'linux',
+            'Chromium on Linux does not select text on a long press',
         );
         await givenHarness(page);
         const { x, y } = await charCentre(page, 15);

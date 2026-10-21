@@ -23,8 +23,8 @@ jobs:
             - run: pnpm check:readme
 
     acceptance:
-        name: acceptance (${{ matrix.profile }})
-        runs-on: ubuntu-latest
+        name: acceptance (${{ matrix.profile }}${{ matrix.os && format(', {0}', matrix.os) || '' }})
+        runs-on: ${{ matrix.os || 'ubuntu-latest' }}
         timeout-minutes: 20
         strategy:
             fail-fast: false
@@ -48,6 +48,13 @@ jobs:
                     - profile: mobile-safari
                       engine: webkit
                       apps: vanilla,vue-client,react-client,svelte-client
+                    # Chromium on Linux selects nothing on a long press, so
+                    # the long-press test runs on macOS.
+                    - profile: mobile-chrome
+                      engine: chromium
+                      apps: vanilla,vue-client,react-client,svelte-client
+                      os: macos-latest
+                      grep: Long-pressing
         steps:
             - uses: actions/checkout@v7
             - uses: actions/setup-node@v7
@@ -65,11 +72,11 @@ jobs:
             - run: pnpm acceptance:build
               env:
                   ACCEPTANCE_APPS: ${{ matrix.apps }}
-            - run: pnpm acceptance --project "*-${{ matrix.profile }}"
+            - run: pnpm acceptance --project "*-${{ matrix.profile }}" ${{ matrix.grep && format('--grep "{0}"', matrix.grep) || '' }}
             - if: failure()
               uses: actions/upload-artifact@v7
               with:
-                  name: playwright-report-${{ matrix.profile }}
+                  name: playwright-report-${{ matrix.profile }}-${{ matrix.os || 'ubuntu-latest' }}
                   path: |
                       acceptance/.work/report
                       acceptance/.work/test-results
