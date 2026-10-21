@@ -1152,6 +1152,30 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             expect(adapter.root.contains(document.activeElement)).toBe(false);
         });
 
+        // Core lifts a pressed segment's tabindex until the mouse button is
+        // released; what the update renders in the meantime wins.
+        it('leaves a segment unfocusable when an update during a mouse press makes it unfocusable', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            pointer('pointerdown', segmentElement(adapter.root, 6));
+            await adapter.update({ focusable: false });
+
+            settle(release);
+
+            expect(adapter.root.querySelectorAll('[tabindex]')).toHaveLength(0);
+        });
+
+        it('keeps a segment focusable when an update during a mouse press leaves it focusable', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            pointer('pointerdown', segmentElement(adapter.root, 6));
+            await adapter.update({ highlights: [a, b, c] });
+
+            settle(release);
+
+            expect(
+                segmentElement(adapter.root, 6).getAttribute('tabindex'),
+            ).toBe('0');
+        });
+
         it('focuses nothing in the root when the segment covering the focused offset is not focusable', async () => {
             const adapter = await givenAdapter(partialOverlap);
             segmentElement(adapter.root, 6).focus();

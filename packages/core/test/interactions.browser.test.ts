@@ -188,6 +188,20 @@ describe('attachInteractions: select on release', () => {
         expect(segmentElement(root, 6).getAttribute('tabindex')).toBe('0');
     });
 
+    // A framework patching the pressed segment in place to unfocusable
+    // removes its tabindex attribute; the release must not put it back.
+    it('leaves a pressed segment unfocusable when it is patched unfocusable before the release', () => {
+        const { root } = givenInteractiveRoot();
+        const pressed = segmentElement(root, 6);
+        pointer('pointerdown', pressed);
+        pressed.removeAttribute('tabindex');
+
+        settle(release);
+
+        expect(pressed.hasAttribute('tabindex')).toBe(false);
+        expect(document.activeElement).not.toBe(pressed);
+    });
+
     it('emits select for the word a double click selects', async () => {
         const { root, events } = givenInteractiveRoot();
         const { el, position } = charPosition(root, 10);
