@@ -48,8 +48,9 @@ jobs:
                     - profile: mobile-safari
                       engine: webkit
                       apps: vanilla,vue-client,react-client,svelte-client
-                    # Chromium on Linux selects nothing on a long press, so
-                    # the long-press test runs on macOS.
+                    # Playwright's Chromium on Linux CI runners does not turn
+                    # an emulated long press into a selection, so the
+                    # long-press test runs on macOS.
                     - profile: mobile-chrome
                       engine: chromium
                       apps: vanilla,vue-client,react-client,svelte-client
