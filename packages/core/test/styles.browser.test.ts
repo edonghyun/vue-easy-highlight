@@ -47,7 +47,7 @@ function userCss(css: string, position: 'first' | 'last'): void {
 }
 
 /** Mounts a root inside an ancestor that sets the given CSS variables. */
-function mountWithAncestorVars(
+function givenRootUnderAncestorVars(
     vars: Record<string, string>,
     highlights: Highlight[],
 ): HTMLElement {
@@ -132,7 +132,7 @@ describe('default stylesheet', () => {
         const plain = markOf(mount('abc', [{ id: 'p', start: 0, end: 3 }]));
 
         const themed = markOf(
-            mountWithAncestorVars({ '--om-default-color': '#ff0000' }, [
+            givenRootUnderAncestorVars({ '--om-default-color': '#ff0000' }, [
                 { id: 't', start: 0, end: 3 },
             ]),
         );
@@ -145,7 +145,7 @@ describe('default stylesheet', () => {
         const base = markOf(mount('abc', [{ id: 'p', start: 0, end: 3 }]));
 
         const overridden = markOf(
-            mountWithAncestorVars({ '--om-alpha': '100%' }, [
+            givenRootUnderAncestorVars({ '--om-alpha': '100%' }, [
                 { id: 'q', start: 0, end: 3 },
             ]),
         );

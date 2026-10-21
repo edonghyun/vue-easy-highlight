@@ -30,7 +30,10 @@ const NOTE_OFFSET = 15;
 const note = { id: 'b', text: NOTE };
 
 function givenDecoratedRoot(): HTMLElement {
-    return mount(text, hl, { decorate: note });
+    const root = mount(text, hl, { decorate: note });
+    // Precondition: the decoration exists, so tests of its absence are meaningful.
+    expect(root.querySelector('[data-om-skip]')).not.toBeNull();
+    return root;
 }
 
 function givenForeignParagraph(): HTMLElement {
@@ -243,7 +246,7 @@ describe('getSelectionOffsets', () => {
         });
     });
 
-    describe('with a data-om-skip decoration', () => {
+    describe('with a data-om-skip decoration at offset 15', () => {
         it('ignores the decoration text when mapping a selection', () => {
             const root = givenDecoratedRoot();
 
@@ -301,30 +304,34 @@ describe('getSelectionOffsets', () => {
 });
 
 describe('createRangeFromOffsets', () => {
+    const spanText = (start: number, end: number) => text.slice(start, end);
+    // A range that spans the decoration's position also spans its text.
+    const spanTextWithNote = (start: number, end: number) =>
+        start < NOTE_OFFSET && end > NOTE_OFFSET
+            ? text.slice(start, NOTE_OFFSET) +
+              NOTE +
+              text.slice(NOTE_OFFSET, end)
+            : text.slice(start, end);
     const variants = [
-        { name: 'default rendering', options: {} },
-        { name: 'depth strategy', options: { strategy: 'depth' as const } },
-        { name: 'a data-om-skip decoration', options: { decorate: note } },
+        { name: 'default rendering', options: {}, expectedText: spanText },
+        {
+            name: 'depth strategy',
+            options: { strategy: 'depth' as const },
+            expectedText: spanText,
+        },
+        {
+            name: 'a data-om-skip decoration',
+            options: { decorate: note },
+            expectedText: spanTextWithNote,
+        },
     ];
 
-    describe.each(variants)('with $name', ({ options }) => {
+    describe.each(variants)('with $name', ({ options, expectedText }) => {
         const ranges = validRanges(text);
-
-        // A range that spans the decoration's position also spans its text.
-        function expectedText(start: number, end: number): string {
-            const crossesNote =
-                'decorate' in options &&
-                start < NOTE_OFFSET &&
-                end > NOTE_OFFSET;
-            return crossesNote
-                ? text.slice(start, NOTE_OFFSET) +
-                      NOTE +
-                      text.slice(NOTE_OFFSET, end)
-                : text.slice(start, end);
-        }
 
         it('creates a range whose text matches the source slice for every start/end pair', () => {
             const root = mount(text, hl, options);
+            expect(ranges.length).toBeGreaterThan(0);
 
             for (const [start, end] of ranges) {
                 const range = createRangeFromOffsets(root, start, end)!;
@@ -336,6 +343,7 @@ describe('createRangeFromOffsets', () => {
 
         it('maps the selected range back to the same offsets for every start/end pair', () => {
             const root = mount(text, hl, options);
+            expect(ranges.length).toBeGreaterThan(0);
 
             for (const [start, end] of ranges) {
                 setSelection(createRangeFromOffsets(root, start, end)!);
@@ -347,7 +355,7 @@ describe('createRangeFromOffsets', () => {
         });
     });
 
-    describe('with a data-om-skip decoration', () => {
+    describe('with a data-om-skip decoration at offset 15', () => {
         it('excludes the decoration text from a range that ends where it sits', () => {
             const root = givenDecoratedRoot();
 
@@ -454,6 +462,7 @@ describe('getOffsetFromPoint', () => {
             delete (document as { caretPositionFromPoint?: unknown })
                 .caretPositionFromPoint;
         });
+        expect(document.caretPositionFromPoint).toBeUndefined();
 
         expect(getOffsetFromPoint(root, x, y)).toBe(10);
     });
