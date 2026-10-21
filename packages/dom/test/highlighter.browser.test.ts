@@ -1,9 +1,10 @@
 // createHighlighter behaviors outside the shared adapter contract, which
 // highlighter.contract.browser.test.ts runs on it: replacing existing content,
-// the shipped stylesheet, getSegments(), unsubscribing, what update() keeps
-// when it re-renders everything, and destroy(). Nothing here waits a fixed
-// time: tests await the real selectionchange or the mutation observers a
-// re-render notifies, and the touch delay runs on fake timers.
+// the shipped stylesheet, Node and null decorations, getSegments(),
+// unsubscribing, what update() keeps when it re-renders everything, and
+// destroy(). Nothing here waits a fixed time: tests await the real
+// selectionchange or the mutation observers a re-render notifies, and the
+// touch delay runs on fake timers.
 import {
     TEXT,
     a,
@@ -89,6 +90,47 @@ describe('createHighlighter: rendering', () => {
         const alpha = alphaOf(getComputedStyle(mark).backgroundColor);
         expect(alpha).toBeGreaterThan(0);
         expect(alpha).toBeLessThan(1);
+    });
+});
+
+// The adapter contract covers decorations given as text; these cover the
+// other results decorate() may return.
+describe('createHighlighter: decorate', () => {
+    it('places a Node returned by decorate inside the decoration container', () => {
+        const { el } = givenHighlighter({
+            decorate: (segment) => {
+                const badge = document.createElement('b');
+                badge.textContent = String(segment.depth);
+                return badge;
+            },
+        });
+
+        const containers = [...el.querySelectorAll('[data-om-skip]')];
+
+        expect(containers.map((c) => c.innerHTML)).toEqual([
+            '<b>1</b>',
+            '<b>2</b>',
+            '<b>1</b>',
+        ]);
+        expect(containers.map((c) => c.getAttribute('aria-hidden'))).toEqual([
+            'true',
+            'true',
+            'true',
+        ]);
+    });
+
+    it('renders no decoration container for a segment decorate returns null for', () => {
+        const { el } = givenHighlighter({
+            decorate: (segment) => (segment.depth > 1 ? 'overlap' : null),
+        });
+
+        const containers = [...el.querySelectorAll('[data-om-skip]')];
+
+        // Live positive control: the overlapping segment is decorated.
+        expect(containers.map((c) => c.textContent)).toEqual(['overlap']);
+        expect(
+            segmentElement(el, 0).querySelector('[data-om-skip]'),
+        ).toBeNull();
     });
 });
 

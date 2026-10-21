@@ -28,6 +28,24 @@ export interface HighlighterOptions<T = unknown> extends RenderOptions {
      * selection already waiting restarts its wait with the new value.
      */
     touchSelectionDelay?: number;
+    /**
+     * Decoration for each highlighted segment (style tier 3), such as a badge
+     * or a tooltip trigger. The result is placed in
+     * `<span data-om-skip aria-hidden="true">` right after the text of the
+     * segment's innermost element, so it never counts toward offsets and is
+     * hidden from assistive technology. Return `null` for no decoration.
+     * Called on every render, so return a new Node each time.
+     */
+    decorate?: (segment: Segment<T>) => Node | string | null;
+}
+
+/** The decoration container of the DOM contract. */
+function decorationOf(content: Node | string): HTMLElement {
+    const span = document.createElement('span');
+    span.setAttribute('data-om-skip', '');
+    span.setAttribute('aria-hidden', 'true');
+    span.append(content);
+    return span;
 }
 
 type EventMap<T> = {
@@ -96,6 +114,9 @@ export function createHighlighter<T>(
                 parent = node;
             }
             parent.appendChild(document.createTextNode(seg.text));
+            const decoration = seg.depth > 0 ? opts.decorate?.(seg) : null;
+            if (decoration != null)
+                parent.appendChild(decorationOf(decoration));
         }
         el.replaceChildren(frag);
     };

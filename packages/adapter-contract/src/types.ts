@@ -2,6 +2,7 @@ import type {
     Highlight,
     HoverDetail,
     PointDetail,
+    Segment,
     SelectDetail,
     Strategy,
 } from '@overlapmark/core';
@@ -14,6 +15,13 @@ export interface ContractProps {
     focusable?: boolean;
     minSelectionLength?: number;
     touchSelectionDelay?: number;
+    /**
+     * Decoration text for each highlighted segment (style tier 3). The
+     * factory maps it onto the adapter's decoration API; the adapter renders
+     * it as `<span data-om-skip aria-hidden="true">text</span>` right after
+     * the text of the segment's innermost element. Plain segments get none.
+     */
+    decoration?: (segment: Segment) => string;
 }
 
 export type AdapterEvent =

@@ -3,7 +3,7 @@
 import { setSelection } from '@overlapmark/adapter-contract';
 import { onTestFinished } from 'vitest';
 import { computeSegments, rootAttributes, segmentElements } from '../../src';
-import type { Highlight, RenderOptions } from '../../src';
+import type { Highlight, RenderOptions, Segment } from '../../src';
 import { createRangeFromOffsets } from '../../src/dom';
 
 export interface MountOptions extends RenderOptions {
@@ -28,15 +28,22 @@ export function givenInDocument<T extends Node>(node: T): T {
     return node;
 }
 
+export interface RenderIntoOptions extends RenderOptions {
+    /** Decoration text for each highlighted segment, as in the adapter contract. */
+    decoration?: (segment: Segment) => string;
+}
+
 /**
  * Renders `text` with `highlights` into `root` from the core render model,
- * replacing its children and setting the root class and attributes.
+ * replacing its children and setting the root class and attributes. With
+ * `decoration`, each highlighted segment's innermost element ends with
+ * `<span data-om-skip aria-hidden="true">{decoration}</span>`.
  */
 export function renderInto(
     root: HTMLElement,
     text: string,
     highlights: readonly Highlight[],
-    options: RenderOptions = {},
+    options: RenderIntoOptions = {},
 ): void {
     const r = rootAttributes(options);
     root.classList.add(r.className);
@@ -55,8 +62,18 @@ export function renderInto(
             parent = el;
         }
         parent.appendChild(document.createTextNode(seg.text));
+        if (options.decoration && seg.depth > 0)
+            parent.appendChild(decorationOf(options.decoration(seg)));
     }
     root.replaceChildren(frag);
+}
+
+function decorationOf(text: string): HTMLElement {
+    const deco = document.createElement('span');
+    deco.setAttribute('data-om-skip', '');
+    deco.setAttribute('aria-hidden', 'true');
+    deco.textContent = text;
+    return deco;
 }
 
 export function givenRenderedRoot(
@@ -73,11 +90,7 @@ export function givenRenderedRoot(
             throw new Error(
                 `givenRenderedRoot: decorate needs a highlight with id "${decorate.id}"`,
             );
-        const deco = document.createElement('span');
-        deco.setAttribute('data-om-skip', '');
-        deco.setAttribute('aria-hidden', 'true');
-        deco.textContent = decorate.text;
-        target.appendChild(deco);
+        target.appendChild(decorationOf(decorate.text));
     }
     if (before !== undefined) givenInDocument(document.createTextNode(before));
     givenInDocument(root);

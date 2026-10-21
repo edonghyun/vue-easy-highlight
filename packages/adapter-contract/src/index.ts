@@ -13,6 +13,7 @@
 import type {
     HoverDetail,
     PointDetail,
+    Segment,
     SelectDetail,
     Strategy,
 } from '@overlapmark/core';
@@ -301,6 +302,90 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 });
             },
         );
+    });
+
+    describe(`${name} — decorations (style tier 3)`, () => {
+        /** Text that would shift every later offset if it were counted. */
+        const decoration = (segment: Segment): string =>
+            `[${segment.highlights.map((h) => h.id).join('+')}]`;
+        const decorated = { ...partialOverlap, decoration };
+
+        /** Mounts `props` and checks the precondition: one decoration per highlighted segment. */
+        async function givenDecoratedAdapter(
+            props: ContractProps,
+        ): Promise<ContractAdapter> {
+            const adapter = await givenAdapter(props);
+            expect(
+                [...adapter.root.querySelectorAll('[data-om-skip]')].map(
+                    (el) => el.textContent,
+                ),
+            ).toEqual(['[a]', '[a+b]', '[b]']);
+            return adapter;
+        }
+
+        describe.each(strategies)(
+            'with the $strategy strategy',
+            ({ strategy }) => {
+                const props = { ...decorated, strategy };
+
+                it('renders each decoration after the text of the innermost element of its highlighted segment', async () => {
+                    const { root } = await givenAdapter(props);
+
+                    expect(serializeRoot(root)).toEqual(expectedTree(props));
+                });
+
+                it('gives getTextLength the source text length', async () => {
+                    const { root } = await givenDecoratedAdapter(props);
+
+                    expect(getTextLength(root)).toBe(TEXT.length);
+                });
+
+                // Offsets only: a range across a decoration contains its text,
+                // so Selection#toString includes it.
+                it('maps the selected range back to the same offsets for every start/end pair', async () => {
+                    const { root } = await givenDecoratedAdapter(props);
+                    const ranges = codePointRanges(TEXT);
+
+                    for (const [start, end] of ranges) {
+                        setSelection(createRangeFromOffsets(root, start, end)!);
+                        expect(
+                            getSelectionOffsets(root),
+                            `${start}..${end}`,
+                        ).toEqual({ start, end });
+                    }
+                });
+            },
+        );
+
+        it('emits select text from the source text, without decoration text', async () => {
+            const adapter = await givenDecoratedAdapter(decorated);
+            await selectAndWait(adapter.root, 3, 20);
+
+            release();
+
+            await expect
+                .poll(() => eventsOf(adapter, 'select'))
+                .toEqual([selectEvent(3, 20, [a, b])]);
+        });
+
+        // Character 16 follows the "[a+b]" decoration at the end of [6,15).
+        it('reports the offset of the clicked character, not counting decoration text', async () => {
+            const adapter = await givenDecoratedAdapter(decorated);
+            const { el, position } = charPosition(adapter.root, 16);
+
+            await userEvent.click(el, { position });
+
+            expect(detailsOf(adapter, 'click').map((d) => d.offset)).toEqual([
+                16,
+            ]);
+        });
+
+        it('hides every decoration from assistive technology', async () => {
+            const { root } = await givenDecoratedAdapter(decorated);
+
+            for (const el of root.querySelectorAll('[data-om-skip]'))
+                expect(el.closest('[aria-hidden="true"]')).not.toBeNull();
+        });
     });
 
     describe(`${name} — event payloads (§6)`, () => {
