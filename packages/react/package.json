@@ -1,0 +1,40 @@
+{
+    "name": "@overlapmark/react",
+    "version": "0.0.0",
+    "description": "React component for overlapping text highlights",
+    "license": "MIT",
+    "author": "Donghyun Lee",
+    "type": "module",
+    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./package.json": "./package.json"
+    },
+    "dependencies": {
+        "@overlapmark/core": "workspace:*"
+    },
+    "peerDependencies": {
+        "react": ">=18",
+        "react-dom": ">=18"
+    },
+    "scripts": {
+        "build": "tsup",
+        "test": "vitest run --project node --project browser",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@overlapmark/adapter-contract": "workspace:*",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "react": "^19.3.1",
+        "react-dom": "^19.3.1"
+    }
+}
