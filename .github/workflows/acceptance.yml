@@ -1,0 +1,76 @@
+name: Acceptance
+
+on:
+    pull_request:
+    push:
+        branches: [main]
+
+permissions:
+    contents: read
+
+jobs:
+    packaging:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 22.22.0
+            - run: corepack enable
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm check:packages
+            - run: pnpm check:readme
+
+    acceptance:
+        name: acceptance (${{ matrix.profile }})
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        strategy:
+            fail-fast: false
+            matrix:
+                # `apps` is what each leg builds (ACCEPTANCE_APPS): the `ssr`
+                # variant runs on the desktop engines and the `floor` variant
+                # in Chromium only, so the other legs skip building them.
+                include:
+                    - profile: chromium
+                      engine: chromium
+                      apps: vanilla,vue,react,svelte
+                    - profile: firefox
+                      engine: firefox
+                      apps: vanilla,vue-client,vue-ssr,react-client,react-ssr,svelte-client,svelte-ssr
+                    - profile: webkit
+                      engine: webkit
+                      apps: vanilla,vue-client,vue-ssr,react-client,react-ssr,svelte-client,svelte-ssr
+                    - profile: mobile-chrome
+                      engine: chromium
+                      apps: vanilla,vue-client,react-client,svelte-client
+                    - profile: mobile-safari
+                      engine: webkit
+                      apps: vanilla,vue-client,react-client,svelte-client
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 22.22.0
+            - run: corepack enable
+            - run: pnpm install --frozen-lockfile
+            # The apps install their tarballs with npm and have no lockfile.
+            - uses: actions/cache@v6
+              with:
+                  path: ~/.npm
+                  key: npm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'acceptance/apps/*/package.json') }}
+                  restore-keys: npm-${{ runner.os }}-
+            - run: pnpm exec playwright install --with-deps ${{ matrix.engine }}
+            - run: pnpm acceptance:build
+              env:
+                  ACCEPTANCE_APPS: ${{ matrix.apps }}
+            - run: pnpm acceptance --project "*-${{ matrix.profile }}"
+            - if: failure()
+              uses: actions/upload-artifact@v7
+              with:
+                  name: playwright-report-${{ matrix.profile }}
+                  path: |
+                      acceptance/.work/report
+                      acceptance/.work/test-results
+                  retention-days: 14
