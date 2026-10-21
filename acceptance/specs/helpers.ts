@@ -271,24 +271,29 @@ export async function expectHighlightsOnTheirCharacters(
     expect(report.mismatches).toEqual([]);
 }
 
+export type Rgb = [number, number, number];
+
+function luminance([r, g, b]: Rgb): number {
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
 /**
- * The background luminance at each character strictly decreases along
- * `offsets`. Each character's luminance is its brightest pixel in a
- * screenshot of the root: glyph pixels are darker than what is behind them,
- * so the brightest one is the highlight background.
+ * The background colour behind each character at `offsets`: its brightest
+ * pixel in a screenshot of the root. Glyph pixels are darker than what is
+ * behind them, so the brightest one is the highlight background.
  */
-export async function expectLuminanceDecreasing(
+export async function backgroundsAt(
     page: Page,
     offsets: number[],
-): Promise<void> {
+): Promise<Rgb[]> {
     const shot = PNG.sync.read(
         await rootOf(page).screenshot({ scale: 'css', animations: 'disabled' }),
     );
     const origin = (await rootOf(page).boundingBox())!;
-    const luminances: number[] = [];
+    const backgrounds: Rgb[] = [];
     for (const offset of offsets) {
         const box = await charBox(page, offset);
-        let brightest = 0;
+        let brightest: Rgb = [0, 0, 0];
         for (
             let y = Math.ceil(box.y - origin.y) + 1;
             y < Math.floor(box.y + box.height - origin.y) - 1;
@@ -300,19 +305,25 @@ export async function expectLuminanceDecreasing(
                 x++
             ) {
                 const i = (y * shot.width + x) * 4;
-                const [r, g, b] = [
+                const pixel: Rgb = [
                     shot.data[i],
                     shot.data[i + 1],
                     shot.data[i + 2],
                 ];
-                brightest = Math.max(
-                    brightest,
-                    0.2126 * r + 0.7152 * g + 0.0722 * b,
-                );
+                if (luminance(pixel) > luminance(brightest)) brightest = pixel;
             }
         }
-        luminances.push(brightest);
+        backgrounds.push(brightest);
     }
+    return backgrounds;
+}
+
+/** The background luminance at each character strictly decreases along `offsets`. */
+export async function expectLuminanceDecreasing(
+    page: Page,
+    offsets: number[],
+): Promise<void> {
+    const luminances = (await backgroundsAt(page, offsets)).map(luminance);
 
     for (let i = 1; i < offsets.length; i++) {
         expect(
@@ -320,4 +331,72 @@ export async function expectLuminanceDecreasing(
             `luminance at ${offsets[i]} below ${offsets[i - 1]} (${luminances.join(', ')})`,
         ).toBeLessThan(luminances[i - 1]);
     }
+}
+
+/** The classes of the innermost highlight element holding character `offset`. */
+export function highlightClassesAt(
+    page: Page,
+    offset: number,
+): Promise<string[]> {
+    return onRoot(
+        page,
+        (root, range, at) => {
+            const node = range(root, at, at + 1).startContainer.parentElement!;
+            return [...(node.closest('.om-hl')?.classList ?? [])];
+        },
+        offset,
+    );
+}
+
+/** The centre of the character at `offset`, in viewport coordinates. */
+export async function charCentre(
+    page: Page,
+    offset: number,
+): Promise<{ x: number; y: number }> {
+    const box = await charBox(page, offset);
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+/** A real mouse click on the centre of the character at `offset`. */
+export async function clickAt(page: Page, offset: number): Promise<void> {
+    const { x, y } = await charCentre(page, offset);
+    await page.mouse.click(x, y);
+}
+
+/**
+ * Passes `highlights` to the component through the harness's update
+ * controls, without moving focus or the selection the way typing into the
+ * textarea and clicking the button would.
+ */
+export async function applyHighlights(
+    page: Page,
+    highlights: object[],
+): Promise<void> {
+    await page
+        .locator('#highlights-json')
+        .evaluate(
+            (el, json) => ((el as HTMLTextAreaElement).value = json),
+            JSON.stringify(highlights),
+        );
+    await page.locator('#apply').dispatchEvent('click');
+}
+
+/**
+ * The text the browser would copy from the root: the current selection,
+ * clipped to the root, as `Selection.toString()` serializes it.
+ */
+export function selectedTextInRoot(page: Page): Promise<string> {
+    return rootOf(page).evaluate((root) => {
+        const selection = window.getSelection()!;
+        const range = selection.getRangeAt(0).cloneRange();
+        const bounds = document.createRange();
+        bounds.selectNodeContents(root);
+        if (range.compareBoundaryPoints(Range.START_TO_START, bounds) < 0)
+            range.setStart(bounds.startContainer, bounds.startOffset);
+        if (range.compareBoundaryPoints(Range.END_TO_END, bounds) > 0)
+            range.setEnd(bounds.endContainer, bounds.endOffset);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return selection.toString();
+    });
 }
