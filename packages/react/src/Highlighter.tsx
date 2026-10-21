@@ -248,10 +248,6 @@ function HighlighterRender<T>(
     } = props;
 
     const root = useRef<HTMLDivElement>(null);
-    // React hands the root to the caller's ref, whichever kind it is: an
-    // object, a callback, or (React 19) a callback returning a cleanup, and
-    // moves it over when the caller passes another ref.
-    useImperativeHandle(ref, () => root.current!, []);
     const segments = useMemo(
         () => computeSegments(text, highlights),
         [text, highlights],
@@ -302,6 +298,13 @@ function HighlighterRender<T>(
             onHover: (detail) => current().onHover?.(detail),
         });
     }, []);
+
+    // React hands the root to the caller's ref, whichever kind it is: an
+    // object, a callback, or (React 19) a callback returning a cleanup, and
+    // moves it over when the caller passes another ref. Declared after the
+    // attach effect so that, on unmount or hiding, the leave the detach
+    // emits still finds the root in the caller's ref.
+    useImperativeHandle(ref, () => root.current!, []);
 
     const options: RenderOptions = {
         strategy,
