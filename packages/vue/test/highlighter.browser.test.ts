@@ -189,6 +189,24 @@ describe('Highlighter: root element', () => {
     });
 });
 
+describe('Highlighter: focusable', () => {
+    // What a template's bare `<Highlighter focusable>` passes.
+    it('makes every highlighted segment focusable for a bare focusable attribute', () => {
+        const host = givenApp(() =>
+            h(Highlighter, {
+                ...propsOf(partialOverlap),
+                focusable: '' as unknown as boolean,
+            }),
+        );
+
+        const highlighted = [...rootIn(host).querySelectorAll('[data-depth]')];
+
+        expect(highlighted).toHaveLength(3);
+        for (const el of highlighted)
+            expect(el.getAttribute('tabindex')).toBe('0');
+    });
+});
+
 describe('Highlighter: decoration slot', () => {
     it('renders the slot content for each highlighted segment inside its decoration container', () => {
         const host = givenApp(() =>

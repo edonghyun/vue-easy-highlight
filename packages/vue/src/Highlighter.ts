@@ -152,10 +152,13 @@ export const Highlighter = defineComponent({
             type: Array as PropType<readonly Highlight[]>,
             default: () => [],
         },
-        /** How overlaps are drawn. */
-        strategy: { type: String as PropType<Strategy>, default: 'layers' },
-        /** Put `tabindex="0"` on highlighted segments; Enter/Space emits `click`. */
-        focusable: { type: Boolean, default: true },
+        // `default: undefined` leaves the defaults to core. For `focusable` it
+        // also keeps Vue from reading an absent Boolean prop as `false`, while
+        // a bare `focusable` attribute still casts to `true`.
+        /** How overlaps are drawn. Default `'layers'`. */
+        strategy: { type: String as PropType<Strategy>, default: undefined },
+        /** Put `tabindex="0"` on highlighted segments; Enter/Space emits `click`. Default `true`. */
+        focusable: { type: Boolean, default: undefined },
         /** Color baked into the `--om-brush` image for highlights without `color`. */
         defaultColor: { type: String, default: undefined },
         /** Returns a CSS image value for `--om-brush`. */
