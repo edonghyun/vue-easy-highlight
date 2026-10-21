@@ -2,10 +2,20 @@
 // Node too, but inside a browser test run; only this one shows, with no
 // `window` or `document` defined, that rendering the component, its
 // decoration snippet included, never touches the DOM.
-import { TEXT, partialOverlap } from '@overlapmark/adapter-contract/fixtures';
+import {
+    TEXT,
+    a,
+    partialOverlap,
+} from '@overlapmark/adapter-contract/fixtures';
 import { render } from 'svelte/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import ServerView from './ServerView.svelte';
+import type { ServerViewProps } from './server-view.ts';
+
+/** Server markup of a Highlighter of `props`. */
+function renderServer(props: ServerViewProps['props']): string {
+    return render(ServerView, { props: { props } }).body;
+}
 
 /** Server markup of `partialOverlap` with a decoration naming each segment's ids. */
 function renderOnServer(): string {
@@ -51,5 +61,18 @@ describe('Highlighter rendered on a server without a DOM', () => {
                     `<span data-om-skip="" aria-hidden="true">${text}</span>`,
             ),
         );
+    });
+
+    it('does not let a highlight color add style declarations to the server markup', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        onTestFinished(() => warn.mockRestore());
+        const render = (color: string) =>
+            renderServer({ text: TEXT, highlights: [{ ...a, color }] });
+
+        const html = render('red; position: fixed');
+        const control = render('#123456');
+
+        expect(html).not.toContain('position');
+        expect(control).toContain('--om-color: #123456');
     });
 });

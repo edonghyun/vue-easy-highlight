@@ -1,7 +1,11 @@
 // Server rendering on a real server (D8): the browser SSR test runs where
 // `window` and `document` exist, so only this one shows that rendering the
 // component, renderDecoration included, never touches the DOM.
-import { TEXT, partialOverlap } from '@overlapmark/adapter-contract/fixtures';
+import {
+    TEXT,
+    a,
+    partialOverlap,
+} from '@overlapmark/adapter-contract/fixtures';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { Highlighter } from '../src';
@@ -81,5 +85,20 @@ describe('Highlighter rendered on a server without a DOM', () => {
             `omControl${controlRuns}`,
             `omcontrol${controlRuns}`,
         );
+    });
+
+    it('does not let a highlight color add style declarations to the server markup', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        onTestFinished(() => warn.mockRestore());
+        const render = (color: string) =>
+            renderToString(
+                <Highlighter text={TEXT} highlights={[{ ...a, color }]} />,
+            );
+
+        const html = render('red; position: fixed');
+        const control = render('#123456');
+
+        expect(html).not.toContain('position');
+        expect(control).toContain('--om-color:#123456');
     });
 });

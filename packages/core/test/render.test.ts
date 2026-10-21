@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     DEFAULT_COLOR,
     computeSegments,
@@ -9,6 +9,7 @@ import {
     segmentKey,
     decorationTarget,
     type Highlight,
+    type RenderOptions,
 } from '../src';
 
 const text = 'Hello wonderful world';
@@ -278,5 +279,46 @@ describe('decorationTarget', () => {
         expect(
             decorationTarget(highlighted, segmentElements(highlighted)),
         ).not.toBeNull();
+    });
+});
+
+describe('segmentElements with an unsafe color', () => {
+    beforeEach(() => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+    afterEach(() => vi.restoreAllMocks());
+
+    const unsafe = 'red; position: fixed';
+    const bySafety = (color: string) => ({ id: 'a', start: 0, end: 5, color });
+
+    function styleOf(color: string, options: RenderOptions = {}) {
+        return segmentElements(segmentOf([bySafety(color)], 0), options)[0]
+            .style;
+    }
+
+    it.each(['layers', 'depth'] as const)(
+        'falls back to the default color with the %s strategy',
+        (strategy) => {
+            const style = styleOf(unsafe, { strategy });
+            const control = styleOf('#123456', { strategy });
+
+            expect(style['--om-color']).toBeUndefined();
+            expect(style['--om-brush']).toBe(defaultBrush(DEFAULT_COLOR));
+            expect(control['--om-color']).toBe('#123456');
+        },
+    );
+
+    it('falls back to the built-in color for an unsafe defaultColor', () => {
+        const highlighted = segmentOf([{ id: 'a', start: 0, end: 5 }], 0);
+
+        const [element] = segmentElements(highlighted, {
+            defaultColor: unsafe,
+        });
+        const [control] = segmentElements(highlighted, {
+            defaultColor: '#123456',
+        });
+
+        expect(element.style['--om-brush']).toBe(defaultBrush(DEFAULT_COLOR));
+        expect(control.style['--om-brush']).toBe(defaultBrush('#123456'));
     });
 });

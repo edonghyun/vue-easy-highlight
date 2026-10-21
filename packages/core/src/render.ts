@@ -1,4 +1,5 @@
 import { DEFAULT_COLOR, defaultBrush } from './brush';
+import { safeColor } from './color';
 import type { Segment } from './types';
 
 export { DEFAULT_COLOR, defaultBrush };
@@ -26,9 +27,9 @@ export function segmentElements<T>(
     const {
         strategy = 'layers',
         focusable = true,
-        defaultColor = DEFAULT_COLOR,
         brush = defaultBrush,
     } = options;
+    const defaultColor = safeColor(options.defaultColor) ?? DEFAULT_COLOR;
     const { highlights, depth, start } = segment;
 
     if (depth === 0 || highlights.length === 0) {
@@ -55,7 +56,7 @@ export function segmentElements<T>(
             if (h.className && !classes.includes(h.className))
                 classes.push(h.className);
         }
-        const color = highlights.find((h) => h.color)?.color;
+        const color = highlights.map((h) => safeColor(h.color)).find(Boolean);
         const style: Record<string, string> = { '--om-depth': String(depth) };
         if (color) style['--om-color'] = color;
         style['--om-brush'] = brush(color ?? defaultColor);
@@ -71,8 +72,9 @@ export function segmentElements<T>(
 
     return highlights.map((h, i) => {
         const style: Record<string, string> = { '--om-level': String(i) };
-        if (h.color) style['--om-color'] = h.color;
-        style['--om-brush'] = brush(h.color ?? defaultColor);
+        const color = safeColor(h.color);
+        if (color) style['--om-color'] = color;
+        style['--om-brush'] = brush(color ?? defaultColor);
         const cls = h.className ? `om-hl ${h.className}` : 'om-hl';
         return {
             tag: 'mark' as const,

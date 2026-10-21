@@ -297,6 +297,27 @@ export function defineAdapterContract(factory: AdapterFactory): void {
         );
     });
 
+    describe(`${name} — color validation`, () => {
+        const unsafe = 'red; position: fixed';
+
+        it('renders an unsafe color as the default color without the injected text in the markup', async () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            onTestFinished(() => warn.mockRestore());
+            const safe = await givenAdapter({
+                ...partialOverlap,
+                highlights: [{ ...a, color: '#123456' }, b],
+            });
+            const injected = await givenAdapter({
+                ...partialOverlap,
+                highlights: [{ ...a, color: unsafe }, b],
+            });
+
+            expect(safe.root.outerHTML).toContain('#123456');
+            expect(injected.root.outerHTML).not.toContain('position');
+            expect(injected.root.outerHTML).not.toContain('fixed');
+        });
+    });
+
     describe(`${name} — offset contract`, () => {
         describe.each(strategies)(
             'with the $strategy strategy',
