@@ -748,13 +748,15 @@ export function defineAdapterContract(factory: AdapterFactory): void {
         // Each gesture targets a segment element rendered before unmount: an
         // adapter that left its listeners on the old root would report it.
         //
-        // Blind spots no adapter-level test can see, covered by core's own
-        // attachInteractions tests instead:
+        // Blind spots no adapter-level test can see:
         // - document-level listeners (selectionchange, pointerdown/up, keyup)
         //   left behind after the root is detached: with the root gone, no
-        //   selection can land in it, so a leaked listener has nothing to emit;
+        //   selection can land in it, so a leaked listener has nothing to emit.
+        //   Core's attachInteractions detach tests cover these on a root that
+        //   stays in the document.
         // - a framework that silences a component's emits once it is unmounted:
-        //   a leaked listener would fire but its event would never be recorded.
+        //   a leaked listener would fire but its event would never be recorded,
+        //   so these tests pass whether or not the adapter detached.
         it.each([
             {
                 gesture: 'click',
