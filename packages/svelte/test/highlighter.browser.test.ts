@@ -5,6 +5,7 @@
 // tests run Svelte's flush with flushSync, or await the real selectionchange
 // or the gesture helpers.
 import {
+    REPLACED_TEXT,
     TEXT,
     a,
     b,
@@ -14,7 +15,9 @@ import {
     givenPointerOutsideRoots,
     partialOverlap,
     segmentElement,
+    release,
     selectAndWait,
+    settle,
 } from '@overlapmark/adapter-contract';
 import '@overlapmark/core/styles.css';
 import type {
@@ -22,6 +25,7 @@ import type {
     HoverDetail,
     PointDetail,
     Segment,
+    SelectDetail,
 } from '@overlapmark/core';
 import { getSelectionOffsets } from '@overlapmark/core/dom';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
@@ -199,6 +203,27 @@ describe('Highlighter: between a prop change and its flush', () => {
 
         expect(reported.clicks).toHaveLength(1);
         expect(reported.clicks[0].highlights).toEqual([a, b]);
+        // Precondition: the flush had not run yet.
+        expect(segmentElement(rootIn(host), 6)).toBe(shown);
+    });
+
+    it('takes the select text from the text on screen', async () => {
+        const text = rawState(TEXT);
+        const selects: SelectDetail[] = [];
+        const host = givenMounted(Highlighter, {
+            get text() {
+                return text.value;
+            },
+            highlights: partialOverlap.highlights,
+            onselect: (detail) => selects.push(detail),
+        });
+        const shown = segmentElement(rootIn(host), 6);
+        await selectAndWait(rootIn(host), 8, 18);
+        text.value = REPLACED_TEXT;
+
+        settle(release);
+
+        expect(selects.map((d) => d.text)).toEqual([TEXT.slice(8, 18)]);
         // Precondition: the flush had not run yet.
         expect(segmentElement(rootIn(host), 6)).toBe(shown);
     });

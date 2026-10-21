@@ -172,9 +172,13 @@ export const Highlighter = defineComponent({
         const segments = computed(() =>
             segmentsOf(props.text, props.highlights),
         );
-        // The segments the DOM shows: events between a prop change and its
-        // flush must describe what the user sees, not what is about to render.
-        let rendered: readonly Segment[] = [];
+        // The text and segments the DOM shows: events between a change and
+        // its flush must describe what the user sees, not what is about to
+        // render. Snapshotted together, so `select` text and highlights agree.
+        let rendered: { text: string; segments: readonly Segment[] } = {
+            text: '',
+            segments: [],
+        };
 
         let detach: (() => void) | null = null;
         // Mounting and every KeepAlive activation attach; unmounting and
@@ -183,8 +187,8 @@ export const Highlighter = defineComponent({
         const attach = (): void => {
             if (detach || !root.value) return;
             detach = attachInteractions(root.value, {
-                getText: () => props.text,
-                getSegments: () => rendered,
+                getText: () => rendered.text,
+                getSegments: () => rendered.segments,
                 get minSelectionLength() {
                     return props.minSelectionLength;
                 },
@@ -225,7 +229,7 @@ export const Highlighter = defineComponent({
                 brush: props.brush,
             };
             const rootSpec = rootAttributes(options);
-            rendered = segments.value;
+            rendered = { text: props.text, segments: segments.value };
             return h(
                 'div',
                 // The caller's classes follow `om-root`; core's attributes
@@ -234,7 +238,7 @@ export const Highlighter = defineComponent({
                     ref: root,
                     ...rootSpec.attrs,
                 }),
-                rendered.map((segment) =>
+                rendered.segments.map((segment) =>
                     segmentVNode(
                         segment,
                         options,

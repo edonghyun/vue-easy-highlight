@@ -138,13 +138,16 @@
     });
     const rootSpec = $derived(rootAttributes(options));
     // Everything the segments render from: a new value means a patch.
-    const view = $derived({ segments, options, decoration });
+    const view = $derived({ text, segments, options, decoration });
 
     // Not state: nothing renders from these.
     let root: HTMLDivElement;
-    // The segments the DOM shows: events between a prop change and its
-    // flush must describe what the user sees, not what is about to render.
-    let shown: readonly Segment<T>[] = [];
+    // The text and segments the DOM shows: events between a prop change and
+    // its flush must describe what the user sees, not what is about to render.
+    let shown: { text: string; segments: readonly Segment<T>[] } = {
+        text: '',
+        segments: [],
+    };
     let saved: ViewState | null = null;
 
     // Both read `view`, so both run in every flush that patches the
@@ -156,15 +159,15 @@
         if (root) saved = captureViewState(root);
     });
     $effect(() => {
-        shown = view.segments;
+        shown = { text: view.text, segments: view.segments };
         if (saved) restoreViewState(root, saved);
         saved = null;
     });
 
     onMount(() =>
         attachInteractions<T>(root, {
-            getText: () => text,
-            getSegments: () => shown,
+            getText: () => shown.text,
+            getSegments: () => shown.segments,
             get minSelectionLength() {
                 return minSelectionLength;
             },
