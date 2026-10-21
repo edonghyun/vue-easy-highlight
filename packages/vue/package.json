@@ -1,6 +1,6 @@
 {
     "name": "@overlapmark/vue",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "description": "Vue 3 component for overlapping text highlights",
     "license": "MIT",
     "author": "Donghyun Lee",

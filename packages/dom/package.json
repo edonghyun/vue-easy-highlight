@@ -1,6 +1,6 @@
 {
     "name": "@overlapmark/dom",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "description": "Vanilla JS adapter for overlapping text highlights",
     "license": "MIT",
     "author": "Donghyun Lee",
