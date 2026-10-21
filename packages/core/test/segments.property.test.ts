@@ -173,6 +173,27 @@ describe('computeSegments properties', () => {
         );
     });
 
+    it('highlightsInRange on shallow-copied segments returns the same order', () => {
+        fc.assert(
+            fc.property(
+                inputArb,
+                fc.integer({ min: -2, max: 40 }),
+                fc.integer({ min: -2, max: 40 }),
+                ({ text, highlights }, a, b) => {
+                    const s = computeSegments(text, highlights);
+                    const copies = s.map((x) => ({
+                        ...x,
+                        highlights: [...x.highlights],
+                    }));
+                    const original = highlightsInRange(s, a, b);
+                    const copied = highlightsInRange(copies, a, b);
+                    expect(copied.length).toBe(original.length);
+                    copied.forEach((h, k) => expect(h).toBe(original[k]));
+                },
+            ),
+        );
+    });
+
     it('never produces lone surrogates', () => {
         fc.assert(
             fc.property(inputArb, ({ text, highlights }) => {

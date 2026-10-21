@@ -80,9 +80,6 @@ function normalize<T>(
     return entries;
 }
 
-/** Canonical rank of each entry of `segment.highlights`, recorded by computeSegments. */
-const segmentRanks = new WeakMap<object, number[]>();
-
 export function computeSegments<T>(
     text: string,
     highlights: readonly Highlight<T>[],
@@ -133,15 +130,13 @@ export function computeSegments<T>(
     let cursor = 0;
 
     const emit = (end: number): void => {
-        const segment: Segment<T> = {
+        segments.push({
             start: cursor,
             end,
             text: text.slice(cursor, end),
             highlights: active.map((r) => byRank[r].source),
             depth: active.length,
-        };
-        segmentRanks.set(segment, active.slice());
-        segments.push(segment);
+        });
     };
 
     for (const ev of events) {
@@ -198,18 +193,14 @@ export function highlightsInRange<T>(
         if (segments[mid].end <= start) lo = mid + 1;
         else hi = mid;
     }
-    // Order by the canonical rank computeSegments assigned (normalized ranges),
-    // not by the raw start/end the caller passed in.
-    const best = new Map<Highlight<T>, number>();
-    let fallback = Number.MAX_SAFE_INTEGER / 2;
+    // First appearance (segment order, then order within a segment) is the
+    // canonical order for computeSegments output: each segment lists its
+    // highlights canonically, and a highlight that sorts earlier starts no
+    // later, so it first appears in the same or an earlier in-range segment.
+    // This uses the normalized ranges, not the raw start/end the caller passed.
+    const seen = new Set<Highlight<T>>();
     for (let i = lo; i < segments.length && segments[i].start < end; i++) {
-        const ranks = segmentRanks.get(segments[i]);
-        segments[i].highlights.forEach((h, j) => {
-            // Hand-built segments carry no rank: keep their listed order after ranked ones.
-            const rank = ranks ? ranks[j] : fallback++;
-            const prev = best.get(h);
-            if (prev === undefined || rank < prev) best.set(h, rank);
-        });
+        for (const h of segments[i].highlights) seen.add(h);
     }
-    return [...best.entries()].sort((a, b) => a[1] - b[1]).map(([h]) => h);
+    return [...seen];
 }
