@@ -208,7 +208,7 @@ Every adapter takes the same options, as options of `createHighlighter` or as co
 | `overlap`             | `'multiply' \| 'darken' \| 'none'`                | `'multiply'` | How nested layers combine with the `layers` strategy; the `depth` strategy ignores it. See [Overlap modes](#overlap-modes)                                     |
 | `focusable`           | `boolean`                                         | `true`       | Make highlighted segments Tab stops (`tabindex="0"`, `role="button"`); Enter/Space reports `click`. See [Accessibility](#accessibility)                        |
 | `describe`            | `(highlights: readonly Highlight<T>[]) => string` | count        | The accessible description of a focusable segment, from the highlights covering it: `'1 highlight'` / `` `${n} highlights` `` by default; return `''` for none |
-| `defaultColor`        | `string`                                          | `#ddd6ff`    | Color of highlights without `color`: set as `--om-default-color` on the root and baked into their `--om-brush`                                                 |
+| `defaultColor`        | `string`                                          | `#ddd6ff`    | Color of highlights without `color`: baked into their `--om-brush`, and, when given, set as `--om-default-color` on the root                                   |
 | `brush`               | `(color: string) => string`                       | built-in     | Returns a CSS image value for `--om-brush` (used by `om-style-marker`)                                                                                         |
 | `minSelectionLength`  | `number`                                          | `1`          | Shorter selections do not report `select`                                                                                                                      |
 | `touchSelectionDelay` | `number`                                          | `500`        | Milliseconds without a selection change before a touch selection reports `select`                                                                              |
@@ -231,7 +231,7 @@ Each nested layer multiplies with the layers under it (`mix-blend-mode: multiply
 
 <img src="https://raw.githubusercontent.com/edonghyun/overlapmark/main/docs-assets/overlap-darken.png" alt="The demo paragraph in darken mode: nested highlights are their own color mixed toward black." width="100%">
 
-Each nested layer takes its own color mixed toward `--om-depth-ink` (default `black`) by `--om-depth-step` (default `12%`) per nesting level, up to `--om-max-depth`, and is painted at `--om-alpha`. It never blends with the page or with the text.
+Each nested layer takes its own color mixed toward `--om-depth-ink` (default `black`) by `--om-depth-step` (default `12%`) per nesting level, up to `--om-max-depth`, and is painted at `--om-alpha`. It uses no blend mode: the layers are translucent over the page, and the text is not tinted.
 
 **When to use:** dark themes, or wherever blending is unwanted. **Caveats:** it darkens reliably only when the overlapping colors have similar lightness. A pale color nested inside a saturated one still comes out lighter than the color around it, so pick a palette of similar lightness.
 
@@ -278,7 +278,7 @@ Three levels, from least to most control:
         --om-max-depth: 6; /* depth at which darkening stops */
     }
     ```
-    `--om-color` is set per highlight from `highlight.color` and is reset on every `.om-hl`, so setting it on the root has no effect. Use `--om-default-color` or the `defaultColor` option instead; `defaultColor` sets `--om-default-color` on the root, which wins over a value inherited from an ancestor.
+    `--om-color` is set per highlight from `highlight.color` and is reset on every `.om-hl`, so setting it on the root has no effect. Use `--om-default-color` or the `defaultColor` option instead; when given, `defaultColor` sets `--om-default-color` on the root, which wins over a value inherited from an ancestor.
 2. **Per highlight.** Give a highlight a `color` and/or a `className`. Built-in presets: `om-style-marker` (a marker stroke from `--om-brush`), `om-style-underline` and `om-style-box`.
 
     ```ts
@@ -362,7 +362,7 @@ The main entry of `@overlapmark/core` reads no `window` or `document`, so it run
 
 The root may sit inside an open shadow root or in an iframe's document: selection, focus, offsets and the document listeners are read from the root's own tree and window. The acceptance tests cover clicks, drags, and keeping the selection and focus across an update, in both. Limits:
 
-- **Closed shadow roots, in Chromium:** a drag that starts on a focusable highlight's first character selects nothing (the press is seen at the shadow host, so the workaround in [Events](#events) does not apply). Clicks, selection and focus work.
+- **Closed shadow roots, in Chromium:** a drag that starts on a focusable highlight's first character selects nothing (the press is seen at the shadow host, so the workaround in [Events](#events) does not apply). Clicks, selection and focus are expected to work there, but closed shadow roots are not tested.
 - **Safari 17** takes `getComposedRanges` in an older form, which is handled but not tested.
 - **Slotted content** in the root is not supported.
 
@@ -381,16 +381,16 @@ Warnings are on unless `process.env.NODE_ENV` is `'production'`, which bundlers 
 
 overlapmark replaces `vue-easy-highlight` (last release 0.1.14). In Vue, render `Highlighter` from [`@overlapmark/vue`](packages/vue): you compute the ranges yourself and pass them as `highlights` with ids.
 
-| `vue-easy-highlight` 0.1.14                                      | overlapmark                                                                                                             |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `import VueEasyHighlighter from 'vue-easy-highlight'`            | `import { Highlighter } from '@overlapmark/vue'`, and `import '@overlapmark/core/styles.css'`                           |
-| `text`                                                           | `text`                                                                                                                  |
-| `textsToHighlight` (a `Set` of strings)                          | `highlights`: ``findMatches(text, [...set], { overlapping: false }).map((m, i) => ({ id: `m${i}`, ...m }))``            |
-| `baseColor`                                                      | `defaultColor` (or `--om-default-color` in CSS)                                                                         |
-| `textsBaseColorMap` (`{ [text]: color }`)                        | `color` on each highlight: `findMatches(text, key).map((m) => ({ ...m, id: …, color }))` for each entry                 |
-| `selectedTextColor`, `selectedTextBackgroundColor`               | Your own CSS: `.om-root ::selection { color: …; background-color: … }`                                                  |
-| `@text:selected="(text, rect) => …"`                             | `@select="({ text, rect, start, end }) => …"`                                                                           |
-| `@text:clicked="({ event, targetIndex, targetCharacter }) => …"` | `@click="({ event, offset, segment, highlights }) => …"`: `offset` is the character index, `text[offset]` the character |
+| `vue-easy-highlight` 0.1.14                                      | overlapmark                                                                                                                     |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `import VueEasyHighlighter from 'vue-easy-highlight'`            | `import { Highlighter } from '@overlapmark/vue'`, and `import '@overlapmark/core/styles.css'`                                   |
+| `text`                                                           | `text`                                                                                                                          |
+| `textsToHighlight` (a `Set` of strings)                          | `highlights`: ``findMatches(text, [...set], { overlapping: false }).map((m, i) => ({ id: `m${i}`, ...m }))``                    |
+| `baseColor`                                                      | `defaultColor` (or `--om-default-color` in CSS)                                                                                 |
+| `textsBaseColorMap` (`{ [text]: color }`)                        | `color` on each highlight: `findMatches(text, key, { overlapping: false }).map((m) => ({ ...m, id: …, color }))` for each entry |
+| `selectedTextColor`, `selectedTextBackgroundColor`               | Your own CSS: `.om-root ::selection { color: …; background-color: … }`                                                          |
+| `@text:selected="(text, rect) => …"`                             | `@select="({ text, rect, start, end }) => …"`                                                                                   |
+| `@text:clicked="({ event, targetIndex, targetCharacter }) => …"` | `@click="({ event, offset, segment, highlights }) => …"`: `offset` is the character index, `text[offset]` the character         |
 
 Behavior differences:
 

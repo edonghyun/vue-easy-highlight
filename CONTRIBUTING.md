@@ -52,7 +52,7 @@ Write test titles as English sentences that describe behavior, separate arrange,
 
 ## Acceptance suite
 
-The acceptance suite installs the packed packages into real apps (vanilla, Vue, React and Svelte, each as a client build, a server-rendered build and a build on its framework's lowest supported version) and drives them with Playwright in desktop Chromium, Firefox and WebKit and in emulated Pixel 7 and iPhone 15 profiles.
+The acceptance suite installs the packed packages into real apps: vanilla JS as a client build, and Vue, React and Svelte each as a client build, a server-rendered build and a build on its framework's lowest supported version (the floor) and drives them with Playwright in desktop Chromium, Firefox and WebKit and in emulated Pixel 7 and iPhone 15 profiles.
 
 ```sh
 pnpm exec playwright install chromium firefox webkit

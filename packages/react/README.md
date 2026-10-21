@@ -71,7 +71,7 @@ export function Article() {
 | `overlap`             | `'multiply' \| 'darken' \| 'none'`                | `'multiply'` | How nested layers combine with `layers` ([overlap modes](https://github.com/edonghyun/overlapmark#overlap-modes)); the `depth` strategy ignores it      |
 | `focusable`           | `boolean`                                         | `true`       | Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space calls `onClick`                                                             |
 | `describe`            | `(highlights: readonly Highlight<T>[]) => string` | count        | The accessible description of a focusable segment, from the highlights covering it: `'1 highlight'` / `` `${n} highlights` `` by default; `''` for none |
-| `defaultColor`        | `string`                                          | `#ddd6ff`    | Color of highlights without `color`: set as `--om-default-color` on the root and baked into their `--om-brush`                                          |
+| `defaultColor`        | `string`                                          | `#ddd6ff`    | Color of highlights without `color`: baked into their `--om-brush`, and, when given, set as `--om-default-color` on the root                            |
 | `brush`               | `(color: string) => string`                       | built-in     | Returns a CSS image value for `--om-brush` (used by `om-style-marker`)                                                                                  |
 | `minSelectionLength`  | `number`                                          | `1`          | Shorter selections do not call `onSelect`                                                                                                               |
 | `touchSelectionDelay` | `number`                                          | `500`        | Milliseconds of no selection change before `onSelect` fires on touch; a change applies from the next selection change                                   |
@@ -85,11 +85,11 @@ Passing a new array of the same highlights, as a re-rendering parent often does,
 
 ## Handlers
 
-| Prop                    | Detail                                                                                                      |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `onSelect`              | `{ start, end, text, rect, highlights }` (highlights overlapping the selection)                             |
-| `onClick`, `onDblClick` | `{ offset, segment, highlights, event }` (`event` is a `MouseEvent` or, for Enter/Space, a `KeyboardEvent`) |
-| `onHover`               | `{ type: 'enter' \| 'leave', segment, highlights, event }`; mouse pointers only (not touch or pen)          |
+| Prop                    | Detail                                                                                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `onSelect`              | `{ start, end, text, rect, highlights }` (highlights overlapping the selection; `rect` bounds the selected text inside the root, clipped to it, in the root's window viewport) |
+| `onClick`, `onDblClick` | `{ offset, segment, highlights, event }` (`event` is a `MouseEvent` or, for Enter/Space, a `KeyboardEvent`)                                                                    |
+| `onHover`               | `{ type: 'enter' \| 'leave', segment, highlights, event }`; mouse pointers only (not touch or pen)                                                                             |
 
 These are not DOM handlers: they receive core's detail objects (`SelectDetail`, `PointDetail`, `HoverDetail` from `@overlapmark/core`), never a React event, and the `div`'s own `onSelect`, `onClick` and `onDoubleClick` are not available. To handle the raw DOM click, wrap the component or use `onPointerDown`/`onPointerUp`. Their timing is the same as in [`@overlapmark/dom`](https://github.com/edonghyun/overlapmark/tree/main/packages/dom#events).
 

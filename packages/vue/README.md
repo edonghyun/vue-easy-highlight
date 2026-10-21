@@ -66,7 +66,7 @@ function add({ start, end }: SelectDetail) {
 | `overlap`             | `'multiply' \| 'darken' \| 'none'`                | `'multiply'` | How nested layers combine with `layers` ([overlap modes](https://github.com/edonghyun/overlapmark#overlap-modes)); the `depth` strategy ignores it      |
 | `focusable`           | `boolean`                                         | `true`       | Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space emits `click`                                                               |
 | `describe`            | `(highlights: readonly Highlight<T>[]) => string` | count        | The accessible description of a focusable segment, from the highlights covering it: `'1 highlight'` / `` `${n} highlights` `` by default; `''` for none |
-| `defaultColor`        | `string`                                          | `#ddd6ff`    | Color of highlights without `color`: set as `--om-default-color` on the root and baked into their `--om-brush`                                          |
+| `defaultColor`        | `string`                                          | `#ddd6ff`    | Color of highlights without `color`: baked into their `--om-brush`, and, when given, set as `--om-default-color` on the root                            |
 | `brush`               | `(color: string) => string`                       | built-in     | Returns a CSS image value for `--om-brush` (used by `om-style-marker`)                                                                                  |
 | `minSelectionLength`  | `number`                                          | `1`          | Shorter selections do not emit `select`                                                                                                                 |
 | `touchSelectionDelay` | `number`                                          | `500`        | Milliseconds of no selection change before `select` fires on touch; a change applies from the next selection change                                     |
@@ -79,11 +79,11 @@ For large lists, hold the highlights in a `shallowRef` and replace the array (`l
 
 ## Events
 
-| Event                | Detail                                                                                                      |
-| -------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `select`             | `{ start, end, text, rect, highlights }` (highlights overlapping the selection)                             |
-| `click` / `dblclick` | `{ offset, segment, highlights, event }` (`event` is a `MouseEvent` or, for Enter/Space, a `KeyboardEvent`) |
-| `hover`              | `{ type: 'enter' \| 'leave', segment, highlights, event }`; mouse pointers only (not touch or pen)          |
+| Event                | Detail                                                                                                                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `select`             | `{ start, end, text, rect, highlights }` (highlights overlapping the selection; `rect` bounds the selected text inside the root, clipped to it, in the root's window viewport) |
+| `click` / `dblclick` | `{ offset, segment, highlights, event }` (`event` is a `MouseEvent` or, for Enter/Space, a `KeyboardEvent`)                                                                    |
+| `hover`              | `{ type: 'enter' \| 'leave', segment, highlights, event }`; mouse pointers only (not touch or pen)                                                                             |
 
 `Highlighter` is generic over the `data` of your highlights: in a template, given `Highlight<Note>[]`, the event details, `describe` and the decoration slot's `segment` hold `Highlight<Note>` objects, as `vue-tsc` checks them. A render function names the type: `h(Highlighter<Note>, { ... })`.
 

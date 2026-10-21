@@ -60,7 +60,7 @@ A class on the root, and handlers for clicks:
 | `overlap`             | `'multiply' \| 'darken' \| 'none'`                | `'multiply'` | How nested layers combine with `layers` ([overlap modes](https://github.com/edonghyun/overlapmark#overlap-modes)); the `depth` strategy ignores it      |
 | `focusable`           | `boolean`                                         | `true`       | Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space calls `onclick`                                                             |
 | `describe`            | `(highlights: readonly Highlight<T>[]) => string` | count        | The accessible description of a focusable segment, from the highlights covering it: `'1 highlight'` / `` `${n} highlights` `` by default; `''` for none |
-| `defaultColor`        | `string`                                          | `#ddd6ff`    | Color of highlights without `color`: set as `--om-default-color` on the root and baked into their `--om-brush`                                          |
+| `defaultColor`        | `string`                                          | `#ddd6ff`    | Color of highlights without `color`: baked into their `--om-brush`, and, when given, set as `--om-default-color` on the root                            |
 | `brush`               | `(color: string) => string`                       | built-in     | Returns a CSS image value for `--om-brush` (used by `om-style-marker`)                                                                                  |
 | `minSelectionLength`  | `number`                                          | `1`          | Shorter selections do not call `onselect`                                                                                                               |
 | `touchSelectionDelay` | `number`                                          | `500`        | Milliseconds of no selection change before `onselect` fires on touch; a change applies from the next selection change                                   |
@@ -72,11 +72,11 @@ The component renders a single `<div class="om-root">`. `class` (a string) is ad
 
 ## Callback props
 
-| Prop                     | Detail                                                                                                      |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `onselect`               | `{ start, end, text, rect, highlights }` (highlights overlapping the selection)                             |
-| `onclick` / `ondblclick` | `{ offset, segment, highlights, event }` (`event` is a `MouseEvent` or, for Enter/Space, a `KeyboardEvent`) |
-| `onhover`                | `{ type: 'enter' \| 'leave', segment, highlights, event }`; mouse pointers only (not touch or pen)          |
+| Prop                     | Detail                                                                                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `onselect`               | `{ start, end, text, rect, highlights }` (highlights overlapping the selection; `rect` bounds the selected text inside the root, clipped to it, in the root's window viewport) |
+| `onclick` / `ondblclick` | `{ offset, segment, highlights, event }` (`event` is a `MouseEvent` or, for Enter/Space, a `KeyboardEvent`)                                                                    |
+| `onhover`                | `{ type: 'enter' \| 'leave', segment, highlights, event }`; mouse pointers only (not touch or pen)                                                                             |
 
 They receive core's detail objects (`SelectDetail`, `PointDetail`, `HoverDetail` from `@overlapmark/core`), not DOM events: `onclick` and `ondblclick` are the component's, not the `div`'s. Their timing is the same as in [`@overlapmark/dom`](https://github.com/edonghyun/overlapmark/tree/main/packages/dom#events). Every hover `enter` is followed by one `leave` for the same `segment` object. Besides the mouse moving away, removing the component (`unmount`, or an `{#if}` turning false) and an update that removes the hovered highlight from under the mouse also call `onhover` with its `leave`, with `event: null`. On removal, Svelte has already taken the component's elements out of the document when that `leave` arrives.
 
