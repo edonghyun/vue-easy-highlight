@@ -195,6 +195,8 @@ The names follow each framework: `on('select', fn)` in `@overlapmark/dom`, `@sel
 
 `select` fires one macrotask after `pointerup`/`keyup` (on touch, after `touchSelectionDelay` ms, default 500, without a selection change). On the keyboard, `keyup` confirms only once no modifier (Shift/Ctrl/Alt/Meta) is held, so a Shift+Arrow run emits a single `select` when Shift is released. Shift+Arrow extends a selection the user already has; in Chrome and Safari, Shift+Arrow from a caret in static text selects nothing.
 
+Touch is verified in the acceptance tests on emulated mobile profiles (Pixel 7 in Chromium, iPhone 15 in WebKit): a tap reports `click` with the covering highlights and no `hover`, in both. A long press that selects text, and the `select` that follows once the selection settles, is verified in Chromium only, with a real press-and-hold that the browser turns into a selection. Automation cannot hold a touch in WebKit, so there that gesture is not tested; nor are the selection handles you drag after a long press.
+
 A mouse press on a focusable highlight focuses it when the button is released, if the press made no selection (a click), not when it goes down: Chrome would otherwise not start a drag selection on a highlight's first character.
 
 Every hover `enter` is followed by one `leave` for the same `segment` object. Besides the mouse moving away, a `leave` is also emitted when the adapter is destroyed (or the component unmounted) and when an update removes the hovered highlight from under the mouse. Such a programmatic `leave` has no pointer event behind it, so its `event` is `null`. An update that re-renders the hovered segment unchanged (same `start` and highlight ids) emits nothing.
