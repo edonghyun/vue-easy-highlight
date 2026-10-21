@@ -1,0 +1,10 @@
+{
+    "extends": [
+        "../../tsconfig.base.json",
+        "../../tsconfig.workspace-paths.json"
+    ],
+    "compilerOptions": {
+        "jsx": "react-jsx"
+    },
+    "include": ["src", "test", "*.config.ts"]
+}

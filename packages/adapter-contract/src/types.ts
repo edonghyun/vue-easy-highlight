@@ -2,6 +2,7 @@ import type {
     Highlight,
     HoverDetail,
     PointDetail,
+    Segment,
     SelectDetail,
     Strategy,
 } from '@overlapmark/core';
@@ -12,8 +13,22 @@ export interface ContractProps {
     highlights: readonly Highlight[];
     strategy?: Strategy;
     focusable?: boolean;
+    /** Color passed to `brush` for highlights without `color`. */
+    defaultColor?: string;
+    /** Returns the CSS image value of `--om-brush` for a color. */
+    brush?: (color: string) => string;
     minSelectionLength?: number;
     touchSelectionDelay?: number;
+    /**
+     * Decoration text for each highlighted segment (style tier 3). The
+     * factory maps it onto the adapter's decoration API; the adapter renders
+     * it as `<span data-om-skip aria-hidden="true">text</span>` right after
+     * the text of the segment's innermost element. Plain segments, and
+     * segments it returns `''` for, get none. The suite itself never returns
+     * `''`: the Svelte adapter renders an empty container for a decoration
+     * snippet that renders nothing.
+     */
+    decoration?: (segment: Segment) => string;
 }
 
 export type AdapterEvent =

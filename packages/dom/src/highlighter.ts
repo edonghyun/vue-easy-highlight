@@ -1,9 +1,11 @@
 import {
     computeSegments,
+    decorationTarget,
     rootAttributes,
     segmentElements,
 } from '@overlapmark/core';
 import type {
+    ElementSpec,
     Highlight,
     HoverDetail,
     PointDetail,
@@ -13,8 +15,8 @@ import type {
 } from '@overlapmark/core';
 import {
     attachInteractions,
-    createRangeFromOffsets,
-    getSelectionOffsets,
+    captureViewState,
+    restoreViewState,
 } from '@overlapmark/core/dom';
 
 export interface HighlighterOptions<T = unknown> extends RenderOptions {
@@ -28,6 +30,28 @@ export interface HighlighterOptions<T = unknown> extends RenderOptions {
      * selection already waiting restarts its wait with the new value.
      */
     touchSelectionDelay?: number;
+    /**
+     * Decoration for each highlighted segment (style tier 3), such as a
+     * count or an icon. The result is placed in
+     * `<span data-om-skip aria-hidden="true">` right after the text of the
+     * segment's innermost element, so it never counts toward offsets, is
+     * left out of selections and copies (with the shipped stylesheet), and is
+     * hidden from assistive technology. Decorations are presentational: do
+     * not put interactive content (buttons, links, focusable elements) in
+     * them. Return `null` or `''` for no decoration: the segment then gets no
+     * container. Called on every render, so return a new Node each time.
+     */
+    decorate?: (segment: Segment<T>) => Node | string | null;
+}
+
+/** The element `spec` describes, without children. */
+function elementOf(spec: ElementSpec): HTMLElement {
+    const node = document.createElement(spec.tag);
+    if (spec.className) node.className = spec.className;
+    for (const [k, v] of Object.entries(spec.attrs)) node.setAttribute(k, v);
+    for (const [k, v] of Object.entries(spec.style))
+        node.style.setProperty(k, v);
+    return node;
 }
 
 type EventMap<T> = {
@@ -39,7 +63,11 @@ type EventMap<T> = {
 
 export interface Highlighter<T = unknown> {
     update(options: Partial<HighlighterOptions<T>>): void;
-    /** Subscribes to an event; returns the function that unsubscribes. */
+    /**
+     * Subscribes to an event; returns the function that removes this
+     * subscription. Every call is a separate subscription, so a function
+     * subscribed twice is called twice per event.
+     */
     on<K extends keyof EventMap<T>>(
         type: K,
         fn: (d: EventMap<T>[K]) => void,
@@ -80,18 +108,23 @@ export function createHighlighter<T>(
         segments = computeSegments(opts.text, opts.highlights ?? []);
         const frag = document.createDocumentFragment();
         for (const seg of segments) {
+            const specs = segmentElements(seg, opts);
+            const elements = specs.map(elementOf);
             let parent: Node = frag;
-            for (const spec of segmentElements(seg, opts)) {
-                const node = document.createElement(spec.tag);
-                node.className = spec.className;
-                for (const [k, v] of Object.entries(spec.attrs))
-                    node.setAttribute(k, v);
-                for (const [k, v] of Object.entries(spec.style))
-                    node.style.setProperty(k, v);
+            for (const node of elements) {
                 parent.appendChild(node);
                 parent = node;
             }
             parent.appendChild(document.createTextNode(seg.text));
+            const target = decorationTarget(seg, specs);
+            const decoration =
+                target && opts.decorate ? opts.decorate(seg) : null;
+            // Nothing to show gets no container, as in the framework adapters.
+            if (target && decoration != null && decoration !== '') {
+                const container = elementOf(target.container);
+                container.append(decoration);
+                elements[target.index].appendChild(container);
+            }
         }
         el.replaceChildren(frag);
     };
@@ -118,43 +151,21 @@ export function createHighlighter<T>(
     return {
         update(next) {
             if (destroyed) return;
-            const selection = window.getSelection();
-            const saved = getSelectionOffsets(el, selection);
-            const active = document.activeElement;
-            const focusedStart =
-                active && el.contains(active)
-                    ? active
-                          .closest('[data-om-start]')
-                          ?.getAttribute('data-om-start')
-                    : null;
+            const view = captureViewState(el);
 
             opts = { ...opts, ...next };
             render();
 
-            if (saved) {
-                const range = createRangeFromOffsets(
-                    el,
-                    saved.start,
-                    saved.end,
-                );
-                if (range && selection) {
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                }
-            }
-            if (focusedStart != null) {
-                const target =
-                    el.querySelector<HTMLElement>(
-                        `[data-om-start="${focusedStart}"][tabindex]`,
-                    ) ?? null;
-                target?.focus({ preventScroll: true });
-            }
+            restoreViewState(el, view);
         },
         on(type, fn) {
             const set = listeners[type] as Set<typeof fn>;
-            set.add(fn);
+            // A fresh wrapper per call: each unsubscribe removes its own
+            // subscription, even when the same fn is subscribed again.
+            const subscription: typeof fn = (d) => fn(d);
+            set.add(subscription);
             return () => {
-                set.delete(fn);
+                set.delete(subscription);
             };
         },
         getSegments: () => segments,

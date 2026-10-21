@@ -5,16 +5,19 @@
  *
  * This package imports `@overlapmark/core` without declaring it: core's own
  * tests run this suite, so a declared dependency would be a workspace cycle.
- * Each consumer resolves `@overlapmark/core` (and `/dom`) to core's sources
- * through its Vitest aliases and tsconfig paths, so the suite and the adapter
- * share one module instance.
+ * Every consumer resolves `@overlapmark/core` (and `/dom`) to core's sources
+ * through the shared `vitest.workspace-aliases.ts` and
+ * `tsconfig.workspace-paths.json` at the repository root, so the suite and the
+ * adapter share one module instance.
  */
 import type {
     HoverDetail,
     PointDetail,
+    Segment,
     SelectDetail,
     Strategy,
 } from '@overlapmark/core';
+import { DEFAULT_COLOR } from '@overlapmark/core';
 import {
     createRangeFromOffsets,
     getSelectionOffsets,
@@ -30,6 +33,7 @@ import {
     c,
     codePointRanges,
     fixtures,
+    adjacent,
     partialOverlap,
 } from './fixtures';
 import {
@@ -68,6 +72,7 @@ export { expectedTree } from './reference-tree';
 export { serializeRoot } from './serialize';
 export type { ElementTree, RootTree, TreeNode } from './serialize';
 export * from './fixtures';
+export { propsOf } from './props';
 export * from './gestures';
 
 type DetailOf<K extends AdapterEvent['type']> = K extends 'select'
@@ -126,6 +131,22 @@ interface ContractAdapter extends MountedAdapter, EventSource {
      * would.
      */
     whenRecorded(inspect: (event: AdapterEvent) => void): void;
+}
+
+/** A `defaultColor` unlike core's own. */
+const CUSTOM_COLOR = 'rgb(255, 0, 170)';
+
+/** Brushes unlike core's SVG stroke, so a dropped `brush` shows. */
+const solidBrush = (color: string): string =>
+    `linear-gradient(${color}, ${color})`;
+const stripedBrush = (color: string): string =>
+    `repeating-linear-gradient(90deg, ${color} 0 2px, transparent 2px 4px)`;
+
+/** The `--om-brush` of every highlight element under `root`, in document order. */
+function brushesOf(root: HTMLElement): string[] {
+    return [...root.querySelectorAll<HTMLElement>('.om-hl')].map((el) =>
+        el.style.getPropertyValue('--om-brush'),
+    );
 }
 
 const strategies: { strategy: Strategy }[] = [
@@ -240,6 +261,26 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             expect(root.querySelectorAll('[data-depth]')).toHaveLength(3);
             expect(root.querySelectorAll('[tabindex]')).toHaveLength(0);
         });
+
+        describe.each(strategies)(
+            'with the $strategy strategy',
+            ({ strategy }) => {
+                // `adjacent`: `right` has a color, `left` has none.
+                it('paints a highlight without color with the given brush and defaultColor', async () => {
+                    const props = {
+                        ...adjacent,
+                        strategy,
+                        defaultColor: CUSTOM_COLOR,
+                        brush: solidBrush,
+                    };
+
+                    const { root } = await givenAdapter(props);
+
+                    expect(serializeRoot(root)).toEqual(expectedTree(props));
+                    expect(brushesOf(root)).toContain(solidBrush(CUSTOM_COLOR));
+                });
+            },
+        );
     });
 
     describe(`${name} — offset contract`, () => {
@@ -300,6 +341,154 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 });
             },
         );
+    });
+
+    describe(`${name} — decorations (style tier 3)`, () => {
+        /** Text that would shift every later offset if it were counted. */
+        const decoration = (segment: Segment): string =>
+            `[${segment.highlights.map((h) => h.id).join('+')}]`;
+        const decorated = { ...partialOverlap, decoration };
+
+        /** Mounts `props` and checks the precondition: one decoration per highlighted segment. */
+        async function givenDecoratedAdapter(
+            props: ContractProps,
+        ): Promise<ContractAdapter> {
+            const adapter = await givenAdapter(props);
+            expect(
+                [...adapter.root.querySelectorAll('[data-om-skip]')].map(
+                    (el) => el.textContent,
+                ),
+            ).toEqual(['[a]', '[a+b]', '[b]']);
+            return adapter;
+        }
+
+        describe.each(strategies)(
+            'with the $strategy strategy',
+            ({ strategy }) => {
+                const props = { ...decorated, strategy };
+
+                it('renders each decoration after the text of the innermost element of its highlighted segment', async () => {
+                    const { root } = await givenAdapter(props);
+
+                    expect(serializeRoot(root)).toEqual(expectedTree(props));
+                });
+
+                it('gives getTextLength the source text length', async () => {
+                    const { root } = await givenDecoratedAdapter(props);
+
+                    expect(getTextLength(root)).toBe(TEXT.length);
+                });
+
+                // Offsets only: a DOM range across a decoration contains its
+                // text, and whether Selection#toString shows it depends on the
+                // optional stylesheet (user-select: none).
+                it('maps the selected range back to the same offsets for every start/end pair', async () => {
+                    const { root } = await givenDecoratedAdapter(props);
+                    const ranges = codePointRanges(TEXT);
+
+                    for (const [start, end] of ranges) {
+                        setSelection(createRangeFromOffsets(root, start, end)!);
+                        expect(
+                            getSelectionOffsets(root),
+                            `${start}..${end}`,
+                        ).toEqual({ start, end });
+                    }
+                });
+            },
+        );
+
+        it('emits select text from the source text, without decoration text', async () => {
+            const adapter = await givenDecoratedAdapter(decorated);
+            await selectAndWait(adapter.root, 3, 20);
+
+            release();
+
+            await expect
+                .poll(() => eventsOf(adapter, 'select'))
+                .toEqual([selectEvent(3, 20, [a, b])]);
+        });
+
+        // Character 16 follows the "[a+b]" decoration at the end of [6,15).
+        it('reports the offset of the clicked character, not counting decoration text', async () => {
+            const adapter = await givenDecoratedAdapter(decorated);
+            const { el, position } = charPosition(adapter.root, 16);
+
+            await userEvent.click(el, { position });
+
+            expect(detailsOf(adapter, 'click').map((d) => d.offset)).toEqual([
+                16,
+            ]);
+        });
+
+        // The point lies on no source character, so the offset falls back to
+        // the start of the segment the decoration belongs to.
+        it('reports a click on a decoration as a click on its segment, at the segment start', async () => {
+            const adapter = await givenDecoratedAdapter(decorated);
+            const decorationEl = adapter.root.querySelector<HTMLElement>(
+                '[data-om-start="6"] [data-om-skip]',
+            )!;
+
+            await userEvent.click(decorationEl);
+
+            const clicks = detailsOf(adapter, 'click');
+            expect(clicks).toEqual([
+                {
+                    offset: 6,
+                    segment: expect.objectContaining({ start: 6, end: 15 }),
+                    highlights: [a, b],
+                    event: expect.any(MouseEvent),
+                },
+            ]);
+        });
+
+        it('hides every decoration from assistive technology', async () => {
+            const { root } = await givenDecoratedAdapter(decorated);
+
+            for (const el of root.querySelectorAll('[data-om-skip]'))
+                expect(el.closest('[aria-hidden="true"]')).not.toBeNull();
+        });
+
+        it('renders the decorations of a decoration function given in place of the first', async () => {
+            const adapter = await givenDecoratedAdapter(decorated);
+            const depthOf = (segment: Segment): string => `×${segment.depth}`;
+
+            await adapter.update({ decoration: depthOf });
+
+            expect(serializeRoot(adapter.root)).toEqual(
+                expectedTree({ ...decorated, decoration: depthOf }),
+            );
+            expect(
+                [...adapter.root.querySelectorAll('[data-om-skip]')].map(
+                    (el) => el.textContent,
+                ),
+            ).toEqual(['×1', '×2', '×1']);
+        });
+
+        it('keeps the selection across an update of the decorated tree', async () => {
+            const adapter = await givenDecoratedAdapter(decorated);
+            setSelection(createRangeFromOffsets(adapter.root, 3, 20)!);
+
+            await adapter.update({ highlights: [a, b, c] });
+
+            expect(getSelectionOffsets(adapter.root)).toEqual({
+                start: 3,
+                end: 20,
+            });
+        });
+
+        it('returns focus to the same segment after an update of the decorated tree', async () => {
+            const adapter = await givenDecoratedAdapter(decorated);
+            segmentElement(adapter.root, 6).focus();
+            expect(document.activeElement).toBe(
+                segmentElement(adapter.root, 6),
+            );
+
+            await adapter.update({ highlights: [a, b, c] });
+
+            expect(document.activeElement).toBe(
+                segmentElement(adapter.root, 6),
+            );
+        });
     });
 
     describe(`${name} — event payloads (§6)`, () => {
@@ -711,6 +900,43 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             );
         });
 
+        it('renders a changed defaultColor and brush', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+
+            await adapter.update({
+                defaultColor: CUSTOM_COLOR,
+                brush: solidBrush,
+            });
+
+            expect(serializeRoot(adapter.root)).toEqual(
+                expectedTree({
+                    ...partialOverlap,
+                    defaultColor: CUSTOM_COLOR,
+                    brush: solidBrush,
+                }),
+            );
+            // Four marks: a · a+b (two layers) · b.
+            expect(brushesOf(adapter.root)).toEqual(
+                Array(4).fill(solidBrush(CUSTOM_COLOR)),
+            );
+        });
+
+        it('renders a brush given in place of the first', async () => {
+            const adapter = await givenAdapter({
+                ...partialOverlap,
+                brush: solidBrush,
+            });
+
+            await adapter.update({ brush: stripedBrush });
+
+            expect(serializeRoot(adapter.root)).toEqual(
+                expectedTree({ ...partialOverlap, brush: stripedBrush }),
+            );
+            expect(brushesOf(adapter.root)).toEqual(
+                Array(4).fill(stripedBrush(DEFAULT_COLOR)),
+            );
+        });
+
         it('renders a replaced text', async () => {
             const adapter = await givenAdapter(partialOverlap);
 
@@ -763,33 +989,6 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 ]);
         });
 
-        it('keeps the selection across an update', async () => {
-            const adapter = await givenAdapter(partialOverlap);
-            setSelection(createRangeFromOffsets(adapter.root, 8, 18)!);
-
-            await adapter.update({ highlights: [a, b, c] });
-
-            expect(getSelectionOffsets(adapter.root)).toEqual({
-                start: 8,
-                end: 18,
-            });
-            expect(window.getSelection()!.toString()).toBe(TEXT.slice(8, 18));
-        });
-
-        it('returns focus to the same segment after an update', async () => {
-            const adapter = await givenAdapter(partialOverlap);
-            segmentElement(adapter.root, 6).focus();
-            expect(document.activeElement).toBe(
-                segmentElement(adapter.root, 6),
-            );
-
-            await adapter.update({ highlights: [a, b, c] });
-
-            expect(document.activeElement).toBe(
-                segmentElement(adapter.root, 6),
-            );
-        });
-
         it('applies a changed minSelectionLength to the next selection', async () => {
             const adapter = await givenAdapter({
                 ...partialOverlap,
@@ -825,6 +1024,144 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             expect(eventsOf(adapter, 'select')).toEqual([
                 selectEvent(8, 18, [a, b]),
             ]);
+        });
+    });
+
+    // Every adapter restores through core's captureViewState/restoreViewState,
+    // which own these rules; the cases pin them on each adapter's update flush.
+    describe(`${name} — selection across an update`, () => {
+        it('keeps the selection across an update', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            setSelection(createRangeFromOffsets(adapter.root, 8, 18)!);
+
+            await adapter.update({ highlights: [a, b, c] });
+
+            expect(getSelectionOffsets(adapter.root)).toEqual({
+                start: 8,
+                end: 18,
+            });
+            expect(window.getSelection()!.toString()).toBe(TEXT.slice(8, 18));
+        });
+
+        it('keeps the selection when an update passes an equal text built anew', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            setSelection(createRangeFromOffsets(adapter.root, 8, 18)!);
+
+            await adapter.update({
+                text: [...TEXT].join(''),
+                highlights: [a, b, c],
+            });
+
+            expect(getSelectionOffsets(adapter.root)).toEqual({
+                start: 8,
+                end: 18,
+            });
+        });
+
+        // U1: the same offsets over a new text select different characters,
+        // which the user did not select.
+        it('clears the selection when an update replaces the text', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            setSelection(createRangeFromOffsets(adapter.root, 8, 18)!);
+
+            await adapter.update({ text: REPLACED_TEXT });
+
+            expect(getSelectionOffsets(adapter.root)).toBeNull();
+            expect(window.getSelection()!.toString()).toBe('');
+        });
+
+        it('leaves a selection outside the root alone when an update replaces the text', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            const outside = givenTextOutsideRoots('Elsewhere on the page');
+            const range = document.createRange();
+            range.setStart(outside, 0);
+            range.setEnd(outside, 9);
+            setSelection(range);
+
+            await adapter.update({ text: REPLACED_TEXT });
+
+            expect(window.getSelection()!.toString()).toBe('Elsewhere');
+        });
+    });
+
+    describe(`${name} — focus across an update`, () => {
+        it('returns focus to the same segment after an update', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            segmentElement(adapter.root, 6).focus();
+            expect(document.activeElement).toBe(
+                segmentElement(adapter.root, 6),
+            );
+
+            await adapter.update({ highlights: [a, b, c] });
+
+            expect(document.activeElement).toBe(
+                segmentElement(adapter.root, 6),
+            );
+        });
+
+        // U2: the focused segment [6,15) is gone; [0,15) of `a` now covers 6.
+        it('moves focus to the highlighted segment that now covers the focused offset', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            segmentElement(adapter.root, 6).focus();
+
+            await adapter.update({ highlights: [a] });
+
+            expect(document.activeElement).toBe(
+                segmentElement(adapter.root, 0),
+            );
+        });
+
+        // U2: with `c` alone, offset 6 lies in the plain segment [0,10).
+        it('focuses nothing in the root when the focused offset is no longer highlighted', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            segmentElement(adapter.root, 6).focus();
+
+            await adapter.update({ highlights: [c] });
+
+            expect(
+                segmentElement(adapter.root, 0).hasAttribute('data-depth'),
+            ).toBe(false);
+            expect(adapter.root.contains(document.activeElement)).toBe(false);
+        });
+
+        // U2 applies to an unchanged text only: in a new text the covering
+        // segment holds other characters.
+        it('does not move focus to another segment when an update replaces the text', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            segmentElement(adapter.root, 6).focus();
+
+            await adapter.update({ text: REPLACED_TEXT, highlights: [a] });
+
+            expect(
+                segmentElement(adapter.root, 0).hasAttribute('tabindex'),
+            ).toBe(true);
+            expect(adapter.root.contains(document.activeElement)).toBe(false);
+        });
+
+        // The segment keeps its segmentKey, so a framework may patch the
+        // focused element in place.
+        it('takes focus off the focused segment when an update makes it unfocusable', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            segmentElement(adapter.root, 6).focus();
+
+            await adapter.update({ focusable: false });
+
+            expect(
+                segmentElement(adapter.root, 6).hasAttribute('data-depth'),
+            ).toBe(true);
+            expect(adapter.root.contains(document.activeElement)).toBe(false);
+        });
+
+        it('focuses nothing in the root when the segment covering the focused offset is not focusable', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            segmentElement(adapter.root, 6).focus();
+
+            await adapter.update({ highlights: [a], focusable: false });
+
+            expect(
+                segmentElement(adapter.root, 0).hasAttribute('data-depth'),
+            ).toBe(true);
+            expect(adapter.root.contains(document.activeElement)).toBe(false);
         });
     });
 

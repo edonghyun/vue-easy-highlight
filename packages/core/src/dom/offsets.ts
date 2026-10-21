@@ -126,6 +126,13 @@ function positionOf(root: Element, node: Node, offset: number): number {
     return pos;
 }
 
+/** The original text rendered in `root`: its counted text nodes, decorations excluded. */
+export function renderedText(root: Element): string {
+    return textNodes(root)
+        .map((t) => t.data)
+        .join('');
+}
+
 /** Total length of the original text rendered in `root` (decorations excluded). */
 export function getTextLength(root: Element): number {
     const segs = segments(root);
@@ -133,6 +140,21 @@ export function getTextLength(root: Element): number {
     let max = 0;
     for (const s of segs) max = Math.max(max, s.start + textLength(s.el));
     return max;
+}
+
+/**
+ * The outermost element of the segment covering original-text position `pos`,
+ * or `null` when `pos` lies outside the text. Segments are contiguous, so it
+ * is the last segment starting at or before `pos`.
+ */
+export function segmentElementAt(root: Element, pos: number): Element | null {
+    if (pos < 0 || pos >= getTextLength(root)) return null;
+    let covering: Element | null = null;
+    for (const s of segments(root)) {
+        if (s.start > pos) break;
+        covering = s.el;
+    }
+    return covering;
 }
 
 /**

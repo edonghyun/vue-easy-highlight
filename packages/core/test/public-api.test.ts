@@ -13,12 +13,14 @@ describe('@overlapmark/core entry point', () => {
             'DEFAULT_COLOR',
             'compareHighlights',
             'computeSegments',
+            'decorationTarget',
             'defaultBrush',
             'findMatches',
             'highlightsInRange',
             'rootAttributes',
             'segmentAt',
             'segmentElements',
+            'segmentKey',
         ]);
     });
 });
@@ -29,10 +31,12 @@ describe('@overlapmark/core/dom entry point', () => {
 
         expect(names).toEqual([
             'attachInteractions',
+            'captureViewState',
             'createRangeFromOffsets',
             'getOffsetFromPoint',
             'getSelectionOffsets',
             'getTextLength',
+            'restoreViewState',
         ]);
     });
 });

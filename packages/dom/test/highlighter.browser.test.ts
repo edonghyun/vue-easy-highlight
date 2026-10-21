@@ -1,9 +1,10 @@
 // createHighlighter behaviors outside the shared adapter contract, which
 // highlighter.contract.browser.test.ts runs on it: replacing existing content,
-// the shipped stylesheet, getSegments(), unsubscribing, what update() keeps
-// when it re-renders everything, and destroy(). Nothing here waits a fixed
-// time: tests await the real selectionchange or the mutation observers a
-// re-render notifies, and the touch delay runs on fake timers.
+// the shipped stylesheet, Node and null decorations, getSegments(),
+// unsubscribing, what update() keeps when it re-renders everything, and
+// destroy(). Nothing here waits a fixed time: tests await the real
+// selectionchange or the mutation observers a re-render notifies, and the
+// touch delay runs on fake timers.
 import {
     TEXT,
     a,
@@ -80,6 +81,18 @@ describe('createHighlighter: rendering', () => {
         expect(el.textContent).toBe(TEXT);
     });
 
+    it('sets its own root class and strategy attribute over those the element had', () => {
+        const el = givenElement();
+        el.className = 'article';
+        el.setAttribute('data-om-strategy', 'depth');
+
+        const h = createHighlighter(el, { text: TEXT, highlights: [a] });
+        onTestFinished(() => h.destroy());
+
+        expect([...el.classList]).toEqual(['article', 'om-root']);
+        expect(el.getAttribute('data-om-strategy')).toBe('layers');
+    });
+
     it('paints highlights translucently with the shipped stylesheet', () => {
         const { el } = givenHighlighter();
 
@@ -90,6 +103,54 @@ describe('createHighlighter: rendering', () => {
         expect(alpha).toBeGreaterThan(0);
         expect(alpha).toBeLessThan(1);
     });
+});
+
+// The adapter contract covers decorations given as text; these cover the
+// other results decorate() may return.
+describe('createHighlighter: decorate', () => {
+    it('places a Node returned by decorate inside the decoration container', () => {
+        const { el } = givenHighlighter({
+            decorate: (segment) => {
+                const badge = document.createElement('b');
+                badge.textContent = String(segment.depth);
+                return badge;
+            },
+        });
+
+        const containers = [...el.querySelectorAll('[data-om-skip]')];
+
+        expect(containers.map((c) => c.innerHTML)).toEqual([
+            '<b>1</b>',
+            '<b>2</b>',
+            '<b>1</b>',
+        ]);
+        expect(containers.map((c) => c.getAttribute('aria-hidden'))).toEqual([
+            'true',
+            'true',
+            'true',
+        ]);
+    });
+
+    it.each([
+        { label: 'null', nothing: null },
+        { label: 'an empty string', nothing: '' },
+    ])(
+        'renders no decoration container for a segment decorate returns $label for',
+        ({ nothing }) => {
+            const { el } = givenHighlighter({
+                decorate: (segment) =>
+                    segment.depth > 1 ? 'overlap' : nothing,
+            });
+
+            const containers = [...el.querySelectorAll('[data-om-skip]')];
+
+            // Live positive control: the overlapping segment is decorated.
+            expect(containers.map((c) => c.textContent)).toEqual(['overlap']);
+            expect(
+                segmentElement(el, 0).querySelector('[data-om-skip]'),
+            ).toBeNull();
+        },
+    );
 });
 
 describe('createHighlighter: getSegments()', () => {
@@ -136,6 +197,42 @@ describe('createHighlighter: unsubscribing', () => {
 
         expect(subscribed).toHaveBeenCalledTimes(1);
     });
+    // Each on() is its own subscription, even for a function already subscribed.
+    it('keeps calling a later subscription of the same function when an earlier unsubscribe runs again', () => {
+        const { el, h } = givenHighlighter();
+        const fn = vi.fn();
+        const offEarlier = h.on('click', fn);
+        offEarlier();
+        h.on('click', fn);
+
+        offEarlier();
+        segmentElement(el, 6).click();
+
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls a function subscribed twice once per subscription', () => {
+        const { el, h } = givenHighlighter();
+        const fn = vi.fn();
+        h.on('click', fn);
+        h.on('click', fn);
+
+        segmentElement(el, 6).click();
+
+        expect(fn).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps the other subscription of a function subscribed twice when one is removed', () => {
+        const { el, h } = givenHighlighter();
+        const fn = vi.fn();
+        const offFirst = h.on('click', fn);
+        h.on('click', fn);
+
+        offFirst();
+        segmentElement(el, 6).click();
+
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
 });
 
 describe('createHighlighter: update() re-rendering a selection', () => {
@@ -161,17 +258,7 @@ describe('createHighlighter: update() re-rendering a selection', () => {
         expect(window.getSelection()!.toString()).toBe(TEXT.slice(8, 18));
     });
 
-    it('clips a restored selection to the end of a shorter text', async () => {
-        const { el, h } = givenHighlighter();
-        await selectAndWait(el, 16, 21);
-
-        h.update({ text: 'Hello wonderful wo', highlights: [] });
-
-        expect(getSelectionOffsets(el)).toEqual({ start: 16, end: 18 });
-        expect(window.getSelection()!.toString()).toBe('wo');
-    });
-
-    // D3: a changed delay applies from the next selectionchange, and re-rendering
+    // A changed delay applies from the next selectionchange, and re-rendering
     // the selection is one, so a touch selection already waiting restarts its
     // wait with the new delay.
     it('restarts a pending touch wait with a changed touchSelectionDelay', async () => {
@@ -223,7 +310,7 @@ describe('createHighlighter: update() re-rendering focus and hover', () => {
         return hovers;
     }
 
-    // D2: the hovered element is replaced, so the pointer can no longer leave it.
+    // The hovered element is replaced, so the pointer can no longer leave it.
     it('emits leave for the hovered segment it re-renders, with no pointer event', async () => {
         const { el, h } = givenHighlighter();
         const hovers = await givenHoveredSegment(el, h);
@@ -268,39 +355,6 @@ describe('createHighlighter: update() re-rendering focus and hover', () => {
         h.destroy();
 
         expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-    });
-});
-
-describe('createHighlighter: update()', () => {
-    // Characterization tests, not a decided contract: they pin what update()
-    // does today where the spec is silent. Change them, and move them out of
-    // this group, once the behavior is decided.
-    describe('current behavior (undecided)', () => {
-        // The spec only asks to keep the selection when the highlights
-        // change; with a new text the selection is restored by offset, over
-        // the new characters.
-        it('restores the selection offsets over a new text that still contains them', async () => {
-            const { el, h } = givenHighlighter();
-            const next = 'Goodbye cruel world, see you';
-            await selectAndWait(el, 8, 13);
-
-            h.update({ text: next, highlights: [] });
-
-            expect(getSelectionOffsets(el)).toEqual({ start: 8, end: 13 });
-            expect(window.getSelection()!.toString()).toBe('cruel');
-        });
-
-        // The spec says nothing about focus when its segment disappears.
-        it('drops focus when no focusable segment starts at the focused offset any more', () => {
-            const { el, h } = givenHighlighter();
-            segmentElement(el, 6).focus();
-            expect(document.activeElement).toBe(segmentElement(el, 6));
-
-            h.update({ highlights: [c] });
-
-            expect(el.querySelector('[data-om-start="6"]')).toBeNull();
-            expect(document.activeElement).toBe(document.body);
-        });
     });
 });
 

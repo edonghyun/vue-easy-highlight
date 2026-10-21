@@ -9,6 +9,9 @@
         "isolatedModules": true,
         "verbatimModuleSyntax": true,
         "skipLibCheck": true,
-        "noEmit": true
+        "noEmit": true,
+        // Config files import the shared Vite aliases by their .ts path, as
+        // Vite's native config loader requires.
+        "allowImportingTsExtensions": true
     }
 }

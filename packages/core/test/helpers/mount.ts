@@ -2,8 +2,13 @@
 // tests that need it import '../src/styles.css' themselves.
 import { setSelection } from '@overlapmark/adapter-contract';
 import { onTestFinished } from 'vitest';
-import { computeSegments, rootAttributes, segmentElements } from '../../src';
-import type { Highlight, RenderOptions } from '../../src';
+import {
+    computeSegments,
+    decorationTarget,
+    rootAttributes,
+    segmentElements,
+} from '../../src';
+import type { ElementSpec, Highlight, RenderOptions, Segment } from '../../src';
 import { createRangeFromOffsets } from '../../src/dom';
 
 export interface MountOptions extends RenderOptions {
@@ -28,35 +33,65 @@ export function givenInDocument<T extends Node>(node: T): T {
     return node;
 }
 
+export interface RenderIntoOptions extends RenderOptions {
+    /** Decoration text for each highlighted segment, as in the adapter contract. */
+    decoration?: (segment: Segment) => string;
+}
+
 /**
  * Renders `text` with `highlights` into `root` from the core render model,
- * replacing its children and setting the root class and attributes.
+ * replacing its children and setting the root class and attributes. With
+ * `decoration`, each highlighted segment's innermost element ends with
+ * `<span data-om-skip aria-hidden="true">{decoration}</span>`, unless the
+ * decoration is `''`.
  */
 export function renderInto(
     root: HTMLElement,
     text: string,
     highlights: readonly Highlight[],
-    options: RenderOptions = {},
+    options: RenderIntoOptions = {},
 ): void {
     const r = rootAttributes(options);
     root.classList.add(r.className);
     for (const [k, v] of Object.entries(r.attrs)) root.setAttribute(k, v);
     const frag = document.createDocumentFragment();
     for (const seg of computeSegments(text, [...highlights])) {
+        const specs = segmentElements(seg, options);
+        const elements = specs.map(elementOf);
         let parent: Node = frag;
-        for (const spec of segmentElements(seg, options)) {
-            const el = document.createElement(spec.tag);
-            el.className = spec.className;
-            for (const [k, v] of Object.entries(spec.attrs))
-                el.setAttribute(k, v);
-            for (const [k, v] of Object.entries(spec.style))
-                el.style.setProperty(k, v);
+        for (const el of elements) {
             parent.appendChild(el);
             parent = el;
         }
         parent.appendChild(document.createTextNode(seg.text));
+        const target = decorationTarget(seg, specs);
+        const decoration =
+            target && options.decoration ? options.decoration(seg) : '';
+        // '' is no decoration: the segment gets no container.
+        if (target && decoration !== '') {
+            const deco = elementOf(target.container);
+            deco.textContent = decoration;
+            elements[target.index].appendChild(deco);
+        }
     }
     root.replaceChildren(frag);
+}
+
+/** The element `spec` describes, without children. */
+function elementOf(spec: ElementSpec): HTMLElement {
+    const el = document.createElement(spec.tag);
+    if (spec.className) el.className = spec.className;
+    for (const [k, v] of Object.entries(spec.attrs)) el.setAttribute(k, v);
+    for (const [k, v] of Object.entries(spec.style)) el.style.setProperty(k, v);
+    return el;
+}
+
+function decorationOf(text: string): HTMLElement {
+    const deco = document.createElement('span');
+    deco.setAttribute('data-om-skip', '');
+    deco.setAttribute('aria-hidden', 'true');
+    deco.textContent = text;
+    return deco;
 }
 
 export function givenRenderedRoot(
@@ -73,11 +108,7 @@ export function givenRenderedRoot(
             throw new Error(
                 `givenRenderedRoot: decorate needs a highlight with id "${decorate.id}"`,
             );
-        const deco = document.createElement('span');
-        deco.setAttribute('data-om-skip', '');
-        deco.setAttribute('aria-hidden', 'true');
-        deco.textContent = decorate.text;
-        target.appendChild(deco);
+        target.appendChild(decorationOf(decorate.text));
     }
     if (before !== undefined) givenInDocument(document.createTextNode(before));
     givenInDocument(root);

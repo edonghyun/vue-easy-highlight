@@ -1,7 +1,7 @@
 import { describe, expect, it, onTestFinished } from 'vitest';
 import '../src/styles.css';
 import type { Highlight } from '../src';
-import { givenInDocument, givenRenderedRoot } from './helpers/mount';
+import { givenInDocument, givenRenderedRoot, select } from './helpers/mount';
 
 // Normalise any computed color (rgb, color(srgb), oklab...) through a canvas, then compute relative luminance.
 function rgba(css: string): [number, number, number, number] {
@@ -222,5 +222,23 @@ describe('default stylesheet', () => {
         const root = givenRenderedRoot('a  b', []);
 
         expect(getComputedStyle(root).whiteSpace).toBe('pre-wrap');
+    });
+
+    // The decoration is appended to mark "b", at the end of segment [6,15).
+    it('leaves decoration text out of a selection that spans a decoration', () => {
+        const text = 'Hello wonderful world';
+        const root = givenRenderedRoot(
+            text,
+            [
+                { id: 'a', start: 0, end: 15 },
+                { id: 'b', start: 6, end: 21 },
+            ],
+            { decorate: { id: 'b', text: '[note]' } },
+        );
+        expect(root.textContent).toContain('[note]');
+
+        select(root, 8, 18);
+
+        expect(window.getSelection()!.toString()).toBe(text.slice(8, 18));
     });
 });
