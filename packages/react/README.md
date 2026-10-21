@@ -54,7 +54,7 @@ export function Article() {
 | `touchSelectionDelay` | `number`                    | `500`      | Milliseconds of no selection change before `onSelect` fires on touch; a change applies from the next selection change        |
 | `renderDecoration`    | `(segment) => ReactNode`    | none       | Decoration for each highlighted segment; see [Decorations](#decorations)                                                     |
 
-The component renders a single `<div class="om-root">`. `className` is added to `om-root`; `style`, `id`, `aria-*`, `data-*` and the other `div` props, DOM handlers such as `onPointerDown` included, land on that `div`. The component renders its children itself, so `children` and `dangerouslySetInnerHTML` are not accepted.
+The component renders a single `<div class="om-root">`. `className` is added to `om-root`; `style`, `id`, `aria-*`, `data-*` and the other `div` props, DOM handlers such as `onPointerDown` included, land on that `div`, and `ref` (an object or callback ref) receives it. The component renders its children itself, so `children` and `dangerouslySetInnerHTML` are not accepted.
 
 `Highlighter` is generic over the `data` of your highlights: given `Highlight<Note>[]`, the handlers receive `Highlight<Note>` objects. They are your own objects, so `detail.highlights[0] === myHighlight` holds.
 
@@ -92,7 +92,7 @@ When props change, the component re-renders and keeps the user's selection and k
 />
 ```
 
-What it returns goes in `<span data-om-skip aria-hidden="true">`, the last child of the segment's innermost element (right after its text). It never shifts the offsets `onSelect` and `onClick` report, the shipped stylesheet keeps it out of selections and copies, and it is hidden from assistive technology, so it must not contain buttons, links or other focusable content. A segment it returns `null`, `undefined` or a boolean for gets no container. Plain segments are not decorated.
+What it returns goes in `<span data-om-skip aria-hidden="true">`, the last child of the segment's innermost element (right after its text). It never shifts the offsets `onSelect` and `onClick` report, the shipped stylesheet keeps it out of selections and copies, and it is hidden from assistive technology, so it must not contain buttons, links or other focusable content. A segment it returns `null`, `undefined`, a boolean, `''` or an empty array for gets no container. Plain segments are not decorated.
 
 ## Server-side rendering
 

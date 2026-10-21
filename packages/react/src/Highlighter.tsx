@@ -24,12 +24,21 @@ import type { ViewState } from '@overlapmark/core/dom';
 import {
     Component,
     createElement,
+    forwardRef,
+    useCallback,
     useEffect,
     useLayoutEffect,
     useMemo,
     useRef,
 } from 'react';
-import type { HTMLAttributes, ReactElement, ReactNode, RefObject } from 'react';
+import type {
+    ForwardedRef,
+    HTMLAttributes,
+    ReactElement,
+    ReactNode,
+    RefAttributes,
+    RefObject,
+} from 'react';
 
 /**
  * `useLayoutEffect` in the browser. A server runs no effects at all, and
@@ -75,7 +84,8 @@ export interface HighlighterOwnProps<T = unknown> {
      * counts toward offsets, is left out of selections and copies (with the
      * shipped stylesheet), and is hidden from assistive technology. Keep it
      * presentational: no buttons, links or other focusable content. Return
-     * `null`, `undefined` or a boolean to leave a segment undecorated.
+     * `null`, `undefined`, a boolean, `''` or an empty array to leave a
+     * segment undecorated.
      */
     renderDecoration?: (segment: Segment<T>) => ReactNode;
 }
@@ -101,22 +111,43 @@ const NO_HIGHLIGHTS: readonly Highlight<never>[] = [];
 /** Core's attribute names React spells differently (it warns on `tabindex`). */
 const REACT_PROP_NAMES: Record<string, string> = { tabindex: 'tabIndex' };
 
+/** Core's `attrs` as React props. */
+function reactAttrs(attrs: Record<string, string>): Record<string, string> {
+    const props: Record<string, string> = {};
+    for (const [name, value] of Object.entries(attrs))
+        props[REACT_PROP_NAMES[name] ?? name] = value;
+    return props;
+}
+
 /**
  * The React props of the element `spec` describes. An empty class or style is
  * left out rather than set to nothing, as the other adapters render it.
  */
 function propsOfSpec(spec: ElementSpec): Record<string, unknown> {
-    const props: Record<string, unknown> = {};
-    for (const [name, value] of Object.entries(spec.attrs))
-        props[REACT_PROP_NAMES[name] ?? name] = value;
+    const props: Record<string, unknown> = reactAttrs(spec.attrs);
     if (spec.className) props.className = spec.className;
     if (Object.keys(spec.style).length > 0) props.style = spec.style;
     return props;
 }
 
-/** Whether React renders nothing for `node`, so the segment gets no decoration container. */
+/**
+ * Whether React renders nothing for `node`, so the segment gets no decoration
+ * container: also `''` and arrays of nothing, which leave no node behind.
+ */
 function rendersNothing(node: ReactNode): boolean {
-    return node === null || node === undefined || typeof node === 'boolean';
+    if (Array.isArray(node)) return node.every(rendersNothing);
+    return (
+        node === null ||
+        node === undefined ||
+        node === '' ||
+        typeof node === 'boolean'
+    );
+}
+
+/** Points `ref` at `el`, whichever kind of ref the caller gave. */
+function assignRef<E>(ref: ForwardedRef<E>, el: E | null): void {
+    if (typeof ref === 'function') ref(el);
+    else if (ref) ref.current = el;
 }
 
 /**
@@ -169,6 +200,13 @@ function segmentElement<T>(
  * DOM mutations. A function component's `useInsertionEffect` runs after its
  * own subtree was mutated, by when replaced segment elements have already
  * taken the selection with them.
+ *
+ * `componentDidUpdate` restores before `Highlighter`'s own layout effect
+ * writes `latest` (children's layout effects run first), so the listeners
+ * still hold the previous segments and handlers while it runs. That is safe:
+ * restoring calls `addRange` and `focus()`, whose `selectionchange` arrives
+ * as a later task and whose focus events core does not listen to, so no
+ * listener runs before `latest` is current.
  */
 class ViewStateBoundary extends Component<{
     root: RefObject<HTMLElement | null>;
@@ -193,14 +231,9 @@ class ViewStateBoundary extends Component<{
     }
 }
 
-/**
- * Renders `text` with overlapping `highlights` in a `div`, and calls
- * `onSelect`, `onClick`, `onDblClick` and `onHover` with core's detail
- * objects. `className`, `style` and the other `div` attributes land on that
- * `div`.
- */
-export function Highlighter<T = unknown>(
+function HighlighterRender<T>(
     props: HighlighterProps<T>,
+    ref: ForwardedRef<HTMLDivElement>,
 ): ReactElement {
     const {
         text,
@@ -221,6 +254,13 @@ export function Highlighter<T = unknown>(
     } = props;
 
     const root = useRef<HTMLDivElement>(null);
+    const setRoot = useCallback(
+        (el: HTMLDivElement | null) => {
+            root.current = el;
+            assignRef(ref, el);
+        },
+        [ref],
+    );
     const segments = useMemo(
         () => computeSegments(text, highlights),
         [text, highlights],
@@ -283,8 +323,8 @@ export function Highlighter<T = unknown>(
         <ViewStateBoundary root={root}>
             <div
                 {...divProps}
-                {...rootSpec.attrs}
-                ref={root}
+                {...reactAttrs(rootSpec.attrs)}
+                ref={setRoot}
                 className={
                     className
                         ? `${rootSpec.className} ${className}`
@@ -298,3 +338,20 @@ export function Highlighter<T = unknown>(
         </ViewStateBoundary>
     );
 }
+
+/**
+ * Renders `text` with overlapping `highlights` in a `div`, and calls
+ * `onSelect`, `onClick`, `onDblClick` and `onHover` with core's detail
+ * objects. `className`, `style` and the other `div` attributes land on that
+ * `div`, and `ref` receives it.
+ *
+ * `forwardRef` passes the ref on in React 18 as in 19; the cast keeps the
+ * component generic over the highlights' `data`, which `forwardRef`'s own
+ * type erases.
+ */
+const ForwardedHighlighter = forwardRef(HighlighterRender);
+ForwardedHighlighter.displayName = 'Highlighter';
+
+export const Highlighter = ForwardedHighlighter as <T = unknown>(
+    props: HighlighterProps<T> & RefAttributes<HTMLDivElement>,
+) => ReactElement;

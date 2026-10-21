@@ -19,7 +19,13 @@ import {
 import '@overlapmark/core/styles.css';
 import type { Highlight, HoverDetail, PointDetail } from '@overlapmark/core';
 import { getSelectionOffsets } from '@overlapmark/core/dom';
-import { StrictMode } from 'react';
+import {
+    Activity,
+    StrictMode,
+    createRef,
+    startTransition,
+    useLayoutEffect,
+} from 'react';
 import type { ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
@@ -108,6 +114,33 @@ describe('Highlighter: root element', () => {
         expect(root.dataset.testid).toBe('highlighter');
     });
 
+    it('hands the root div to an object ref', () => {
+        const ref = createRef<HTMLDivElement>();
+
+        const { host } = givenRendered(
+            <Highlighter {...propsOf(partialOverlap)} ref={ref} />,
+        );
+
+        expect(ref.current).toBe(rootIn(host));
+        expect(ref.current?.classList.contains('om-root')).toBe(true);
+    });
+
+    it('hands the root div to a callback ref', () => {
+        const received: (HTMLDivElement | null)[] = [];
+
+        const { host } = givenRendered(
+            <Highlighter
+                {...propsOf(partialOverlap)}
+                ref={(el) => {
+                    received.push(el);
+                }}
+            />,
+        );
+
+        expect(received).toEqual([rootIn(host)]);
+        expect(received[0]?.classList.contains('om-root')).toBe(true);
+    });
+
     it('calls a DOM handler given as a div prop with the DOM event', async () => {
         const pointerDowns: Event[] = [];
         const { host } = givenRendered(
@@ -183,27 +216,35 @@ describe('Highlighter: renderDecoration', () => {
         );
     });
 
-    it('leaves out the container of a segment it returns null for', () => {
-        const { host } = givenRendered(
-            <Highlighter
-                {...propsOf(partialOverlap)}
-                renderDecoration={(segment) =>
-                    segment.depth > 1 ? 'overlap' : null
-                }
-            />,
-        );
+    const nothing: { label: string; node: ReactNode }[] = [
+        { label: 'null', node: null },
+        { label: 'an empty string', node: '' },
+        { label: 'an empty array', node: [] },
+    ];
+    it.each(nothing)(
+        'leaves out the container of a segment it returns $label for',
+        ({ node }) => {
+            const { host } = givenRendered(
+                <Highlighter
+                    {...propsOf(partialOverlap)}
+                    renderDecoration={(segment) =>
+                        segment.depth > 1 ? 'overlap' : node
+                    }
+                />,
+            );
 
-        const decorations = [
-            ...rootIn(host).querySelectorAll('[data-om-skip]'),
-        ];
+            const decorations = [
+                ...rootIn(host).querySelectorAll('[data-om-skip]'),
+            ];
 
-        // Live positive control: the overlap segment [6,15) is decorated.
-        expect(decorations).toHaveLength(1);
-        expect(decorations[0].textContent).toBe('overlap');
-        expect(decorations[0].closest('[data-om-start]')).toBe(
-            segmentElement(rootIn(host), 6),
-        );
-    });
+            // Live positive control: the overlap segment [6,15) is decorated.
+            expect(decorations).toHaveLength(1);
+            expect(decorations[0].textContent).toBe('overlap');
+            expect(decorations[0].closest('[data-om-start]')).toBe(
+                segmentElement(rootIn(host), 6),
+            );
+        },
+    );
 });
 
 // Review Focus 1: a parent that re-renders builds a new highlights array of
@@ -382,5 +423,84 @@ describe('Highlighter: unmounting while a segment is hovered', () => {
         rerender(<section />);
 
         expect(leaves).toEqual([{ connected: true, event: null }]);
+    });
+});
+
+describe('Highlighter: an update rendered as a transition', () => {
+    /** Renders `highlights` and calls `onCommit` in the commit that shows them. */
+    function Parent(props: {
+        highlights: readonly Highlight[];
+        onCommit: () => void;
+    }) {
+        // A parent's layout effect runs after its children's in one commit.
+        useLayoutEffect(() => props.onCommit());
+        return <Highlighter text={TEXT} highlights={props.highlights} />;
+    }
+
+    it('keeps the selection where the user made it', async () => {
+        const { host, rerender } = givenRendered(
+            <Parent highlights={[a]} onCommit={() => {}} />,
+        );
+        const root = rootIn(host);
+        await selectAndWait(root, 8, 18);
+
+        await new Promise<void>((committed) =>
+            startTransition(() =>
+                rerender(<Parent highlights={[a, b]} onCommit={committed} />),
+            ),
+        );
+
+        // Precondition: the transition patched the DOM (a new a+b segment).
+        expect(segmentElement(root, 6).getAttribute('data-ids')).toBe('a,b');
+        expect(getSelectionOffsets(root)).toEqual({ start: 8, end: 18 });
+    });
+});
+
+// Review Focus 3: Activity hides a component by disconnecting its layout
+// effects and shows it by connecting them again, keeping the DOM.
+describe('Highlighter inside Activity', () => {
+    /** `partialOverlap` in an Activity of `mode`, recording clicks into `clicks`. */
+    function viewOf(
+        mode: 'visible' | 'hidden',
+        clicks: PointDetail[],
+    ): ReactNode {
+        return (
+            <Activity mode={mode}>
+                <Highlighter
+                    {...propsOf(partialOverlap)}
+                    onClick={(detail) => clicks.push(detail)}
+                />
+            </Activity>
+        );
+    }
+
+    it('calls onClick once per click after it is hidden and shown again', async () => {
+        const clicks: PointDetail[] = [];
+        const { host, rerender } = givenRendered(viewOf('visible', clicks));
+        const root = rootIn(host);
+        rerender(viewOf('hidden', clicks));
+        rerender(viewOf('visible', clicks));
+
+        // Precondition: Activity kept the DOM, so this is no remount.
+        expect(rootIn(host)).toBe(root);
+
+        await clickCharacter(root, 10);
+
+        expect(clicks.map((d) => d.offset)).toEqual([10]);
+    });
+
+    it('calls no onClick while hidden', () => {
+        const clicks: PointDetail[] = [];
+        const { host, rerender } = givenRendered(viewOf('visible', clicks));
+        const segment = segmentElement(rootIn(host), 6);
+        rerender(viewOf('hidden', clicks));
+
+        segment.click();
+
+        expect(clicks).toEqual([]);
+        // Live positive control: the same click once shown again.
+        rerender(viewOf('visible', clicks));
+        segment.click();
+        expect(clicks.map((d) => d.offset)).toEqual([6]);
     });
 });
