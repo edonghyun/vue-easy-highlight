@@ -264,8 +264,9 @@ type HighlighterComponent = {
 } & Omit<HighlighterComponentOf<unknown>, never>;
 
 // Typed apart from `defineComponent`: an annotation would otherwise steer the
-// inference of its options. The cast to `HighlighterComponent` below holds
-// because only types depend on `T`.
+// inference of its options. `Highlighter` checks it against the declared type
+// for `unknown`, then casts to `HighlighterComponent`, which only adds the
+// generic constructor: only types depend on `T`.
 const component = defineComponent({
     name: 'Highlighter',
     // Merged by hand in the render function: Vue's own fallthrough would let
@@ -369,4 +370,5 @@ const component = defineComponent({
  * `select`, `click`, `dblclick` and `hover` with core's detail objects.
  * Attributes and classes given to the component land on that `div`.
  */
-export const Highlighter = component as HighlighterComponent;
+export const Highlighter =
+    component satisfies HighlighterComponentOf<unknown> as HighlighterComponent;

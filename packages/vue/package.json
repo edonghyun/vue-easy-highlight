@@ -42,7 +42,7 @@
     "scripts": {
         "build": "tsup",
         "test": "vitest run --project node --project browser",
-        "typecheck": "tsc --noEmit",
+        "typecheck": "vue-tsc --noEmit",
         "prepack": "cp ../../LICENSE LICENSE"
     },
     "devDependencies": {
@@ -50,6 +50,7 @@
         "vue": "^3.5.0",
         "vue-3.3-runtime-dom": "npm:@vue/runtime-dom@3.3.13",
         "vue-3.4-runtime-dom": "npm:@vue/runtime-dom@3.4.38",
-        "vue-3.5.0-runtime-dom": "npm:@vue/runtime-dom@3.5.0"
+        "vue-3.5.0-runtime-dom": "npm:@vue/runtime-dom@3.5.0",
+        "vue-tsc": "^3.3.13"
     }
 }

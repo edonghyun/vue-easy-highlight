@@ -32,7 +32,8 @@ let out: string;
 
 /**
  * The type errors and warnings svelte-check reports in `files`, each as
- * `<file>: <message>` with `<file>` relative to the package.
+ * `<file>: <message>` with `<file>` relative to the package; a failed run
+ * adds its exit status and anything it wrote to stderr.
  */
 function typeErrorsOf(files: string[]): string[] {
     const tsconfig = join(out, 'tsconfig.json');
@@ -53,7 +54,7 @@ function typeErrorsOf(files: string[]): string[] {
             include: files,
         }),
     );
-    const { stdout } = spawnSync(
+    const { status, stdout, stderr } = spawnSync(
         process.execPath,
         [
             svelteCheck,
@@ -66,12 +67,15 @@ function typeErrorsOf(files: string[]): string[] {
         ],
         { encoding: 'utf8' },
     );
-    return [
+    const errors = [
         ...stdout.matchAll(/^\d+ (?:ERROR|WARNING) "(.+?)" \d+:\d+ "(.*)"$/gm),
     ].map(
         ([, file, message]) =>
             `${relative(root, resolve(out, file))}: ${message}`,
     );
+    if (status !== 0) errors.push(`svelte-check exited with ${status}`);
+    if (stderr) errors.push(`svelte-check stderr: ${stderr}`);
+    return errors;
 }
 
 beforeAll(() => {
