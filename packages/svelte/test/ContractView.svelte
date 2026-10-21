@@ -18,14 +18,14 @@
     // propsOf: fixtures carry extra fields (such as `name`) that would land on
     // the root div as attributes.
     const own = $derived(propsOf(props));
-    const { decoration: _, ...rest } = $derived(own);
+    const { decoration, ...rest } = $derived(own);
 </script>
 
-{#snippet decorate(segment: Segment)}{own.decoration?.(segment)}{/snippet}
+{#snippet decorate(segment: Segment)}{decoration?.(segment)}{/snippet}
 
 <Highlighter
     {...rest}
-    decoration={own.decoration && decorate}
+    decoration={decoration && decorate}
     onselect={(detail) => record({ type: 'select', detail })}
     onclick={(detail) => record({ type: 'click', detail })}
     ondblclick={(detail) => record({ type: 'dblclick', detail })}
