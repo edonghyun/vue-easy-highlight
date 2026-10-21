@@ -5,9 +5,10 @@
  *
  * This package imports `@overlapmark/core` without declaring it: core's own
  * tests run this suite, so a declared dependency would be a workspace cycle.
- * Each consumer resolves `@overlapmark/core` (and `/dom`) to core's sources
- * through its Vitest aliases and tsconfig paths, so the suite and the adapter
- * share one module instance.
+ * Every consumer resolves `@overlapmark/core` (and `/dom`) to core's sources
+ * through the shared `vitest.workspace-aliases.ts` and
+ * `tsconfig.workspace-paths.json` at the repository root, so the suite and the
+ * adapter share one module instance.
  */
 import type {
     HoverDetail,

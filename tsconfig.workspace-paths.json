@@ -1,0 +1,20 @@
+{
+    // Resolves every workspace package to its sources, so type checking and
+    // the dev server never need a built dist/. Paths are relative to this
+    // file. Package tsconfigs extend it next to tsconfig.base.json; a new
+    // package adds its entry points here, not in its own tsconfig.
+    "compilerOptions": {
+        "paths": {
+            "@overlapmark/core": ["./packages/core/src/index.ts"],
+            "@overlapmark/core/dom": ["./packages/core/src/dom/index.ts"],
+            "@overlapmark/core/styles.css": ["./packages/core/src/styles.css"],
+            "@overlapmark/dom": ["./packages/dom/src/index.ts"],
+            "@overlapmark/adapter-contract": [
+                "./packages/adapter-contract/src/index.ts"
+            ],
+            "@overlapmark/adapter-contract/fixtures": [
+                "./packages/adapter-contract/src/fixtures.ts"
+            ]
+        }
+    }
+}

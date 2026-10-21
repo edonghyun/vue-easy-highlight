@@ -1,34 +1,9 @@
-import { fileURLToPath } from 'node:url';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
-
-const local = (p: string): string => fileURLToPath(new URL(p, import.meta.url));
+import { workspaceAliases } from '../../vitest.workspace-aliases.ts';
 
 export default defineConfig({
-    // Source aliases: @overlapmark/adapter-contract imports @overlapmark/core,
-    // which must resolve to these same sources (one module instance) rather
-    // than to a built dist/. The contract package does not declare core as a
-    // dependency, since core's tests depending on it would form a cycle.
-    resolve: {
-        alias: [
-            {
-                find: /^@overlapmark\/core\/dom$/,
-                replacement: local('./src/dom/index.ts'),
-            },
-            {
-                find: /^@overlapmark\/core$/,
-                replacement: local('./src/index.ts'),
-            },
-            {
-                find: /^@overlapmark\/adapter-contract\/fixtures$/,
-                replacement: local('../adapter-contract/src/fixtures.ts'),
-            },
-            {
-                find: /^@overlapmark\/adapter-contract$/,
-                replacement: local('../adapter-contract/src/index.ts'),
-            },
-        ],
-    },
+    resolve: { alias: workspaceAliases },
     test: {
         passWithNoTests: true,
         projects: [
