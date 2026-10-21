@@ -5,6 +5,7 @@ import '@overlapmark/core/styles.css';
 import type { Highlight, Overlap, Segment, Strategy } from '@overlapmark/core';
 import { createHighlighter } from '@overlapmark/dom';
 import fixtures from '../../../fixtures.json';
+import { embeddedHost } from '../../../scripts/embed';
 
 const params = new URLSearchParams(location.search);
 const fixture =
@@ -50,8 +51,9 @@ const record = (event: string, entry: object): void => {
 const idsOf = (covering: readonly Highlight[]): string[] =>
     covering.map((h) => h.id);
 
-const root = document.createElement('div');
-host.append(root);
+const mountIn = embeddedHost(host, params.get('embed'));
+const root = mountIn.ownerDocument.createElement('div');
+mountIn.append(root);
 const strategy = params.get('strategy') as Strategy | null;
 const overlap = params.get('overlap') as Overlap | null;
 const minSelectionLength = params.get('minSelectionLength');

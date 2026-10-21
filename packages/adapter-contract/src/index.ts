@@ -126,6 +126,8 @@ export function selectEvent(
 
 /** A mounted adapter together with the record the suite keeps of its events. */
 interface ContractAdapter extends MountedAdapter, EventSource {
+    /** The element the suite mounted the adapter in. */
+    readonly host: HTMLElement;
     /**
      * Calls `inspect` with each event recorded from now on, at the moment it
      * is recorded, so a test can read the page as a subscriber of that event
@@ -183,6 +185,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await clearSelectionAndWait();
         });
         return {
+            host,
             get root() {
                 return mounted.root;
             },
@@ -1611,5 +1614,24 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 expect(eventsOf(live, type)).toHaveLength(1);
             },
         );
+
+        // Taking the host out of the document is not unmounting: the
+        // instance still renders updates, though no selection can be in it.
+        it('applies an update made while its host is out of the document and the page has a selection', async () => {
+            const removed = await givenAdapter(partialOverlap);
+            const live = await givenAdapter(partialOverlap);
+            removed.host.remove();
+            await selectAndWait(live.root, 8, 18);
+
+            await removed.update({ highlights: [a] });
+
+            expect(
+                removed.root.querySelectorAll('[data-om-ids~="b"]'),
+            ).toHaveLength(0);
+            expect(getSelectionOffsets(live.root)).toEqual({
+                start: 8,
+                end: 18,
+            });
+        });
     });
 }

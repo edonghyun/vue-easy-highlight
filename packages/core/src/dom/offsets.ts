@@ -10,6 +10,7 @@
  */
 
 import { isHighSurrogate, isLowSurrogate } from '../unicode';
+import { caretAt, elementAt, placeOf, rangesOf, selectionOf } from './tree';
 
 export interface TextRange {
     start: number;
@@ -40,7 +41,7 @@ function isSkipped(root: Element, node: Node): boolean {
 /** Counted (non-skip) text nodes under `container`, in document order. */
 function textNodes(container: Node): Text[] {
     const out: Text[] = [];
-    const walker = document.createTreeWalker(
+    const walker = container.ownerDocument!.createTreeWalker(
         container,
         NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
         {
@@ -103,7 +104,7 @@ function positionOf(root: Element, node: Node, offset: number): number {
     const seg = segmentOf(root, node);
     if (!seg) {
         // Between segments (e.g. a child index of the root): the next segment's start, or the end.
-        const point = document.createRange();
+        const point = root.ownerDocument.createRange();
         point.setStart(node, offset);
         for (const s of segments(root)) {
             if (point.comparePoint(s.el, 0) >= 0) return s.start;
@@ -111,7 +112,7 @@ function positionOf(root: Element, node: Node, offset: number): number {
         return getTextLength(root);
     }
     let pos = parseStart(seg) ?? 0;
-    const before = document.createRange();
+    const before = root.ownerDocument.createRange();
     before.setStart(seg, 0);
     before.setEnd(node, offset);
     for (const t of textNodes(seg)) {
@@ -160,38 +161,32 @@ export function segmentElementAt(root: Element, pos: number): Element | null {
 /**
  * The selection's extent in original-text indices, clipped to `root`.
  * Returns `null` when there is no selection, it is collapsed, it does not
- * overlap `root`, or the clipped range is empty.
+ * overlap `root`, or the clipped range is empty; also when `root` is not in a
+ * document, or the selection is another document's. Without `selection`, it
+ * reads the selection of `root`'s own window, as seen from the shadow roots
+ * around `root`.
  */
 export function getSelectionOffsets(
     root: Element,
     selection?: Selection | null,
 ): TextRange | null {
-    const sel =
-        selection ??
-        (typeof window !== 'undefined' ? window.getSelection() : null);
-    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
-    const first = sel.getRangeAt(0);
-    const last = sel.getRangeAt(sel.rangeCount - 1);
+    if (!root.isConnected) return null;
+    const sel = selection ?? selectionOf(root);
+    if (!sel || sel.rangeCount === 0) return null;
+    const ranges = rangesOf(sel, root);
+    if (ranges.length === 0) return null;
+    const first = ranges[0];
+    const last = ranges[ranges.length - 1];
+    const from = placeOf(root, first.startContainer, first.startOffset);
+    const to = placeOf(root, last.endContainer, last.endOffset);
+    // No overlap: the selection ends before the root, or starts after it.
+    if (!from || !to || to.where < 0 || from.where > 0) return null;
 
-    const rootRange = document.createRange();
-    rootRange.selectNodeContents(root);
-
-    // No overlap: selection ends at/before root starts, or starts at/after root ends.
-    // (`a.compareBoundaryPoints(START_TO_END, b)` compares a's end with b's start;
-    // `END_TO_START` compares a's start with b's end.)
-    if (last.compareBoundaryPoints(Range.START_TO_END, rootRange) <= 0)
-        return null;
-    if (first.compareBoundaryPoints(Range.END_TO_START, rootRange) >= 0)
-        return null;
-
-    const start =
-        first.compareBoundaryPoints(Range.START_TO_START, rootRange) <= 0
-            ? 0
-            : positionOf(root, first.startContainer, first.startOffset);
+    const start = from.where < 0 ? 0 : positionOf(root, from.node, from.offset);
     const end =
-        last.compareBoundaryPoints(Range.END_TO_END, rootRange) >= 0
+        to.where > 0
             ? getTextLength(root)
-            : positionOf(root, last.endContainer, last.endOffset);
+            : positionOf(root, to.node, to.offset);
 
     return start < end ? { start, end } : null;
 }
@@ -246,7 +241,7 @@ export function createRangeFromOffsets(
     const s = Math.max(0, Math.min(start, length));
     const e = Math.max(0, Math.min(end, length));
     const segs = segments(root);
-    const range = document.createRange();
+    const range = root.ownerDocument.createRange();
     const [sn, so] = locate(root, segs, s, false);
     range.setStart(sn, so);
     if (e === s) {
@@ -256,30 +251,6 @@ export function createRangeFromOffsets(
         range.setEnd(en, eo);
     }
     return range;
-}
-
-interface CaretPoint {
-    node: Node;
-    offset: number;
-}
-
-function caretAt(x: number, y: number): CaretPoint | null {
-    const doc = document as Document & {
-        caretPositionFromPoint?: (
-            x: number,
-            y: number,
-        ) => { offsetNode: Node; offset: number } | null;
-        caretRangeFromPoint?: (x: number, y: number) => Range | null;
-    };
-    if (typeof doc.caretPositionFromPoint === 'function') {
-        const p = doc.caretPositionFromPoint(x, y);
-        return p ? { node: p.offsetNode, offset: p.offset } : null;
-    }
-    if (typeof doc.caretRangeFromPoint === 'function') {
-        const r = doc.caretRangeFromPoint(x, y);
-        return r ? { node: r.startContainer, offset: r.startOffset } : null;
-    }
-    return null;
 }
 
 function rangeContainsPoint(range: Range, x: number, y: number): boolean {
@@ -302,12 +273,12 @@ export function getOffsetFromPoint(
     clientX: number,
     clientY: number,
 ): number | null {
-    const caret = caretAt(clientX, clientY);
+    const caret = caretAt(root, clientX, clientY);
     if (!caret || !root.contains(caret.node) || isSkipped(root, caret.node))
         return null;
     // Caret APIs snap to the nearest text, so a point on a decoration's edge can
     // resolve to neighbouring text; hit-test the element actually under the point too.
-    const hit = document.elementFromPoint(clientX, clientY);
+    const hit = elementAt(root, clientX, clientY);
     if (hit && root.contains(hit) && isSkipped(root, hit)) return null;
     const pos = positionOf(root, caret.node, caret.offset);
     if (pos <= 0) return pos;

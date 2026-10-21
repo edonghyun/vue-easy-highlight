@@ -5,7 +5,12 @@
 import type { InteractionHandlers, PointDetail } from '../events';
 import { highlightsInRange, segmentAt } from '../segments';
 import type { Segment } from '../types';
-import { getOffsetFromPoint, getSelectionOffsets } from './offsets';
+import {
+    createRangeFromOffsets,
+    getOffsetFromPoint,
+    getSelectionOffsets,
+} from './offsets';
+import { elementAt, isElement, isNode, isSelectionCollapsed } from './tree';
 
 export interface InteractionOptions<
     T = unknown,
@@ -32,11 +37,15 @@ const SEG = '[data-om-start]';
  * Attaches the interaction listeners to `root`; returns `detach`.
  * `options` is read live: handlers and settings are looked up on every event,
  * so callers can mutate it (or expose getters) instead of re-attaching.
+ * Document-level listeners go on the document `root` belongs to when
+ * attaching, and its window: an iframe's, for a root inside one.
  */
 export function attachInteractions<T>(
     root: HTMLElement,
     options: InteractionOptions<T>,
 ): () => void {
+    const doc = root.ownerDocument;
+    const win = doc.defaultView;
     const minLength = (): number => options.minSelectionLength ?? 1;
     const touchDelay = (): number => options.touchSelectionDelay ?? 500;
 
@@ -62,9 +71,8 @@ export function attachInteractions<T>(
         clearReleaseTimer();
         if (!pending) return;
         pending = false;
-        const selection = window.getSelection();
-        const offsets = getSelectionOffsets(root, selection);
-        if (!selection || !offsets) {
+        const offsets = getSelectionOffsets(root);
+        if (!offsets) {
             last = null;
             return;
         }
@@ -72,16 +80,25 @@ export function attachInteractions<T>(
         if (end - start < minLength()) return;
         if (last && last.start === start && last.end === end) return;
         last = { start, end };
+        // The selected text inside the root: inside a shadow root, the
+        // selection's own ranges may be retargeted to its host.
+        const rect = createRangeFromOffsets(
+            root,
+            start,
+            end,
+        )!.getBoundingClientRect();
         options.onSelect?.({
             start,
             end,
             text: options.getText().slice(start, end),
-            rect: selection.getRangeAt(0).getBoundingClientRect(),
+            rect,
             highlights: highlightsInRange(options.getSegments(), start, end),
         });
     };
 
     const onSelectionChange = (): void => {
+        // A detached root holds no selection; its state waits for its return.
+        if (!root.isConnected) return;
         if (!getSelectionOffsets(root)) {
             // Empty, or entirely outside this root: forget the previous emit.
             pending = false;
@@ -141,19 +158,18 @@ export function attachInteractions<T>(
         lastPointerType = e.pointerType;
         putBackTabindex();
         if (e.pointerType === 'touch' || e.button !== 0 || e.ctrlKey) return;
-        const el = segmentElementOf(e.target);
+        // On the document, the target of a press inside a shadow root is
+        // its host; the composed path starts at the element pressed.
+        const el = segmentElementOf(e.composedPath()[0] ?? e.target);
         const tabindex = el?.getAttribute('tabindex');
-        if (!(el instanceof HTMLElement) || tabindex == null) return;
-        lifted = { el, tabindex };
+        if (!el || tabindex == null) return;
+        lifted = { el: el as HTMLElement, tabindex };
         el.setAttribute('tabindex', LIFTED);
     };
 
     const onPointerUp = (): void => {
         const pressed = putBackTabindex();
-        if (
-            pressed?.isConnected &&
-            window.getSelection()?.isCollapsed !== false
-        )
+        if (pressed?.isConnected && isSelectionCollapsed(root))
             pressed.focus({ preventScroll: true });
         // Touch selections are confirmed by the settle timer, not by lifting the finger.
         if (lastPointerType !== 'touch') confirmSoon();
@@ -161,12 +177,11 @@ export function attachInteractions<T>(
 
     // ---- click / dblclick / keyboard -------------------------------------
     const segmentElementOf = (target: EventTarget | null): Element | null => {
-        const el =
-            target instanceof Element
-                ? target
-                : target instanceof Node
-                  ? target.parentElement
-                  : null;
+        const el = isElement(target)
+            ? target
+            : isNode(target)
+              ? target.parentElement
+              : null;
         const seg = el?.closest(SEG);
         return seg && root.contains(seg) ? seg : null;
     };
@@ -192,8 +207,7 @@ export function attachInteractions<T>(
     const onClick = (e: MouseEvent): void => {
         if (!options.onClick) return;
         // A click that ends a drag selection is not a click on the text.
-        const selection = window.getSelection();
-        if (selection && !selection.isCollapsed) return;
+        if (!isSelectionCollapsed(root)) return;
         const d = pointDetail(e);
         if (d) options.onClick(d);
     };
@@ -209,7 +223,7 @@ export function attachInteractions<T>(
         if (e.key !== 'Enter' && e.key !== ' ') return;
         const el = e.target;
         if (
-            !(el instanceof Element) ||
+            !isElement(el) ||
             !el.matches(`${SEG}[tabindex]`) ||
             !root.contains(el)
         )
@@ -265,9 +279,7 @@ export function attachInteractions<T>(
     // the adapter's synchronous update, once selection and focus are restored.
     const onRootMutated = (): void => {
         if (!hovered || root.contains(hovered.el)) return;
-        const under = highlightedSegmentAt(
-            document.elementFromPoint(pointerX, pointerY),
-        );
+        const under = highlightedSegmentAt(elementAt(root, pointerX, pointerY));
         if (
             under &&
             under.segment.start === hovered.segment.start &&
@@ -312,13 +324,13 @@ export function attachInteractions<T>(
     };
 
     // ---- wiring ----------------------------------------------------------
-    document.addEventListener('selectionchange', onSelectionChange);
-    document.addEventListener('pointerdown', onPointerDown, true);
-    document.addEventListener('pointerup', onPointerUp, true);
-    document.addEventListener('pointercancel', putBackTabindex, true);
-    document.addEventListener('contextmenu', putBackTabindex, true);
-    window.addEventListener('blur', putBackTabindex);
-    document.addEventListener('keyup', onKeyUp, true);
+    doc.addEventListener('selectionchange', onSelectionChange);
+    doc.addEventListener('pointerdown', onPointerDown, true);
+    doc.addEventListener('pointerup', onPointerUp, true);
+    doc.addEventListener('pointercancel', putBackTabindex, true);
+    doc.addEventListener('contextmenu', putBackTabindex, true);
+    win?.addEventListener('blur', putBackTabindex);
+    doc.addEventListener('keyup', onKeyUp, true);
     root.addEventListener('click', onClick);
     root.addEventListener('dblclick', onDblclick);
     root.addEventListener('keydown', onKeyDown);
@@ -328,13 +340,13 @@ export function attachInteractions<T>(
     return () => {
         clearTouchTimer();
         clearReleaseTimer();
-        document.removeEventListener('selectionchange', onSelectionChange);
-        document.removeEventListener('pointerdown', onPointerDown, true);
-        document.removeEventListener('pointerup', onPointerUp, true);
-        document.removeEventListener('pointercancel', putBackTabindex, true);
-        document.removeEventListener('contextmenu', putBackTabindex, true);
-        window.removeEventListener('blur', putBackTabindex);
-        document.removeEventListener('keyup', onKeyUp, true);
+        doc.removeEventListener('selectionchange', onSelectionChange);
+        doc.removeEventListener('pointerdown', onPointerDown, true);
+        doc.removeEventListener('pointerup', onPointerUp, true);
+        doc.removeEventListener('pointercancel', putBackTabindex, true);
+        doc.removeEventListener('contextmenu', putBackTabindex, true);
+        win?.removeEventListener('blur', putBackTabindex);
+        doc.removeEventListener('keyup', onKeyUp, true);
         root.removeEventListener('click', onClick);
         root.removeEventListener('dblclick', onDblclick);
         root.removeEventListener('keydown', onKeyDown);

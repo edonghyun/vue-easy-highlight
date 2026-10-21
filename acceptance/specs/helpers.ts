@@ -72,17 +72,33 @@ function onRoot<A, R>(
     fn: (root: Element, range: typeof textRange, arg: A) => R,
     arg: A,
 ): Promise<R> {
-    return rootOf(page).evaluate(
+    return onRootAt(rootOf(page), fn, arg);
+}
+
+/** Runs `fn` in the frame of `root` with the root element and `textRange`. */
+function onRootAt<A, R>(
+    root: Locator,
+    fn: (root: Element, range: typeof textRange, arg: A) => R,
+    arg: A,
+): Promise<R> {
+    return root.evaluate(
         (root, [fnSource, rangeSource, a]) =>
             (0, eval)(`(${fnSource})`)(root, (0, eval)(`(${rangeSource})`), a),
         [fn.toString(), textRange.toString(), arg] as const,
     );
 }
 
-/** The client rect of the character at `offset` (both halves of a surrogate pair). */
-export function charBox(page: Page, offset: number): Promise<Box> {
-    return onRoot(
-        page,
+/**
+ * The client rect of the character at `offset` (both halves of a surrogate
+ * pair), in the page's viewport also for a `root` inside an iframe.
+ */
+export function charBox(
+    page: Page,
+    offset: number,
+    root: Locator = rootOf(page),
+): Promise<Box> {
+    return onRootAt(
+        root,
         (root, range, at) => {
             const r = range(root, at, at + 1);
             const unit = r.toString().charCodeAt(0);
@@ -90,9 +106,11 @@ export function charBox(page: Page, offset: number): Promise<Box> {
                 r.setEnd(r.endContainer, r.endOffset + 1);
             const rect = [...r.getClientRects()].find((c) => c.width > 0);
             if (!rect) throw new Error(`character ${at} has no box`);
+            const frame = root.ownerDocument.defaultView!.frameElement;
+            const shift = frame?.getBoundingClientRect() ?? { x: 0, y: 0 };
             return {
-                x: rect.x,
-                y: rect.y,
+                x: rect.x + shift.x,
+                y: rect.y + shift.y,
                 width: rect.width,
                 height: rect.height,
             };
@@ -109,9 +127,10 @@ export async function dragSelect(
     page: Page,
     start: number,
     end: number,
+    root: Locator = rootOf(page),
 ): Promise<void> {
-    const from = await charBox(page, start);
-    const to = await charBox(page, end - 1);
+    const from = await charBox(page, start, root);
+    const to = await charBox(page, end - 1, root);
 
     await page.mouse.move(from.x + from.width * 0.25, from.y + from.height / 2);
     await page.mouse.down();
@@ -388,14 +407,19 @@ export function highlightClassesAt(
 export async function charCentre(
     page: Page,
     offset: number,
+    root: Locator = rootOf(page),
 ): Promise<{ x: number; y: number }> {
-    const box = await charBox(page, offset);
+    const box = await charBox(page, offset, root);
     return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
 /** A real mouse click on the centre of the character at `offset`. */
-export async function clickAt(page: Page, offset: number): Promise<void> {
-    const { x, y } = await charCentre(page, offset);
+export async function clickAt(
+    page: Page,
+    offset: number,
+    root: Locator = rootOf(page),
+): Promise<void> {
+    const { x, y } = await charCentre(page, offset, root);
     await page.mouse.click(x, y);
 }
 

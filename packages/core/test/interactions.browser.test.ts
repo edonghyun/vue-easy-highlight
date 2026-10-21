@@ -16,6 +16,7 @@ import {
     givenFakeTimeouts,
     givenPointerOutsideRoots,
     keyUp,
+    mutationsHandled,
     partialOverlap,
     pointer,
     release,
@@ -29,8 +30,19 @@ import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import '../src/styles.css';
 import { computeSegments } from '../src';
-import { attachInteractions, createRangeFromOffsets } from '../src/dom';
-import { renderInto } from './helpers/mount';
+import {
+    attachInteractions,
+    captureViewState,
+    createRangeFromOffsets,
+    restoreViewState,
+} from '../src/dom';
+import {
+    givenFrameDocument,
+    givenRenderedRootIn,
+    givenShadowRoot,
+    renderInto,
+    select,
+} from './helpers/mount';
 
 /** The settings `attachInteractions` reads live; tests may change them after attaching. */
 interface Settings {
@@ -98,6 +110,46 @@ function givenInteractiveRoot(
     const root = givenRoot({ after: options.after });
     const { events } = givenRecorder(root, options.settings);
     return { root, events };
+}
+
+/**
+ * A root rendering `partialOverlap`, created in `parent`'s document and
+ * appended to `parent` (a shadow root, or an element of an iframe), with a
+ * recorder attached from this page.
+ */
+function givenInteractiveRootIn(parent: Node): {
+    root: HTMLElement;
+    events: AdapterEvent[];
+} {
+    const root = givenRenderedRootIn(parent, TEXT, partialOverlap.highlights);
+    const { events } = givenRecorder(root);
+    return { root, events };
+}
+
+/** Errors thrown by event listeners and timers from now on, uncaught. */
+function givenUncaughtErrors(): unknown[] {
+    const errors: unknown[] = [];
+    const collect = (e: ErrorEvent): void => {
+        errors.push(e.error);
+    };
+    window.addEventListener('error', collect);
+    onTestFinished(() => window.removeEventListener('error', collect));
+    return errors;
+}
+
+/** Selects [start, end) of `root` in its own window and waits for that document's `selectionchange`. */
+async function selectInOwnDocumentAndWait(
+    root: HTMLElement,
+    start: number,
+    end: number,
+): Promise<void> {
+    const changed = new Promise((resolve) =>
+        root.ownerDocument.addEventListener('selectionchange', resolve, {
+            once: true,
+        }),
+    );
+    select(root, start, end);
+    await changed;
 }
 
 function selectsOf(events: AdapterEvent[]): AdapterEvent[] {
@@ -707,5 +759,104 @@ describe('attachInteractions: after detach', () => {
 
         expect(detached.events).toEqual([]);
         expect(eventsOf(live, type)).toHaveLength(1);
+    });
+});
+
+describe('attachInteractions: a root outside the document', () => {
+    it('ignores selection changes while its root is detached', async () => {
+        const errors = givenUncaughtErrors();
+        const removed = givenInteractiveRoot();
+        removed.root.remove();
+        const { root, events } = givenInteractiveRoot();
+
+        await selectAndWait(root, 8, 18);
+        settle(release);
+
+        expect(errors).toEqual([]);
+        expect(removed.events).toEqual([]);
+        // Live positive control: the root in the document saw the same change.
+        expect(selectsOf(events)).toEqual([selectEvent(8, 18, [a, b])]);
+    });
+});
+
+describe('attachInteractions: a root inside a shadow root', () => {
+    it('reports clicks and restores focus for a root inside a shadow root', async () => {
+        const shadow = givenShadowRoot();
+        const { root, events } = givenInteractiveRootIn(shadow);
+        const { el, position } = charPosition(root, 8);
+        await userEvent.click(el, { position });
+        const view = captureViewState(root);
+
+        renderInto(root, TEXT, partialOverlap.highlights);
+        restoreViewState(root, view);
+
+        const [click] = detailsOf({ events }, 'click');
+        expect(click.offset).toBe(8);
+        expect(click.highlights).toEqual([a, b]);
+        expect(shadow.activeElement).toBe(segmentElement(root, 6));
+    });
+
+    // Chromium neither starts a drag selection nor places a caret when the
+    // press lands at the very start of a focusable element's text.
+    it('emits select after a real mouse drag that starts on the first character of a highlight', async () => {
+        const { root, events } = givenInteractiveRootIn(givenShadowRoot());
+        const from = charPosition(root, 6);
+        const to = charPosition(root, 18);
+
+        await userEvent.dragAndDrop(
+            page.elementLocator(from.el),
+            page.elementLocator(to.el),
+            {
+                sourcePosition: {
+                    x: from.position.x - 2,
+                    y: from.position.y,
+                },
+                targetPosition: to.position,
+            },
+        );
+
+        await expect.poll(() => selectsOf(events)).toHaveLength(1);
+        const [d] = detailsOf({ events }, 'select');
+        expect(d.start).toBe(6);
+        expect(d.text).toBe(TEXT.slice(d.start, d.end));
+    });
+
+    it('keeps hovering a highlight re-rendered under a still pointer', async () => {
+        const outside = await givenPointerOutsideRoots();
+        const { root, events } = givenInteractiveRootIn(givenShadowRoot());
+        const { el, position } = charPosition(root, 7);
+        await userEvent.hover(el, { position });
+        const handled = mutationsHandled(root);
+
+        renderInto(root, TEXT, partialOverlap.highlights);
+        await handled;
+
+        expect(hoverTrail(events)).toEqual(['enter:6']);
+        // Live positive control: moving out is still a leave of that segment.
+        await userEvent.hover(outside);
+        expect(hoverTrail(events)).toEqual(['enter:6', 'leave:6']);
+    });
+});
+
+describe('attachInteractions: a root inside an iframe', () => {
+    it('reports clicks and selections for a root inside an iframe', async () => {
+        const { root, events } = givenInteractiveRootIn(
+            givenFrameDocument().body,
+        );
+
+        segmentElement(root, 6).click();
+        await selectInOwnDocumentAndWait(root, 8, 18);
+        root.ownerDocument.dispatchEvent(
+            new KeyboardEvent('keyup', { key: 'Shift' }),
+        );
+
+        await expect.poll(() => selectsOf(events)).toHaveLength(1);
+        const [click] = detailsOf({ events }, 'click');
+        expect(click.segment.start).toBe(6);
+        expect(click.highlights).toEqual([a, b]);
+        // The rect is the iframe's own DOMRect, of another realm.
+        expect(detailsOf({ events }, 'select')).toMatchObject([
+            { start: 8, end: 18, text: TEXT.slice(8, 18), highlights: [a, b] },
+        ]);
     });
 });

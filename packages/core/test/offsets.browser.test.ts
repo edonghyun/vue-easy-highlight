@@ -9,8 +9,11 @@ import {
     getTextLength,
 } from '../src/dom';
 import {
+    givenFrameDocument,
     givenInDocument,
     givenRenderedRoot,
+    givenRenderedRootIn,
+    givenShadowRoot,
     select,
     selectFromOutsideTo,
 } from './helpers/mount';
@@ -212,6 +215,95 @@ describe('getSelectionOffsets', () => {
 
             expect(getSelectionOffsets(root2)).toBeNull();
             expect(getSelectionOffsets(root)).toEqual({ start: 2, end: 6 });
+        });
+        it('returns no offsets for a root that is not in the document while the page has a selection', () => {
+            const attached = givenRenderedRoot(text, hl);
+            const detached = attached.cloneNode(true) as HTMLElement;
+            select(attached, 2, 6);
+
+            const offsets = getSelectionOffsets(detached);
+
+            expect(offsets).toBeNull();
+            // Live positive control: the same selection, on the root in the document.
+            expect(getSelectionOffsets(attached)).toEqual({ start: 2, end: 6 });
+        });
+
+        it('returns no offsets for the selection of another document', () => {
+            const page = givenRenderedRoot(text, hl);
+            const framed = givenRenderedRootIn(
+                givenFrameDocument().body,
+                text,
+                hl,
+            );
+            select(page, 2, 6);
+
+            const offsets = getSelectionOffsets(framed, window.getSelection());
+
+            expect(offsets).toBeNull();
+            // Live positive control: the same selection, on the root it is in.
+            expect(getSelectionOffsets(page, window.getSelection())).toEqual({
+                start: 2,
+                end: 6,
+            });
+        });
+    });
+
+    describe('for a root inside a shadow root', () => {
+        it('maps a selection inside the root', () => {
+            const root = givenRenderedRootIn(givenShadowRoot(), text, hl);
+
+            select(root, 8, 18);
+
+            expect(getSelectionOffsets(root)).toEqual({ start: 8, end: 18 });
+        });
+
+        // As in Chromium before 137, which has no getComposedRanges.
+        it('maps a selection inside the root where getComposedRanges is missing', () => {
+            const root = givenRenderedRootIn(givenShadowRoot(), text, hl);
+            select(root, 8, 18);
+            const selection = window.getSelection()!;
+            Object.defineProperty(selection, 'getComposedRanges', {
+                value: undefined,
+                configurable: true,
+            });
+            onTestFinished(() => {
+                delete (selection as { getComposedRanges?: unknown })
+                    .getComposedRanges;
+            });
+            expect(window.getSelection()!.getComposedRanges).toBeUndefined();
+
+            expect(getSelectionOffsets(root)).toEqual({ start: 8, end: 18 });
+        });
+
+        it('clips a selection that starts outside the shadow root', () => {
+            const outside = givenInDocument(document.createTextNode('BEFORE '));
+            const root = givenRenderedRootIn(givenShadowRoot(), text, hl);
+            const inner = createRangeFromOffsets(root, 0, 8)!;
+
+            window
+                .getSelection()!
+                .setBaseAndExtent(
+                    outside,
+                    0,
+                    inner.endContainer,
+                    inner.endOffset,
+                );
+
+            expect(getSelectionOffsets(root)).toEqual({ start: 0, end: 8 });
+        });
+    });
+
+    describe('for a root inside an iframe', () => {
+        it("maps a selection inside the root, read from the iframe's own window", () => {
+            const root = givenRenderedRootIn(
+                givenFrameDocument().body,
+                text,
+                hl,
+            );
+
+            select(root, 8, 18);
+
+            expect(getSelectionOffsets(root)).toEqual({ start: 8, end: 18 });
         });
     });
 
@@ -420,6 +512,21 @@ describe('getOffsetFromPoint', () => {
                 .caretPositionFromPoint;
         });
         expect(document.caretPositionFromPoint).toBeUndefined();
+
+        expect(getOffsetFromPoint(root, x, y)).toBe(10);
+    });
+
+    it('returns the index of the character under the point for a root inside a shadow root', () => {
+        const root = givenRenderedRootIn(givenShadowRoot(), text, hl);
+        const { x, y } = centerOf(root, 10, 11);
+
+        expect(getOffsetFromPoint(root, x, y)).toBe(10);
+    });
+
+    it('returns the index of the character under the point for a root inside an iframe', () => {
+        const root = givenRenderedRootIn(givenFrameDocument().body, text, hl);
+        // In the iframe's viewport, as its own events report points.
+        const { x, y } = centerOf(root, 10, 11);
 
         expect(getOffsetFromPoint(root, x, y)).toBe(10);
     });

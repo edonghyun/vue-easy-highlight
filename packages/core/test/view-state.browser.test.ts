@@ -21,8 +21,11 @@ import {
     restoreViewState,
 } from '../src/dom';
 import {
+    givenFrameDocument,
     givenInDocument,
     givenRenderedRoot,
+    givenRenderedRootIn,
+    givenShadowRoot,
     renderInto,
     select,
 } from './helpers/mount';
@@ -190,5 +193,51 @@ describe('restoreViewState: focus', () => {
         reRender(root, { highlights: [a, b, c] });
 
         expect(document.activeElement).toBe(button);
+    });
+});
+
+describe('restoreViewState: a root outside the document', () => {
+    it('leaves the page selection where it is for a root that is not in the document', () => {
+        const page = givenRenderedRoot(TEXT, [a, b]);
+        const detached = page.cloneNode(true) as HTMLElement;
+        select(page, 8, 18);
+
+        reRender(detached, { text: REPLACED_TEXT, highlights: [a, b] });
+
+        expect(getSelectionOffsets(page)).toEqual({ start: 8, end: 18 });
+    });
+});
+
+/** The focused element of the tree `root` is in: its document or shadow root. */
+function activeElementAround(root: Node): Element | null {
+    return (root.getRootNode() as unknown as DocumentOrShadowRoot)
+        .activeElement;
+}
+
+describe.each([
+    { where: 'inside a shadow root', givenParent: () => givenShadowRoot() },
+    {
+        where: 'inside an iframe',
+        givenParent: () => givenFrameDocument().body,
+    },
+])('restoreViewState: a root $where', ({ givenParent }) => {
+    it('puts the selection back at the same text offsets', () => {
+        const root = givenRenderedRootIn(givenParent(), TEXT, [a, b]);
+        select(root, 8, 18);
+
+        reRender(root, { highlights: [a, b, c] });
+
+        expect(getSelectionOffsets(root)).toEqual({ start: 8, end: 18 });
+    });
+
+    it('focuses the re-rendered element of the focused segment', () => {
+        const root = givenRenderedRootIn(givenParent(), TEXT, [a, b]);
+        const before = segmentElement(root, 6);
+        before.focus();
+
+        reRender(root, { highlights: [a, b, c] });
+
+        expect(activeElementAround(root)).not.toBe(before);
+        expect(activeElementAround(root)).toBe(segmentElement(root, 6));
     });
 });
