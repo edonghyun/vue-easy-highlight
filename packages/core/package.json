@@ -44,5 +44,8 @@
         "test:perf": "vitest run --project perf",
         "bench": "vitest bench --run --reporter=verbose",
         "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@overlapmark/adapter-contract": "workspace:*"
     }
 }

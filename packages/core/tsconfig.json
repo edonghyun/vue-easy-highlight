@@ -1,4 +1,13 @@
 {
     "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "paths": {
+            "@overlapmark/core": ["./src/index.ts"],
+            "@overlapmark/core/dom": ["./src/dom/index.ts"],
+            "@overlapmark/adapter-contract": [
+                "../adapter-contract/src/index.ts"
+            ]
+        }
+    },
     "include": ["src", "test", "bench", "*.config.ts"]
 }

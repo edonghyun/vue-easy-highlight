@@ -21,7 +21,6 @@ const hl = [
     { id: 'a', start: 0, end: 15 },
     { id: 'b', start: 6, end: 21 },
 ];
-const strategies = ['layers', 'depth'] as const;
 
 // The decoration is appended to the content of mark "b", i.e. at offset 15
 // (the end of segment [6,15)).
@@ -72,23 +71,6 @@ function validRanges(source: string): [number, number][] {
 }
 
 describe('getSelectionOffsets', () => {
-    it('maps a selection inside nested marks to string indices', () => {
-        const root = mount(text, hl);
-
-        select(root, 8, 18);
-
-        expect(getSelectionOffsets(root)).toEqual({ start: 8, end: 18 });
-        expect(window.getSelection()!.toString()).toBe(text.slice(8, 18));
-    });
-
-    it.each(strategies)('maps a selection with the %s strategy', (strategy) => {
-        const root = mount(text, hl, { strategy });
-
-        select(root, 3, 20);
-
-        expect(getSelectionOffsets(root)).toEqual({ start: 3, end: 20 });
-    });
-
     it('reads an explicit Selection argument', () => {
         const root = mount(text, hl);
         select(root, 1, 4);
@@ -304,7 +286,6 @@ describe('getSelectionOffsets', () => {
 });
 
 describe('createRangeFromOffsets', () => {
-    const spanText = (start: number, end: number) => text.slice(start, end);
     // A range that spans the decoration's position also spans its text.
     const spanTextWithNote = (start: number, end: number) =>
         start < NOTE_OFFSET && end > NOTE_OFFSET
@@ -313,12 +294,6 @@ describe('createRangeFromOffsets', () => {
               text.slice(NOTE_OFFSET, end)
             : text.slice(start, end);
     const variants = [
-        { name: 'default rendering', options: {}, expectedText: spanText },
-        {
-            name: 'depth strategy',
-            options: { strategy: 'depth' as const },
-            expectedText: spanText,
-        },
         {
             name: 'a data-om-skip decoration',
             options: { decorate: note },
@@ -492,15 +467,6 @@ describe('getOffsetFromPoint', () => {
 });
 
 describe('getTextLength', () => {
-    it.each(strategies)(
-        'equals the source text length with the %s strategy',
-        (strategy) => {
-            expect(getTextLength(mount(text, hl, { strategy }))).toBe(
-                text.length,
-            );
-        },
-    );
-
     it('equals the length of a plain unhighlighted text', () => {
         expect(getTextLength(mount('plain', []))).toBe(5);
     });

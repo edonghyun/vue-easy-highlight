@@ -27,19 +27,23 @@ export function attach<T extends Node>(node: T): T {
     return node;
 }
 
-export function mount(
+/**
+ * Renders `text` with `highlights` into `root` from the core render model,
+ * replacing its children and setting the root class and attributes.
+ */
+export function renderInto(
+    root: HTMLElement,
     text: string,
-    highlights: Highlight[],
-    options: MountOptions = {},
-): HTMLElement {
-    const { before, after, decorate, ...renderOptions } = options;
-    const root = document.createElement('div');
-    const r = rootAttributes(renderOptions);
-    root.className = r.className;
+    highlights: readonly Highlight[],
+    options: RenderOptions = {},
+): void {
+    const r = rootAttributes(options);
+    root.classList.add(r.className);
     for (const [k, v] of Object.entries(r.attrs)) root.setAttribute(k, v);
-    for (const seg of computeSegments(text, highlights)) {
-        let parent: HTMLElement = root;
-        for (const spec of segmentElements(seg, renderOptions)) {
+    const frag = document.createDocumentFragment();
+    for (const seg of computeSegments(text, [...highlights])) {
+        let parent: Node = frag;
+        for (const spec of segmentElements(seg, options)) {
             const el = document.createElement(spec.tag);
             el.className = spec.className;
             for (const [k, v] of Object.entries(spec.attrs))
@@ -49,8 +53,19 @@ export function mount(
             parent.appendChild(el);
             parent = el;
         }
-        parent.append(seg.text);
+        parent.appendChild(document.createTextNode(seg.text));
     }
+    root.replaceChildren(frag);
+}
+
+export function mount(
+    text: string,
+    highlights: Highlight[],
+    options: MountOptions = {},
+): HTMLElement {
+    const { before, after, decorate, ...renderOptions } = options;
+    const root = document.createElement('div');
+    renderInto(root, text, highlights, renderOptions);
     if (decorate !== undefined) {
         const target = root.querySelector(`[data-id="${decorate.id}"]`);
         if (!target)

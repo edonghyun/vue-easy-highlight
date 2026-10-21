@@ -111,25 +111,6 @@ function segEl(root: HTMLElement, start: number): HTMLElement {
 }
 
 describe('attachInteractions: select', () => {
-    it('emits select once with offsets, text, rect and overlapping highlights after a drag', async () => {
-        const { root, onSelect } = setup();
-        select(root, 8, 18);
-        await tick();
-        await release();
-        await tick();
-        expect(onSelect).toHaveBeenCalledTimes(1);
-        const d = onSelect.mock.calls[0][0];
-        expect(d).toMatchObject({
-            start: 8,
-            end: 18,
-            text: text.slice(8, 18),
-        });
-        expect(d.highlights).toEqual([a, b]);
-        expect(d.highlights[0]).toBe(a);
-        expect(d.rect).toBeInstanceOf(DOMRect);
-        expect(d.rect.width).toBeGreaterThan(0);
-    });
-
     it('emits select after a real mouse drag', async () => {
         const { root, onSelect } = setup();
         const from = charPosition(root, 1);
@@ -183,25 +164,6 @@ describe('attachInteractions: select', () => {
         expect(onSelect.mock.calls[2][0]).toMatchObject({ start: 2, end: 5 });
     });
 
-    it('respects minSelectionLength', async () => {
-        const { root, onSelect } = setup({ minSelectionLength: 3 });
-        select(root, 2, 4);
-        await tick();
-        await release();
-        await tick();
-        expect(onSelect).not.toHaveBeenCalled();
-
-        select(root, 2, 5);
-        await tick();
-        await release();
-        expect(onSelect).toHaveBeenCalledTimes(1);
-        expect(onSelect.mock.calls[0][0]).toMatchObject({
-            start: 2,
-            end: 5,
-            text: text.slice(2, 5),
-        });
-    });
-
     it('reads minSelectionLength and touchSelectionDelay live from options', async () => {
         const options: Partial<InteractionOptions> = { minSelectionLength: 5 };
         const { root, onSelect } = setup(options);
@@ -223,28 +185,6 @@ describe('attachInteractions: select', () => {
         expect(onSelect).toHaveBeenCalledTimes(1);
         await tick(80);
         expect(onSelect).toHaveBeenCalledTimes(2);
-    });
-
-    it('emits select from a keyboard selection (keyup)', async () => {
-        const { root, onSelect } = setup({ minSelectionLength: 2 });
-        // Headless Chromium only extends an existing (non-collapsed) selection
-        // with Shift+Arrow in non-editable content, so start from one character.
-        select(root, 0, 1);
-        await tick();
-        expect(onSelect).not.toHaveBeenCalled();
-        await userEvent.keyboard(
-            '{Shift>}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{/Shift}',
-        );
-        await expect.poll(() => onSelect.mock.calls.length).toBe(1);
-        await tick(50);
-        // Arrow keyups while Shift is still held do not confirm; releasing Shift does, once.
-        expect(onSelect).toHaveBeenCalledTimes(1);
-        expect(onSelect.mock.calls[0][0]).toMatchObject({
-            start: 0,
-            end: 5,
-            text: 'Hello',
-            highlights: [a],
-        });
     });
 
     it('does not confirm on keyup while a modifier is still held', async () => {
@@ -279,67 +219,9 @@ describe('attachInteractions: select', () => {
         expect(onSelect).toHaveBeenCalledTimes(2);
         expect(onSelect.mock.calls[1][0]).toMatchObject({ start: 8, end: 20 });
     });
-
-    it('ignores selections in another root', async () => {
-        const A = setup();
-        document.body.append('Elsewhere on the page');
-        const B = setup();
-        const outside = document.body.childNodes[1] as Text;
-        expect(outside.textContent).toBe('Elsewhere on the page');
-
-        select(B.root, 2, 9);
-        await tick();
-        await release();
-        await tick();
-        expect(B.onSelect).toHaveBeenCalledTimes(1);
-        expect(A.onSelect).not.toHaveBeenCalled();
-
-        const r = document.createRange();
-        r.setStart(outside, 0);
-        r.setEnd(outside, 9);
-        const sel = window.getSelection()!;
-        sel.removeAllRanges();
-        sel.addRange(r);
-        await tick();
-        await release();
-        document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift' }));
-        await tick();
-        expect(A.onSelect).not.toHaveBeenCalled();
-        expect(B.onSelect).toHaveBeenCalledTimes(1);
-
-        select(A.root, 1, 3);
-        await tick();
-        await release();
-        expect(A.onSelect).toHaveBeenCalledTimes(1);
-        expect(B.onSelect).toHaveBeenCalledTimes(1);
-    });
 });
 
 describe('attachInteractions: click and dblclick', () => {
-    it('click reports offset and covering highlights in overlap order', async () => {
-        const { root, onClick } = setup();
-        const { el, position } = charPosition(root, 10);
-        await userEvent.click(el, { position });
-        expect(onClick).toHaveBeenCalledTimes(1);
-        const d = onClick.mock.calls[0][0];
-        expect(d.offset).toBe(10);
-        expect(d.highlights).toEqual([a, b]);
-        expect(d.segment).toMatchObject({ start: 6, end: 15 });
-        expect(d.event).toBeInstanceOf(MouseEvent);
-        expect(d.event.type).toBe('click');
-    });
-
-    it('click on plain text reports empty highlights', async () => {
-        const { root, onClick } = setup();
-        const { el, position } = charPosition(root, 26);
-        await userEvent.click(el, { position });
-        expect(onClick).toHaveBeenCalledTimes(1);
-        const d = onClick.mock.calls[0][0];
-        expect(d.offset).toBe(26);
-        expect(d.highlights).toEqual([]);
-        expect(d.segment.depth).toBe(0);
-    });
-
     it('clamps the offset to the segment and falls back to segment.start', () => {
         const { root, onClick } = setup();
         const el = segEl(root, 6);
@@ -365,78 +247,6 @@ describe('attachInteractions: click and dblclick', () => {
         );
         expect(onClick.mock.calls[1][0].offset).toBe(6);
     });
-
-    it('does not emit click right after a drag selection', async () => {
-        const { root, onClick, onSelect } = setup();
-        const el = segEl(root, 6);
-        select(root, 8, 18);
-        await tick();
-        // The click that ends a drag fires while the selection is still in place.
-        el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        expect(onClick).not.toHaveBeenCalled();
-
-        // A real drag ending inside a highlight.
-        window.getSelection()!.removeAllRanges();
-        const from = charPosition(root, 7);
-        const to = charPosition(root, 12);
-        await userEvent.dragAndDrop(
-            page.elementLocator(from.el),
-            page.elementLocator(to.el),
-            { sourcePosition: from.position, targetPosition: to.position },
-        );
-        await tick();
-        expect(window.getSelection()!.isCollapsed).toBe(false);
-        expect(onClick).not.toHaveBeenCalled();
-        expect(onSelect).toHaveBeenCalled();
-    });
-
-    it('dblclick emits with the browser word selection in place', async () => {
-        const { root, onDblclick } = setup();
-        const { el, position } = charPosition(root, 10);
-        await userEvent.dblClick(el, { position });
-        expect(onDblclick).toHaveBeenCalledTimes(1);
-        expect(window.getSelection()!.toString()).toBe('wonderful');
-        const d = onDblclick.mock.calls[0][0];
-        expect(d.offset).toBe(10);
-        expect(d.highlights).toEqual([a, b]);
-        expect(d.event.type).toBe('dblclick');
-    });
-
-    it('Enter and Space on a focused highlight emit click with segment.start', async () => {
-        const { root, onClick } = setup();
-        const el = segEl(root, 6);
-        expect(el.getAttribute('tabindex')).toBe('0');
-        el.focus();
-        await userEvent.keyboard('{Enter}');
-        await userEvent.keyboard(' ');
-        expect(onClick).toHaveBeenCalledTimes(2);
-        for (const [d] of onClick.mock.calls) {
-            expect(d.offset).toBe(6);
-            expect(d.segment).toMatchObject({ start: 6, end: 15 });
-            expect(d.highlights).toEqual([a, b]);
-            expect(d.event).toBeInstanceOf(KeyboardEvent);
-        }
-        expect(
-            onClick.mock.calls.map(([d]) => (d.event as KeyboardEvent).key),
-        ).toEqual(['Enter', ' ']);
-
-        const ev = new KeyboardEvent('keydown', {
-            key: ' ',
-            bubbles: true,
-            cancelable: true,
-        });
-        el.dispatchEvent(ev);
-        expect(ev.defaultPrevented).toBe(true);
-
-        // Other keys and non-focusable plain segments are ignored.
-        el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'a', bubbles: true }),
-        );
-        segEl(root, 21).dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
-        );
-        expect(onClick).toHaveBeenCalledTimes(3);
-    });
 });
 
 describe('attachInteractions: hover', () => {
@@ -445,21 +255,10 @@ describe('attachInteractions: hover', () => {
         const seen = () =>
             onHover.mock.calls.map(([d]) => `${d.type}:${d.segment.start}`);
 
-        // Real mouse movement: plain text → [6,15) → [15,21) → plain text.
         // Park the mouse on plain text first: the pointer left over from an
         // earlier test may sit where this root's highlights now render.
         await userEvent.hover(segEl(root, 21));
         await tick();
-        onHover.mockClear();
-        await userEvent.hover(segEl(root, 6));
-        await userEvent.hover(segEl(root, 15));
-        await userEvent.hover(segEl(root, 21));
-        expect(seen()).toEqual(['enter:6', 'leave:6', 'enter:15', 'leave:15']);
-        const enter = onHover.mock.calls[0][0];
-        expect(enter.highlights).toEqual([a, b]);
-        expect(enter.segment).toMatchObject({ start: 6, end: 15, depth: 2 });
-        expect(enter.event).toBeInstanceOf(PointerEvent);
-
         // Moving between the nested marks of one segment emits nothing.
         onHover.mockClear();
         const outer = segEl(root, 6);
