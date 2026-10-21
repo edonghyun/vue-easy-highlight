@@ -3,7 +3,7 @@ name: Acceptance
 on:
     pull_request:
     push:
-        branches: [main, feat/acceptance-tests]
+        branches: [main]
 
 permissions:
     contents: read
