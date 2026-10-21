@@ -37,6 +37,46 @@ async function npm(cwd: string, args: string[]): Promise<void> {
     }
 }
 
+/** For each CommonJS entry point: an export it must provide as a function. */
+const commonJsEntries: Record<string, string> = {
+    '@overlapmark/core': 'computeSegments',
+    '@overlapmark/core/dom': 'attachInteractions',
+    '@overlapmark/dom': 'createHighlighter',
+};
+
+/**
+ * Loads every CommonJS entry point with `require` from an app installed from
+ * the tarballs (the browser builds load only the ESM ones), and fails when
+ * one does not load or lacks its export.
+ */
+async function checkCommonJs(cwd: string): Promise<void> {
+    // `node -e` passes its first extra argument as `process.argv[1]`.
+    const script = `
+        const entries = JSON.parse(process.argv[1]);
+        for (const [id, name] of Object.entries(entries)) {
+            if (typeof require(id)[name] !== 'function')
+                throw new Error(\`require('\${id}').\${name} is not a function\`);
+        }`;
+    try {
+        await run(
+            'node',
+            [
+                '--input-type=commonjs',
+                '-e',
+                script,
+                JSON.stringify(commonJsEntries),
+            ],
+            { cwd },
+        );
+    } catch (error) {
+        const { stderr = '' } = error as { stderr?: string };
+        throw new Error(
+            `the CommonJS entry points do not load from the tarballs in ${cwd}\n${stderr}`,
+            { cause: error },
+        );
+    }
+}
+
 /**
  * Copies `acceptance/apps/<app>` (for `floor`, with `apps/<app>-floor` laid
  * over it) to `acceptance/.work/apps/<app>-<variant>`, points every
@@ -104,6 +144,7 @@ export async function prepareApp(
     await writeFile(manifestPath, `${JSON.stringify(manifest, null, 4)}\n`);
 
     await npm(dest, ['install', '--no-audit', '--no-fund']);
+    if (app === 'vanilla' && variant === 'client') await checkCommonJs(dest);
     await npm(dest, ['run', 'build']);
     if (variant === 'ssr') {
         await npm(dest, ['run', 'build:ssr']);
