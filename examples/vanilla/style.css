@@ -10,6 +10,8 @@
     --serif: 'Literata', Georgia, 'Times New Roman', serif;
     --sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    /* the reading cards' paper, light in both themes (see .page) */
+    --sheet: #ffffff;
     color-scheme: light;
 }
 
@@ -23,7 +25,7 @@
         --soft: #252a34;
         --focus: #8fb0ff;
         --code-bg: #151920;
-        --om-depth-ink: #11141a;
+        --sheet: #eef0f4;
         color-scheme: dark;
     }
 }
@@ -37,7 +39,7 @@
     --soft: #252a34;
     --focus: #8fb0ff;
     --code-bg: #151920;
-    --om-depth-ink: #11141a;
+    --sheet: #eef0f4;
     color-scheme: dark;
 }
 
@@ -131,12 +133,19 @@ main,
 }
 
 .wordmark {
+    /* every letter is under a light mark, so the ink stays dark in both themes */
+    color: #1a1f2b;
     font-family: var(--serif);
     font-weight: 600;
     font-size: clamp(2.75rem, 9vw, 4.75rem);
     line-height: 1.1;
     letter-spacing: -0.02em;
     margin: 0 0 1rem;
+}
+
+.wordmark {
+    /* opaque marks: they read as paper stickers on either theme */
+    --om-alpha: 100%;
 }
 
 .wordmark .om-hl {
@@ -263,7 +272,20 @@ main,
     align-items: start;
 }
 
+/*
+ * The reading cards are paper in both themes: multiply darkens on a light
+ * backdrop, and on a dark one it would also tint the light text. Inside a
+ * card the tokens take their light values.
+ */
 .page {
+    --ink: #1a1f2b;
+    --muted: #586174;
+    --line: #d9dee8;
+    --soft: #e4e8f0;
+    --focus: #2453c4;
+    --paper: var(--sheet);
+    color-scheme: light;
+    color: var(--ink);
     background: var(--paper);
     border: 1px solid var(--line);
     border-radius: 10px;
@@ -328,6 +350,7 @@ main,
 }
 
 .inspector {
+    scroll-margin-top: 12px;
     background: var(--paper);
     border: 1px solid var(--line);
     border-radius: 10px;

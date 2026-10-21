@@ -9,12 +9,6 @@
             name="description"
             content="A text highlighter where overlapping highlights get darker, and a click names every highlight covering that spot. Vanilla JS, Vue, React and Svelte."
         />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=Instrument+Sans:wght@400;500;600&display=swap"
-        />
         <link rel="stylesheet" href="./style.css" />
     </head>
     <body>
@@ -121,7 +115,12 @@
                         ></ul>
                     </article>
 
-                    <aside class="inspector" aria-live="polite">
+                    <aside class="inspector" aria-label="Inspector">
+                        <p
+                            id="status"
+                            class="visually-hidden"
+                            role="status"
+                        ></p>
                         <div id="inspector"></div>
                         <p class="hint">
                             <span class="pointer-only"
@@ -240,20 +239,48 @@
             <section class="code" aria-labelledby="code-title">
                 <h2 id="code-title">Same DOM in every framework</h2>
                 <div class="tabs" role="tablist" aria-label="Framework">
-                    <button role="tab" type="button" data-tab="vanilla">
+                    <button
+                        role="tab"
+                        type="button"
+                        id="tab-vanilla"
+                        aria-controls="snippet-panel"
+                        data-tab="vanilla"
+                    >
                         Vanilla JS
                     </button>
-                    <button role="tab" type="button" data-tab="vue">Vue</button>
-                    <button role="tab" type="button" data-tab="react">
+                    <button
+                        role="tab"
+                        type="button"
+                        id="tab-vue"
+                        aria-controls="snippet-panel"
+                        data-tab="vue"
+                    >
+                        Vue
+                    </button>
+                    <button
+                        role="tab"
+                        type="button"
+                        id="tab-react"
+                        aria-controls="snippet-panel"
+                        data-tab="react"
+                    >
                         React
                     </button>
-                    <button role="tab" type="button" data-tab="svelte">
+                    <button
+                        role="tab"
+                        type="button"
+                        id="tab-svelte"
+                        aria-controls="snippet-panel"
+                        data-tab="svelte"
+                    >
                         Svelte
                     </button>
                 </div>
                 <pre
                     class="snippet"
+                    id="snippet-panel"
                     role="tabpanel"
+                    tabindex="0"
                 ><code id="snippet"></code></pre>
             </section>
         </main>

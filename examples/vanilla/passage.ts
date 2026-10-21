@@ -10,15 +10,9 @@ export const PASSAGE =
     'Critics point out that a young tree takes decades to mature, so the benefit arrives slowly. ' +
     'Still, few other measures lower the temperature, the energy bill and the noise at once.';
 
-/** A fill per theme: multiply needs deeper colors on a dark background. */
-export interface Tone {
-    light: string;
-    dark: string;
-}
-
 export interface Analysis {
     label: string;
-    tone: Tone;
+    color: string;
     /** Added by the visitor, so it can be renamed and removed. */
     own?: boolean;
 }
@@ -28,7 +22,7 @@ interface Seed {
     label: string;
     from: string;
     to?: string;
-    tone: Tone;
+    color: string;
 }
 
 const SEEDS: Seed[] = [
@@ -37,61 +31,61 @@ const SEEDS: Seed[] = [
         label: 'Argument',
         from: 'Cities that plant',
         to: 'out of the air.',
-        tone: { light: '#8dbdff', dark: '#3a78e8' },
+        color: '#8dbdff',
     },
     {
         id: 'hedge',
         label: 'Hedge',
         from: 'tend to',
-        tone: { light: '#ffc6d9', dark: '#c45c86' },
+        color: '#ffc6d9',
     },
     {
         id: 'evidence',
         label: 'Evidence',
         from: 'In one survey',
         to: 'than bare ones.',
-        tone: { light: '#4fd49b', dark: '#1f9e6b' },
+        color: '#4fd49b',
     },
     {
         id: 'comparison',
         label: 'Comparison',
         from: 'blocks with a full canopy',
         to: 'than bare ones',
-        tone: { light: '#b49bff', dark: '#8064e8' },
+        color: '#b49bff',
     },
     {
         id: 'term',
         label: 'Key term',
         from: 'full canopy',
-        tone: { light: '#fff27a', dark: '#c9a800' },
+        color: '#fff27a',
     },
     {
         id: 'mechanism',
         label: 'Mechanism',
         from: 'The effect is',
         to: 'out of the air.',
-        tone: { light: '#3fcfe0', dark: '#14919e' },
+        color: '#3fcfe0',
     },
     {
         id: 'tradeoff',
         label: 'Trade-off',
         from: 'that evaporation',
         to: 'arrives slowly.',
-        tone: { light: '#ffa64d', dark: '#d9761c' },
+        color: '#ffa64d',
     },
     {
         id: 'objection',
         label: 'Objection',
         from: 'Critics point out',
         to: 'arrives slowly.',
-        tone: { light: '#ff7a7a', dark: '#d2453b' },
+        color: '#ff7a7a',
     },
     {
         id: 'conclusion',
         label: 'Conclusion',
         from: 'Still, few',
         to: 'at once.',
-        tone: { light: '#b5e550', dark: '#7da622' },
+        color: '#b5e550',
     },
 ];
 
@@ -111,18 +105,14 @@ export interface AnalysisRange {
 }
 
 export function seedAnalyses(): AnalysisRange[] {
-    return SEEDS.map(({ id, label, from, to, tone }) => ({
+    return SEEDS.map(({ id, label, from, to, color }) => ({
         id,
         ...range(from, to),
-        data: { label, tone },
+        data: { label, color },
     }));
 }
 
 /** A fresh, well-spread hue for the visitor's n-th analysis. */
-export function ownTone(n: number): Tone {
-    const hue = Math.round((n * 137.5 + 200) % 360);
-    return {
-        light: `hsl(${hue} 90% 72%)`,
-        dark: `hsl(${hue} 62% 44%)`,
-    };
+export function ownColor(n: number): string {
+    return `hsl(${Math.round((n * 137.5 + 200) % 360)} 90% 72%)`;
 }

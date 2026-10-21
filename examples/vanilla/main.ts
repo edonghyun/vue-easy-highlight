@@ -1,8 +1,13 @@
+import '@fontsource/literata/latin-400.css';
+import '@fontsource/literata/latin-600.css';
+import '@fontsource/instrument-sans/latin-400.css';
+import '@fontsource/instrument-sans/latin-500.css';
+import '@fontsource/instrument-sans/latin-600.css';
 import '@overlapmark/core/styles.css';
 import type { Highlight, Overlap, Strategy } from '@overlapmark/core';
 import { createHighlighter } from '@overlapmark/dom';
-import { PASSAGE, ownTone, seedAnalyses } from './passage';
-import type { Analysis, AnalysisRange, Tone } from './passage';
+import { PASSAGE, ownColor, seedAnalyses } from './passage';
+import type { Analysis, AnalysisRange } from './passage';
 import { SNIPPETS } from './snippets';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
@@ -27,7 +32,6 @@ function excerpt(s: string, max: number): string {
 // ---- theme ----------------------------------------------------------------
 
 type ThemeChoice = 'auto' | 'light' | 'dark';
-const darkQuery = matchMedia('(prefers-color-scheme: dark)');
 
 function storedTheme(): ThemeChoice {
     try {
@@ -39,15 +43,12 @@ function storedTheme(): ThemeChoice {
 }
 
 let themeChoice: ThemeChoice = storedTheme();
-const dark = (): boolean =>
-    themeChoice === 'dark' || (themeChoice === 'auto' && darkQuery.matches);
-const paint = (tone: Tone): string => (dark() ? tone.dark : tone.light);
 
 // ---- the passage ------------------------------------------------------------
 
 const OVERLAP_EXPLAIN: Record<Overlap, string> = {
     multiply:
-        'The default. Each layer multiplies with the ones under it, like a highlighter pen drawn over itself, so every extra analysis darkens the spot whatever its color; it suits light pages, since on a dark one it also tints light text.',
+        'The default. Each layer multiplies with the ones under it, like a highlighter pen drawn over itself, so every extra analysis darkens the spot whatever its color. On a dark background it would also tint light text, which is why the reading cards stay paper-colored in the dark theme.',
     darken: 'Each nested layer mixes its own color toward --om-depth-ink by --om-depth-step per level and never blends with the page: predictable for colors of similar lightness, but a pale color inside a saturated one comes out lighter.',
     none: 'Plain translucent layers without a depth effect, for when you only need to show where analyses are, not how many.',
 };
@@ -60,29 +61,47 @@ const STRATEGY_EXPLAIN: Record<Strategy, string> = {
 let analyses: AnalysisRange[] = seedAnalyses();
 let ownCount = 0;
 let emphasized: string | null = null;
-// Multiply tints light text on a dark page, so a dark theme starts in
-// darken until the visitor picks a mode.
-let overlapPicked = false;
-const themeOverlap = (): Overlap => (dark() ? 'darken' : 'multiply');
-let overlap: Overlap = themeOverlap();
+let overlap: Overlap = 'multiply';
 let strategy: Strategy = 'layers';
 
 /** What the inspector shows: the analyses under a spot, or a hint. */
 type Inspected =
     | { kind: 'none' }
-    | { kind: 'spot'; text: string; ids: string[] }
+    | { kind: 'spot'; start: number; end: number; ids: string[] }
     | { kind: 'one'; id: string; added?: boolean };
 let inspected: Inspected = { kind: 'none' };
 
 const passageEl = $('passage');
 const legendEl = $('legend');
 const inspectorEl = $('inspector');
+const statusEl = $('status');
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const oneColumn = matchMedia('(max-width: 860px)');
+
+/** Says `message` to screen readers through the short live status line. */
+function announce(message: string): void {
+    statusEl.textContent = message;
+}
+
+/**
+ * On one column the inspector sits below the passage, often off screen:
+ * bring its answer into view after a click, Enter or selection.
+ */
+function revealInspector(): void {
+    if (!oneColumn.matches) return;
+    const { top } = inspectorEl.getBoundingClientRect();
+    if (top >= 0 && top < innerHeight - 120) return;
+    inspectorEl.scrollIntoView({
+        block: 'start',
+        behavior: reducedMotion.matches ? 'auto' : 'smooth',
+    });
+}
 const peek = $('peek');
 
 function passageHighlights(): Highlight<Analysis>[] {
     return analyses.map((a) => ({
         ...a,
-        color: paint(a.data.tone),
+        color: a.data.color,
         className: a.id === emphasized ? 'is-emph' : undefined,
     }));
 }
@@ -99,8 +118,8 @@ const passage = createHighlighter<Analysis>(passageEl, {
 const byId = (id: string): AnalysisRange | undefined =>
     analyses.find((a) => a.id === id);
 
-function swatch(tone: Tone): string {
-    return `<span class="swatch" style="background:${paint(tone)}"></span>`;
+function swatch(color: string): string {
+    return `<span class="swatch" style="background:${color}"></span>`;
 }
 
 function covered(): Set<string> {
@@ -115,7 +134,7 @@ function renderLegend(): void {
         .map(
             (a) =>
                 `<li><button type="button" class="chip${on.has(a.id) ? ' is-covering' : ''}" data-id="${a.id}">` +
-                `${swatch(a.data.tone)}${esc(a.data.label)}</button></li>`,
+                `${swatch(a.data.color)}${esc(a.data.label)}</button></li>`,
         )
         .join('');
 }
@@ -126,7 +145,7 @@ function card(a: AnalysisRange): string {
           `<button type="button" class="quiet" data-remove="${a.id}">Remove</button></div>`
         : '';
     return (
-        `<li class="card">${swatch(a.data.tone)}<span class="label">${esc(a.data.label)}</span>` +
+        `<li class="card">${swatch(a.data.color)}<span class="label">${esc(a.data.label)}</span>` +
         `<p class="quote">“${esc(excerpt(PASSAGE.slice(a.start, a.end), 110))}”</p>${own}</li>`
     );
 }
@@ -156,9 +175,27 @@ function renderInspector(): void {
         .map(byId)
         .filter((a): a is AnalysisRange => a !== undefined);
     inspectorEl.innerHTML =
-        `<h3>“${esc(excerpt(inspected.text, 48))}”</h3>` +
-        `<p class="note">${list.length === 1 ? '1 analysis covers' : `${list.length} analyses cover`} this spot, outermost first.</p>` +
+        `<h3>“${esc(excerpt(spotText(inspected), 48))}”</h3>` +
+        `<p class="note">${coverage(list.length)}, outermost first.</p>` +
         `<ul class="cards">${list.map(card).join('')}</ul>`;
+}
+
+function coverage(n: number): string {
+    if (n === 0) return 'No analysis covers this spot';
+    return n === 1
+        ? '1 analysis covers this spot'
+        : `${n} analyses cover this spot`;
+}
+
+/**
+ * The text of a clicked spot. A spot of only spaces (between two sentences)
+ * is widened to the words on either side, so the heading is never empty.
+ */
+function spotText({ start, end }: { start: number; end: number }): string {
+    if (PASSAGE.slice(start, end).trim()) return PASSAGE.slice(start, end);
+    while (start > 0 && /\S/.test(PASSAGE[start - 1]!)) start -= 1;
+    while (end < PASSAGE.length && /\S/.test(PASSAGE[end]!)) end += 1;
+    return PASSAGE.slice(start, end);
 }
 
 function sync(): void {
@@ -170,7 +207,8 @@ function sync(): void {
 passage.on('click', ({ highlights, segment }) => {
     inspected = {
         kind: 'spot',
-        text: segment.text,
+        start: segment.start,
+        end: segment.end,
         ids: highlights.map((h) => h.id),
     };
     // The inspector now answers; no preview until the pointer moves on.
@@ -178,6 +216,8 @@ passage.on('click', ({ highlights, segment }) => {
     hidePeek();
     renderLegend();
     renderInspector();
+    announce(`${coverage(highlights.length)}.`);
+    revealInspector();
 });
 
 passage.on('select', ({ start, end, text }) => {
@@ -188,6 +228,8 @@ passage.on('select', ({ start, end, text }) => {
         inspected = { kind: 'one', id: same.id };
         renderLegend();
         renderInspector();
+        announce(`${same.data.label} already covers this selection.`);
+        revealInspector();
         return;
     }
     ownCount += 1;
@@ -200,13 +242,15 @@ passage.on('select', ({ start, end, text }) => {
             end,
             data: {
                 label: `Your note ${ownCount}`,
-                tone: ownTone(ownCount),
+                color: ownColor(ownCount),
                 own: true,
             },
         },
     ];
     inspected = { kind: 'one', id, added: true };
     sync();
+    announce(`Added Your note ${ownCount}.`);
+    revealInspector();
 });
 
 // Hover preview: a small tooltip naming the analyses under the pointer.
@@ -235,7 +279,7 @@ passage.on('hover', (d) => {
     peek.innerHTML = d.highlights
         .map(
             (h) =>
-                `<div class="row">${h.data ? swatch(h.data.tone) : ''}${esc(h.data?.label ?? h.id)}</div>`,
+                `<div class="row">${h.data ? swatch(h.data.color) : ''}${esc(h.data?.label ?? h.id)}</div>`,
         )
         .join('');
     peek.hidden = false;
@@ -273,7 +317,9 @@ legendEl.addEventListener('click', (e) => {
 inspectorEl.addEventListener('click', (e) => {
     const id = (e.target as HTMLElement).dataset.remove;
     if (!id) return;
+    const removed = byId(id);
     analyses = analyses.filter((a) => a.id !== id);
+    if (removed) announce(`Removed ${removed.data.label}.`);
     if (inspected.kind === 'spot')
         inspected = {
             ...inspected,
@@ -302,6 +348,7 @@ $('reset').addEventListener('click', () => {
     ownCount = 0;
     inspected = { kind: 'none' };
     sync();
+    announce('Analyses reset.');
 });
 
 // ---- overlap and strategy toggles --------------------------------------------
@@ -315,7 +362,6 @@ function renderModes(): void {
 for (const input of radios('overlap'))
     input.addEventListener('change', () => {
         overlap = input.value as Overlap;
-        overlapPicked = true;
         passage.update({ overlap });
         renderModes();
     });
@@ -329,23 +375,13 @@ for (const input of radios('strategy'))
 
 // ---- the wordmark: the library drawing its own name ------------------------
 
-const WORDMARK_TONES: Tone[] = [
-    { light: '#9cc3ff', dark: '#3a78e8' },
-    { light: '#ffb3cf', dark: '#c45c86' },
-];
-
-function wordmarkHighlights(): Highlight[] {
-    return [
-        { id: 'overlap', start: 0, end: 7, color: paint(WORDMARK_TONES[0]!) },
-        { id: 'lapmark', start: 4, end: 11, color: paint(WORDMARK_TONES[1]!) },
-    ];
-}
-
-const wordmark = createHighlighter($('wordmark'), {
+createHighlighter($('wordmark'), {
     text: 'overlapmark',
-    highlights: wordmarkHighlights(),
+    highlights: [
+        { id: 'overlap', start: 0, end: 7, color: '#bcd6ff' },
+        { id: 'lapmark', start: 4, end: 11, color: '#ffcadd' },
+    ],
     focusable: false,
-    overlap: themeOverlap(),
 });
 
 // ---- styling showcase ----------------------------------------------------------
@@ -353,32 +389,32 @@ const wordmark = createHighlighter($('wordmark'), {
 const SAMPLE =
     'Read it once for the argument, again for the evidence, and a third time for what the author leaves out.';
 
-const SAMPLE_RANGES: { id: string; part: string; tone: Tone }[] = [
-    { id: 's1', part: SAMPLE, tone: { light: '#5b9cff', dark: '#3a78e8' } },
+const SAMPLE_RANGES: { id: string; part: string; color: string }[] = [
+    { id: 's1', part: SAMPLE, color: '#5b9cff' },
     {
         id: 's2',
         part: 'for the argument, again',
-        tone: { light: '#ff8fb8', dark: '#c45c86' },
+        color: '#ff8fb8',
     },
     {
         id: 's3',
         part: 'again for the evidence, and a third time for what the author leaves out',
-        tone: { light: '#4fd49b', dark: '#1f9e6b' },
+        color: '#4fd49b',
     },
     {
         id: 's4',
         part: 'a third time for what the author leaves out',
-        tone: { light: '#b49bff', dark: '#8064e8' },
+        color: '#b49bff',
     },
     {
         id: 's5',
         part: 'what the author leaves out',
-        tone: { light: '#ffa64d', dark: '#d9761c' },
+        color: '#ffa64d',
     },
     {
         id: 's6',
         part: 'leaves out',
-        tone: { light: '#ff7a7a', dark: '#d2453b' },
+        color: '#ff7a7a',
     },
 ];
 
@@ -398,13 +434,13 @@ let preset = '';
 let badge = true;
 
 function sampleHighlights(): Highlight[] {
-    return SAMPLE_RANGES.map(({ id, part, tone }) => {
+    return SAMPLE_RANGES.map(({ id, part, color }) => {
         const start = SAMPLE.indexOf(part);
         return {
             id,
             start,
             end: start + part.length,
-            color: paint(tone),
+            color,
             className: preset || undefined,
         };
     });
@@ -462,14 +498,42 @@ $<HTMLInputElement>('badge').addEventListener('change', (e) => {
 
 // ---- framework snippets ---------------------------------------------------------
 
-const tabs = [...document.querySelectorAll<HTMLElement>('[data-tab]')];
-function showTab(name: string): void {
-    for (const tab of tabs)
-        tab.setAttribute('aria-selected', String(tab.dataset.tab === name));
-    $('snippet').textContent = SNIPPETS[name] ?? '';
+// A tablist with roving tabindex: Tab enters at the selected tab, the
+// arrow keys, Home and End move between tabs and select them.
+const tabs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')];
+const tabPanel = $('snippet-panel');
+
+function showTab(index: number, focus = false): void {
+    tabs.forEach((tab, i) => {
+        const selected = i === index;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+        if (!selected) return;
+        tabPanel.setAttribute('aria-labelledby', tab.id);
+        $('snippet').textContent = SNIPPETS[tab.dataset.tab ?? ''] ?? '';
+        if (focus) tab.focus();
+    });
 }
-for (const tab of tabs)
-    tab.addEventListener('click', () => showTab(tab.dataset.tab ?? ''));
+
+tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => showTab(i));
+    tab.addEventListener('keydown', (e) => {
+        const last = tabs.length - 1;
+        const next =
+            e.key === 'ArrowRight'
+                ? (i + 1) % tabs.length
+                : e.key === 'ArrowLeft'
+                  ? (i + last) % tabs.length
+                  : e.key === 'Home'
+                    ? 0
+                    : e.key === 'End'
+                      ? last
+                      : -1;
+        if (next < 0) return;
+        e.preventDefault();
+        showTab(next, true);
+    });
+});
 
 // ---- install line, theme ---------------------------------------------------------
 
@@ -489,20 +553,6 @@ function applyTheme(): void {
     if (themeChoice === 'auto') delete root.dataset.theme;
     else root.dataset.theme = themeChoice;
     $('theme').textContent = `Theme: ${themeChoice}`;
-    // Colors are data: each theme hands the highlighters its own fills.
-    passage.update({ highlights: passageHighlights() });
-    wordmark.update({ highlights: wordmarkHighlights() });
-    sample.update({ highlights: sampleHighlights() });
-    wordmark.update({ overlap: themeOverlap() });
-    if (!overlapPicked) {
-        overlap = themeOverlap();
-        for (const input of radios('overlap'))
-            input.checked = input.value === overlap;
-        passage.update({ overlap });
-        renderModes();
-    }
-    renderLegend();
-    renderInspector();
 }
 
 $('theme').addEventListener('click', () => {
@@ -520,10 +570,10 @@ $('theme').addEventListener('click', () => {
     applyTheme();
 });
 
-darkQuery.addEventListener('change', applyTheme);
-
 renderModes();
 renderKnobs();
 $('preset-explain').textContent = PRESET_EXPLAIN[''] ?? '';
-showTab('vanilla');
+showTab(0);
 applyTheme();
+renderLegend();
+renderInspector();
