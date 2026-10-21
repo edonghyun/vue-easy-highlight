@@ -7,8 +7,10 @@ import { renderOnServer } from './test/server-render.ts';
 export default defineConfig({
     plugins: [svelte()],
     resolve: { alias: workspaceAliases },
-    // Pre-bundled up front: discovering them mid-run reloads the test page.
-    optimizeDeps: { include: ['svelte', 'svelte/server'] },
+    // Pre-bundled up front: discovering it mid-run reloads the test page.
+    // svelte/server is only loaded in Node (the node project and the
+    // renderOnServer command), never by the page, so it needs no entry.
+    optimizeDeps: { include: ['svelte'] },
     test: {
         passWithNoTests: true,
         projects: [
