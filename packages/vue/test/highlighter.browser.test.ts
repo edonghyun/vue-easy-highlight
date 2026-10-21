@@ -128,6 +128,39 @@ describe('Highlighter: root element', () => {
         expect(root.getAttribute('data-om-strategy')).toBe('layers');
     });
 
+    it('puts the style and id given to the component on the root div beside om-root', () => {
+        const host = givenApp(() =>
+            h(Highlighter, {
+                text: TEXT,
+                highlights: [a],
+                style: { lineHeight: '2' },
+                id: 'body-text',
+            }),
+        );
+
+        const root = host.firstElementChild as HTMLElement;
+
+        expect(root.classList.contains('om-root')).toBe(true);
+        expect(root.style.lineHeight).toBe('2');
+        expect(root.id).toBe('body-text');
+    });
+
+    it('gives a native listener passed to the component each DOM event once', () => {
+        const received: Event[] = [];
+        const host = givenApp(() =>
+            h(Highlighter, {
+                text: TEXT,
+                highlights: [a],
+                onPointerdown: (event: PointerEvent) => received.push(event),
+            }),
+        );
+        const down = new PointerEvent('pointerdown', { bubbles: true });
+
+        segmentElement(rootIn(host), 0).dispatchEvent(down);
+
+        expect(received).toEqual([down]);
+    });
+
     it('updates an attribute the caller changes after mounting', async () => {
         const label = ref('Article body');
         const host = givenApp(() =>
