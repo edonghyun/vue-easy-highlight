@@ -4,6 +4,9 @@
         "paths": {
             "@overlapmark/core": ["./src/index.ts"],
             "@overlapmark/core/dom": ["./src/dom/index.ts"],
+            "@overlapmark/adapter-contract/fixtures": [
+                "../adapter-contract/src/fixtures.ts"
+            ],
             "@overlapmark/adapter-contract": [
                 "../adapter-contract/src/index.ts"
             ]

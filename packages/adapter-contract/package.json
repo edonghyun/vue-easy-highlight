@@ -7,7 +7,8 @@
     "author": "Donghyun Lee",
     "type": "module",
     "exports": {
-        ".": "./src/index.ts"
+        ".": "./src/index.ts",
+        "./fixtures": "./src/fixtures.ts"
     },
     "scripts": {
         "typecheck": "tsc --noEmit"

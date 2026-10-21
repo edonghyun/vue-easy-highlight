@@ -1,3 +1,4 @@
+import { codePointBoundaries } from '@overlapmark/adapter-contract/fixtures';
 import fc from 'fast-check';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -6,7 +7,7 @@ import {
     segmentAt,
     type Highlight,
 } from '../src/index';
-import { LONE_SURROGATE, codePointBoundaries, textArb } from './helpers/text';
+import { LONE_SURROGATE, textArb } from './helpers/text';
 
 const inputArb = textArb.chain((text) => {
     const n = text.length;
@@ -124,7 +125,7 @@ describe('computeSegments properties', () => {
         );
     });
 
-    it('depth matches brute force', () => {
+    it("each segment's depth equals the number of highlights covering it", () => {
         fc.assert(
             fc.property(inputArb, ({ text, highlights }) => {
                 const ranges = normalizedRanges(text, highlights);

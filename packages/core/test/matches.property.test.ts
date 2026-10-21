@@ -1,7 +1,8 @@
+import { codePointBoundaries } from '@overlapmark/adapter-contract/fixtures';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { findMatches } from '../src/matches';
-import { codePointBoundaries, textArb } from './helpers/text';
+import { textArb } from './helpers/text';
 
 type Range = { start: number; end: number };
 
@@ -92,7 +93,7 @@ describe('findMatches properties', () => {
         );
     });
 
-    it('finds every case-sensitive occurrence by default', () => {
+    it('finds every case-sensitive occurrence when caseSensitive is true', () => {
         fc.assert(
             fc.property(inputArb, ({ text, queries }) => {
                 const expected = bruteForceMatches(text, queries);

@@ -1,5 +1,6 @@
 // Shared browser-test helpers. Intentionally does NOT import the stylesheet:
 // tests that need it import '../src/styles.css' themselves.
+import { setSelection } from '@overlapmark/adapter-contract';
 import { onTestFinished } from 'vitest';
 import { computeSegments, rootAttributes, segmentElements } from '../../src';
 import type { Highlight, RenderOptions } from '../../src';
@@ -18,7 +19,7 @@ export interface MountOptions extends RenderOptions {
  * Appends `node` to the body and removes it when the current test finishes,
  * together with any selection the test left behind.
  */
-export function attach<T extends Node>(node: T): T {
+export function givenInDocument<T extends Node>(node: T): T {
     document.body.appendChild(node);
     onTestFinished(() => {
         node.parentNode?.removeChild(node);
@@ -58,7 +59,7 @@ export function renderInto(
     root.replaceChildren(frag);
 }
 
-export function mount(
+export function givenRenderedRoot(
     text: string,
     highlights: Highlight[],
     options: MountOptions = {},
@@ -70,7 +71,7 @@ export function mount(
         const target = root.querySelector(`[data-id="${decorate.id}"]`);
         if (!target)
             throw new Error(
-                `mount: decorate needs a highlight with id "${decorate.id}"`,
+                `givenRenderedRoot: decorate needs a highlight with id "${decorate.id}"`,
             );
         const deco = document.createElement('span');
         deco.setAttribute('data-om-skip', '');
@@ -78,16 +79,10 @@ export function mount(
         deco.textContent = decorate.text;
         target.appendChild(deco);
     }
-    if (before !== undefined) attach(document.createTextNode(before));
-    attach(root);
-    if (after !== undefined) attach(document.createTextNode(after));
+    if (before !== undefined) givenInDocument(document.createTextNode(before));
+    givenInDocument(root);
+    if (after !== undefined) givenInDocument(document.createTextNode(after));
     return root;
-}
-
-export function setSelection(range: Range): void {
-    const sel = window.getSelection()!;
-    sel.removeAllRanges();
-    sel.addRange(range);
 }
 
 export function select(root: Element, start: number, end: number): void {
@@ -96,7 +91,7 @@ export function select(root: Element, start: number, end: number): void {
     setSelection(range);
 }
 
-/** Selects from the start of the text node before `root` (see `mount({ before })`) to `offset` inside root. */
+/** Selects from the start of the text node before `root` (see `givenRenderedRoot({ before })`) to `offset` inside root. */
 export function selectFromOutsideTo(root: Element, offset: number): void {
     const outside = root.previousSibling;
     if (!outside)

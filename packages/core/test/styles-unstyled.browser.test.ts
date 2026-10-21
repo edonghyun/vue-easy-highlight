@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 // Intentionally does NOT import ../src/styles.css.
-import { mount } from './helpers/mount';
+import { givenRenderedRoot } from './helpers/mount';
 
 function givenUnstyledRoot(): HTMLElement {
-    return mount('abc', [{ id: 'a', start: 0, end: 3, color: '#ff0000' }]);
+    return givenRenderedRoot('abc', [
+        { id: 'a', start: 0, end: 3, color: '#ff0000' },
+    ]);
 }
 
 describe('without the stylesheet', () => {

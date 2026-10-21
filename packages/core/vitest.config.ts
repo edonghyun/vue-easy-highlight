@@ -20,6 +20,10 @@ export default defineConfig({
                 replacement: local('./src/index.ts'),
             },
             {
+                find: /^@overlapmark\/adapter-contract\/fixtures$/,
+                replacement: local('../adapter-contract/src/fixtures.ts'),
+            },
+            {
                 find: /^@overlapmark\/adapter-contract$/,
                 replacement: local('../adapter-contract/src/index.ts'),
             },

@@ -1,5 +1,7 @@
-// Inputs shared by the contract suite. Fixtures only build data; they do not
-// mount anything or check results.
+// Inputs shared by the contract suite, and the code point oracles core's own
+// tests use too (importable without the browser through
+// `@overlapmark/adapter-contract/fixtures`). Fixtures only build data; they do
+// not mount anything or check results.
 import type { Highlight } from '@overlapmark/core';
 
 export interface Fixture {

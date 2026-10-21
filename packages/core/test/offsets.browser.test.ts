@@ -1,3 +1,4 @@
+import { codePointRanges, setSelection } from '@overlapmark/adapter-contract';
 import { describe, expect, it, onTestFinished } from 'vitest';
 // pre-wrap on .om-root keeps Selection#toString faithful to whitespace.
 import '../src/styles.css';
@@ -7,13 +8,11 @@ import {
     getSelectionOffsets,
     getTextLength,
 } from '../src/dom';
-import { isInsidePair } from '../src/unicode';
 import {
-    attach,
-    mount,
+    givenInDocument,
+    givenRenderedRoot,
     select,
     selectFromOutsideTo,
-    setSelection,
 } from './helpers/mount';
 
 const text = 'Hello wonderful world 😀 하이라이트';
@@ -29,7 +28,7 @@ const NOTE_OFFSET = 15;
 const note = { id: 'b', text: NOTE };
 
 function givenDecoratedRoot(): HTMLElement {
-    const root = mount(text, hl, { decorate: note });
+    const root = givenRenderedRoot(text, hl, { decorate: note });
     // Precondition: the decoration exists, so tests of its absence are meaningful.
     expect(root.querySelector('[data-om-skip]')).not.toBeNull();
     return root;
@@ -38,7 +37,7 @@ function givenDecoratedRoot(): HTMLElement {
 function givenForeignParagraph(): HTMLElement {
     const other = document.createElement('p');
     other.textContent = 'somewhere else';
-    return attach(other);
+    return givenInDocument(other);
 }
 
 function centerOf(
@@ -58,21 +57,9 @@ function centerOf(
     };
 }
 
-/** Every [start, end) pair of `source` whose boundaries do not split a surrogate pair. */
-function validRanges(source: string): [number, number][] {
-    const pairs: [number, number][] = [];
-    for (let s = 0; s < source.length; s++) {
-        for (let e = s + 1; e <= source.length; e++) {
-            if (!isInsidePair(source, s) && !isInsidePair(source, e))
-                pairs.push([s, e]);
-        }
-    }
-    return pairs;
-}
-
 describe('getSelectionOffsets', () => {
     it('reads an explicit Selection argument', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
         select(root, 1, 4);
 
         expect(getSelectionOffsets(root, window.getSelection())).toEqual({
@@ -82,14 +69,14 @@ describe('getSelectionOffsets', () => {
     });
 
     it('falls back to the window selection when the Selection argument is null', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
         select(root, 1, 4);
 
         expect(getSelectionOffsets(root, null)).toEqual({ start: 1, end: 4 });
     });
 
     it('maps a selectNodeContents range on a mark to the mark segment', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
         const range = document.createRange();
         range.selectNodeContents(root.querySelector('[data-id="b"]')!);
 
@@ -99,7 +86,7 @@ describe('getSelectionOffsets', () => {
     });
 
     it('maps a selectNodeContents range on the root to the whole text', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
         const range = document.createRange();
         range.selectNodeContents(root);
 
@@ -112,7 +99,7 @@ describe('getSelectionOffsets', () => {
     });
 
     it('maps boundaries expressed as child indices of the root', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
         // Segments [6,15) and [15,21) are adjacent children of the root.
         const index = [...root.children].findIndex(
             (el) => el.getAttribute('data-om-start') === '6',
@@ -128,7 +115,7 @@ describe('getSelectionOffsets', () => {
 
     describe('when the selection extends outside the root', () => {
         it('clips a selection that starts before the root', () => {
-            const root = mount(text, hl, {
+            const root = givenRenderedRoot(text, hl, {
                 before: 'BEFORE ',
                 after: ' AFTER',
             });
@@ -139,7 +126,7 @@ describe('getSelectionOffsets', () => {
         });
 
         it('clips a selection that ends after the root', () => {
-            const root = mount(text, hl, {
+            const root = givenRenderedRoot(text, hl, {
                 before: 'BEFORE ',
                 after: ' AFTER',
             });
@@ -157,7 +144,7 @@ describe('getSelectionOffsets', () => {
         });
 
         it('clips a selection that starts before and ends after the root', () => {
-            const root = mount(text, hl, {
+            const root = givenRenderedRoot(text, hl, {
                 before: 'BEFORE ',
                 after: ' AFTER',
             });
@@ -176,14 +163,14 @@ describe('getSelectionOffsets', () => {
 
     describe('when there is no selection inside the root', () => {
         it('returns null when nothing is selected', () => {
-            const root = mount(text, hl);
+            const root = givenRenderedRoot(text, hl);
             window.getSelection()!.removeAllRanges();
 
             expect(getSelectionOffsets(root)).toBeNull();
         });
 
         it('returns null for a collapsed selection inside the root', () => {
-            const root = mount(text, hl);
+            const root = givenRenderedRoot(text, hl);
             const collapsed = createRangeFromOffsets(root, 8, 8)!;
             expect(collapsed.collapsed).toBe(true);
 
@@ -193,7 +180,7 @@ describe('getSelectionOffsets', () => {
         });
 
         it('returns null for a selection entirely inside another element', () => {
-            const root = mount(text, hl);
+            const root = givenRenderedRoot(text, hl);
             const other = givenForeignParagraph();
             const foreign = document.createRange();
             foreign.selectNodeContents(other.firstChild!);
@@ -204,7 +191,7 @@ describe('getSelectionOffsets', () => {
         });
 
         it("returns null for a selection that ends exactly at the root's edge", () => {
-            const root = mount(text, hl, { before: 'BEFORE ' });
+            const root = givenRenderedRoot(text, hl, { before: 'BEFORE ' });
             const touching = document.createRange();
             touching.setStart(root.previousSibling!, 0);
             touching.setEnd(
@@ -218,8 +205,8 @@ describe('getSelectionOffsets', () => {
         });
 
         it("does not report one root's selection to a second root", () => {
-            const root = mount(text, hl);
-            const root2 = mount('another root', []);
+            const root = givenRenderedRoot(text, hl);
+            const root2 = givenRenderedRoot('another root', []);
 
             select(root, 2, 6);
 
@@ -264,7 +251,9 @@ describe('getSelectionOffsets', () => {
         const source = '\n  first\r\n\tsecond  ';
 
         it('maps a partial selection to string indices', () => {
-            const root = mount(source, [{ id: 'x', start: 3, end: 12 }]);
+            const root = givenRenderedRoot(source, [
+                { id: 'x', start: 3, end: 12 },
+            ]);
 
             select(root, 3, 12);
 
@@ -273,7 +262,9 @@ describe('getSelectionOffsets', () => {
         });
 
         it('maps a selection of the whole text to string indices', () => {
-            const root = mount(source, [{ id: 'x', start: 3, end: 12 }]);
+            const root = givenRenderedRoot(source, [
+                { id: 'x', start: 3, end: 12 },
+            ]);
 
             select(root, 0, source.length);
 
@@ -293,31 +284,24 @@ describe('createRangeFromOffsets', () => {
               NOTE +
               text.slice(NOTE_OFFSET, end)
             : text.slice(start, end);
-    const variants = [
-        {
-            name: 'a data-om-skip decoration',
-            options: { decorate: note },
-            expectedText: spanTextWithNote,
-        },
-    ];
 
-    describe.each(variants)('with $name', ({ options, expectedText }) => {
-        const ranges = validRanges(text);
+    describe('with a data-om-skip decoration at offset 15', () => {
+        const ranges = codePointRanges(text);
 
         it('creates a range whose text matches the source slice for every start/end pair', () => {
-            const root = mount(text, hl, options);
+            const root = givenDecoratedRoot();
             expect(ranges.length).toBeGreaterThan(0);
 
             for (const [start, end] of ranges) {
                 const range = createRangeFromOffsets(root, start, end)!;
                 expect(range.toString(), `${start}..${end}`).toBe(
-                    expectedText(start, end),
+                    spanTextWithNote(start, end),
                 );
             }
         });
 
         it('maps the selected range back to the same offsets for every start/end pair', () => {
-            const root = mount(text, hl, options);
+            const root = givenDecoratedRoot();
             expect(ranges.length).toBeGreaterThan(0);
 
             for (const [start, end] of ranges) {
@@ -328,9 +312,7 @@ describe('createRangeFromOffsets', () => {
                 });
             }
         });
-    });
 
-    describe('with a data-om-skip decoration at offset 15', () => {
         it('excludes the decoration text from a range that ends where it sits', () => {
             const root = givenDecoratedRoot();
 
@@ -349,7 +331,7 @@ describe('createRangeFromOffsets', () => {
     });
 
     it('clamps a negative start to 0', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
 
         expect(createRangeFromOffsets(root, -5, 5)!.toString()).toBe(
             text.slice(0, 5),
@@ -357,7 +339,7 @@ describe('createRangeFromOffsets', () => {
     });
 
     it('clamps an end beyond the text to its length', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
 
         expect(createRangeFromOffsets(root, 30, 999)!.toString()).toBe(
             text.slice(30),
@@ -365,19 +347,19 @@ describe('createRangeFromOffsets', () => {
     });
 
     it('returns null for an inverted range', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
 
         expect(createRangeFromOffsets(root, 5, 2)).toBeNull();
     });
 
     it('returns null for a NaN offset', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
 
         expect(createRangeFromOffsets(root, Number.NaN, 2)).toBeNull();
     });
 
     it('creates a collapsed range inside an empty root', () => {
-        const root = mount('', []);
+        const root = givenRenderedRoot('', []);
 
         const range = createRangeFromOffsets(root, 0, 0)!;
 
@@ -388,7 +370,7 @@ describe('createRangeFromOffsets', () => {
 
 describe('getOffsetFromPoint', () => {
     it('returns the index of the character under the point', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
         const r = createRangeFromOffsets(root, 10, 11)!.getBoundingClientRect();
 
         expect(getOffsetFromPoint(root, r.left + 1, r.top + r.height / 2)).toBe(
@@ -397,7 +379,7 @@ describe('getOffsetFromPoint', () => {
     });
 
     it('treats the right half of a glyph as the same character, not the caret after it', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
         const r = createRangeFromOffsets(root, 10, 11)!.getBoundingClientRect();
 
         expect(
@@ -409,7 +391,7 @@ describe('getOffsetFromPoint', () => {
     it.each([0, 5, 6, 14, 15, 20, 21])(
         'resolves character %i across segment boundaries',
         (index) => {
-            const root = mount(text, hl);
+            const root = givenRenderedRoot(text, hl);
             const { x, y, rect } = centerOf(root, index, index + 1);
 
             expect(getOffsetFromPoint(root, x, y)).toBe(index);
@@ -418,7 +400,7 @@ describe('getOffsetFromPoint', () => {
     );
 
     it('maps both halves of a surrogate-pair glyph to its first code unit', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
         const emoji = text.indexOf('😀');
         const { y, rect } = centerOf(root, emoji, emoji + 2);
 
@@ -427,7 +409,7 @@ describe('getOffsetFromPoint', () => {
     });
 
     it('falls back to caretRangeFromPoint when caretPositionFromPoint is missing', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
         const { x, y } = centerOf(root, 10, 11);
         Object.defineProperty(document, 'caretPositionFromPoint', {
             value: undefined,
@@ -443,7 +425,7 @@ describe('getOffsetFromPoint', () => {
     });
 
     it('returns null for a point outside the root', () => {
-        const root = mount(text, hl);
+        const root = givenRenderedRoot(text, hl);
         const other = givenForeignParagraph();
         const o = other.getBoundingClientRect();
 
@@ -468,10 +450,10 @@ describe('getOffsetFromPoint', () => {
 
 describe('getTextLength', () => {
     it('equals the length of a plain unhighlighted text', () => {
-        expect(getTextLength(mount('plain', []))).toBe(5);
+        expect(getTextLength(givenRenderedRoot('plain', []))).toBe(5);
     });
 
     it('is 0 for an empty root', () => {
-        expect(getTextLength(mount('', []))).toBe(0);
+        expect(getTextLength(givenRenderedRoot('', []))).toBe(0);
     });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it, onTestFinished } from 'vitest';
 import '../src/styles.css';
 import type { Highlight } from '../src';
-import { attach, mount } from './helpers/mount';
+import { givenInDocument, givenRenderedRoot } from './helpers/mount';
 
 // Normalise any computed color (rgb, color(srgb), oklab...) through a canvas, then compute relative luminance.
 function rgba(css: string): [number, number, number, number] {
@@ -54,9 +54,9 @@ function givenRootUnderAncestorVars(
     const wrapper = document.createElement('section');
     for (const [name, value] of Object.entries(vars))
         wrapper.style.setProperty(name, value);
-    const root = mount('abc', highlights);
+    const root = givenRenderedRoot('abc', highlights);
     wrapper.appendChild(root);
-    attach(wrapper);
+    givenInDocument(wrapper);
     return root;
 }
 
@@ -66,7 +66,9 @@ function markOf(root: Element): HTMLElement {
 
 describe('default stylesheet', () => {
     it('darkens deeper segments with the depth strategy', () => {
-        const root = mount('aaaa bbbb cccc', three, { strategy: 'depth' });
+        const root = givenRenderedRoot('aaaa bbbb cccc', three, {
+            strategy: 'depth',
+        });
 
         const l = [...root.querySelectorAll<HTMLElement>('[data-depth]')].map(
             (el) => luminance(bg(el)),
@@ -83,7 +85,7 @@ describe('default stylesheet', () => {
             start: i,
             end: DEFAULT_MAX_DEPTH + 2,
         }));
-        const root = mount('abcdefgh', hs, { strategy: 'depth' });
+        const root = givenRenderedRoot('abcdefgh', hs, { strategy: 'depth' });
 
         const byDepth = new Map<string, string>();
         root.querySelectorAll<HTMLElement>('[data-depth]').forEach((el) =>
@@ -97,7 +99,7 @@ describe('default stylesheet', () => {
     });
 
     it('paints a translucent background on every nested mark with the layers strategy', () => {
-        const root = mount('aaaa bbbb cccc', three);
+        const root = givenRenderedRoot('aaaa bbbb cccc', three);
 
         const marks = root.querySelectorAll('mark.om-hl');
 
@@ -111,11 +113,13 @@ describe('default stylesheet', () => {
     });
 
     it('uses the default color, not the parent color, for an uncolored highlight nested in a colored one', () => {
-        const nested = mount('abcdef', [
+        const nested = givenRenderedRoot('abcdef', [
             { id: 'a', start: 0, end: 6, color: '#ff0000' },
             { id: 'b', start: 2, end: 4 },
         ]);
-        const alone = mount('abcdef', [{ id: 'c', start: 2, end: 4 }]);
+        const alone = givenRenderedRoot('abcdef', [
+            { id: 'c', start: 2, end: 4 },
+        ]);
 
         const inner = nested.querySelector('mark[data-id="b"]')!;
 
@@ -127,9 +131,13 @@ describe('default stylesheet', () => {
 
     it('applies theme variables set on an ancestor of the root', () => {
         const red = markOf(
-            mount('abc', [{ id: 'r', start: 0, end: 3, color: '#ff0000' }]),
+            givenRenderedRoot('abc', [
+                { id: 'r', start: 0, end: 3, color: '#ff0000' },
+            ]),
         );
-        const plain = markOf(mount('abc', [{ id: 'p', start: 0, end: 3 }]));
+        const plain = markOf(
+            givenRenderedRoot('abc', [{ id: 'p', start: 0, end: 3 }]),
+        );
 
         const themed = markOf(
             givenRootUnderAncestorVars({ '--om-default-color': '#ff0000' }, [
@@ -142,7 +150,9 @@ describe('default stylesheet', () => {
     });
 
     it('applies an --om-alpha override set on an ancestor', () => {
-        const base = markOf(mount('abc', [{ id: 'p', start: 0, end: 3 }]));
+        const base = markOf(
+            givenRenderedRoot('abc', [{ id: 'p', start: 0, end: 3 }]),
+        );
 
         const overridden = markOf(
             givenRootUnderAncestorVars({ '--om-alpha': '100%' }, [
@@ -162,7 +172,7 @@ describe('default stylesheet', () => {
                     '.memo { background-color: rgb(255, 192, 203); }',
                     position,
                 );
-                const root = mount('abc', [
+                const root = givenRenderedRoot('abc', [
                     { id: 'm', start: 0, end: 3, className: 'memo' },
                 ]);
 
@@ -171,10 +181,10 @@ describe('default stylesheet', () => {
 
             it('lets a highlight.className set --om-color', () => {
                 userCss('.tint { --om-color: #00ff00; }', position);
-                const tinted = mount('abc', [
+                const tinted = givenRenderedRoot('abc', [
                     { id: 't', start: 0, end: 3, className: 'tint' },
                 ]);
-                const green = mount('abc', [
+                const green = givenRenderedRoot('abc', [
                     { id: 'g', start: 0, end: 3, color: '#00ff00' },
                 ]);
 
@@ -185,10 +195,10 @@ describe('default stylesheet', () => {
 
     it('keeps inline highlight.color above a user --om-color class', () => {
         userCss('.tint { --om-color: #00ff00; }', 'last');
-        const root = mount('abc', [
+        const root = givenRenderedRoot('abc', [
             { id: 'x', start: 0, end: 3, color: '#ff0000', className: 'tint' },
         ]);
-        const red = mount('abc', [
+        const red = givenRenderedRoot('abc', [
             { id: 'r', start: 0, end: 3, color: '#ff0000' },
         ]);
 
@@ -196,7 +206,7 @@ describe('default stylesheet', () => {
     });
 
     it('paints --om-brush instead of a background color for the marker preset', () => {
-        const root = mount('abc', [
+        const root = givenRenderedRoot('abc', [
             { id: 'm', start: 0, end: 3, className: 'om-style-marker' },
         ]);
 
@@ -209,7 +219,7 @@ describe('default stylesheet', () => {
     });
 
     it('preserves whitespace on the root', () => {
-        const root = mount('a  b', []);
+        const root = givenRenderedRoot('a  b', []);
 
         expect(getComputedStyle(root).whiteSpace).toBe('pre-wrap');
     });
