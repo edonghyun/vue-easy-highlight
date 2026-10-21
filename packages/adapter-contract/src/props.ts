@@ -11,10 +11,12 @@ export function propsOf(props: ContractProps): ContractProps {
         highlights: props.highlights,
     };
     if (props.strategy !== undefined) picked.strategy = props.strategy;
+    if (props.overlap !== undefined) picked.overlap = props.overlap;
     if (props.focusable !== undefined) picked.focusable = props.focusable;
     if (props.defaultColor !== undefined)
         picked.defaultColor = props.defaultColor;
     if (props.brush !== undefined) picked.brush = props.brush;
+    if (props.describe !== undefined) picked.describe = props.describe;
     if (props.minSelectionLength !== undefined)
         picked.minSelectionLength = props.minSelectionLength;
     if (props.touchSelectionDelay !== undefined)

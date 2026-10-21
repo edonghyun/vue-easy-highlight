@@ -6,7 +6,10 @@
  * Theme variables have no declared value here, only var() fallbacks, so they
  * can be set on .om-root or on any ancestor:
  *   --om-default-color (#ddd6ff), --om-depth-step (12%),
- *   --om-max-depth (6), --om-alpha (55%)
+ *   --om-depth-ink (black), --om-max-depth (6), --om-alpha (55%)
+ *
+ * With the layers strategy, the root's data-om-overlap picks how nested
+ * layers combine: multiply (the default), darken or none.
  */
 :where(.om-root) {
     white-space: pre-wrap;
@@ -38,6 +41,43 @@
     );
 }
 
+/*
+ * multiply: each layer multiplies with what is under it, so every highlight
+ * covering a spot darkens it, whatever the colors. The root is an isolated
+ * group, so the layers never blend with the page behind the root.
+ */
+:where([data-om-strategy='layers'][data-om-overlap='multiply']) {
+    isolation: isolate;
+}
+
+:where([data-om-strategy='layers'][data-om-overlap='multiply'] .om-hl) {
+    mix-blend-mode: multiply;
+}
+
+/*
+ * darken: each layer's own color, mixed toward --om-depth-ink by
+ * --om-depth-step per nesting level (up to --om-max-depth), at --om-alpha.
+ * It darkens only colors of similar lightness: a pale color nested in a
+ * saturated one still shows lighter.
+ */
+:where([data-om-strategy='layers'][data-om-overlap='darken'] .om-hl) {
+    background-color: color-mix(
+        in srgb,
+        color-mix(
+                in oklab,
+                var(--om-color, var(--om-default-color, #ddd6ff)),
+                var(--om-depth-ink, black)
+                    min(
+                        100%,
+                        var(--om-depth-step, 12%) *
+                            min(var(--om-level, 0), var(--om-max-depth, 6) - 1)
+                    )
+            )
+            var(--om-alpha, 55%),
+        transparent
+    );
+}
+
 :where([data-om-strategy='depth'] .om-hl) {
     background-color: color-mix(
         in oklab,
@@ -58,7 +98,11 @@
 }
 
 :where(.om-hl.om-style-underline) {
-    /* nested highlights drop their underline by --om-level so they do not overlap */
+    /*
+     * The underline sits on the bottom of the padding box, which each nesting
+     * level extends 4px further down (up to --om-max-depth): nested
+     * underlines stack below each other instead of overlapping.
+     */
     background-color: transparent;
     background-image: linear-gradient(
         var(--om-color, var(--om-default-color, #ddd6ff)),
@@ -66,12 +110,21 @@
     );
     background-size: 100% 3px;
     background-repeat: no-repeat;
-    background-position: 0 calc(100% - var(--om-level, 0) * 4px);
-    padding-bottom: calc(0.12em + var(--om-level, 0) * 4px);
+    background-position: 0 100%;
+    padding-bottom: calc(
+        0.12em + min(var(--om-level, 0), var(--om-max-depth, 6) - 1) * 4px
+    );
 }
 
 :where(.om-hl.om-style-box) {
+    /*
+     * each nesting level's box reaches 3px further above and below the text,
+     * up to --om-max-depth
+     */
     background-color: transparent;
+    padding-block: calc(
+        0.12em + min(var(--om-level, 0), var(--om-max-depth, 6) - 1) * 3px
+    );
     box-shadow: inset 0 0 0 1.5px
         var(--om-color, var(--om-default-color, #ddd6ff));
 }
@@ -79,4 +132,25 @@
 :where(.om-hl:focus-visible) {
     outline: 2px solid currentColor;
     outline-offset: 1px;
+}
+
+/*
+ * Forced colors (such as Windows High Contrast) would drop the backgrounds
+ * that show a highlight. Highlights take the system Mark colors instead, with
+ * an outline, so they and their edges stay visible in the user's palette.
+ */
+@media (forced-colors: active) {
+    :where(.om-hl) {
+        forced-color-adjust: none;
+        background: Mark;
+        color: MarkText;
+        box-shadow: none;
+        mix-blend-mode: normal;
+        outline: 1px solid MarkText;
+    }
+
+    :where(.om-hl:focus-visible) {
+        outline: 2px solid Highlight;
+        outline-offset: 1px;
+    }
 }

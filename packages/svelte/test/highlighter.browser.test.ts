@@ -129,6 +129,22 @@ describe('Highlighter: root element', () => {
         expect(root.getAttribute('aria-label')).toBe('Article body');
     });
 
+    it('sets --om-default-color on the root beside the style the caller passes', () => {
+        const host = givenMounted(Highlighter, {
+            text: TEXT,
+            highlights: [a],
+            defaultColor: '#123456',
+            style: 'line-height: 2; --om-default-color: red',
+        });
+
+        const root = host.firstElementChild as HTMLElement;
+
+        expect(root.style.lineHeight).toBe('2');
+        expect(root.style.getPropertyValue('--om-default-color')).toBe(
+            '#123456',
+        );
+    });
+
     it('keeps its own root class and strategy attribute over those the caller passes', () => {
         const host = givenMounted(Highlighter, {
             text: TEXT,
@@ -202,7 +218,7 @@ describe('Highlighter: between a prop change and its flush', () => {
         shown.click();
 
         expect(reported.clicks).toHaveLength(1);
-        expect(reported.clicks[0].highlights).toEqual([a, b]);
+        expect(reported.clicks[0]!.highlights).toEqual([a, b]);
         // Precondition: the flush had not run yet.
         expect(segmentElement(rootIn(host), 6)).toBe(shown);
     });
@@ -288,8 +304,8 @@ describe('Highlighter: caller highlights', () => {
         await clickCharacter(rootIn(host), 10);
 
         expect(reported.clicks).toHaveLength(1);
-        expect(reported.clicks[0].highlights[0]).toBe(a);
-        expect(reported.clicks[0].highlights[1]).toBe(b);
+        expect(reported.clicks[0]!.highlights[0]).toBe(a);
+        expect(reported.clicks[0]!.highlights[1]).toBe(b);
     });
 
     it('reports the objects the caller reads from its deep $state array', async () => {
@@ -304,8 +320,8 @@ describe('Highlighter: caller highlights', () => {
         await clickCharacter(rootIn(host), 10);
 
         expect(reported.clicks).toHaveLength(1);
-        expect(reported.clicks[0].highlights[0]).toBe(highlights[0]);
-        expect(reported.clicks[0].highlights[1]).toBe(highlights[1]);
+        expect(reported.clicks[0]!.highlights[0]).toBe(highlights[0]);
+        expect(reported.clicks[0]!.highlights[1]).toBe(highlights[1]);
     });
 
     it('renders a highlight pushed into a deep $state array in place, and reports it as the caller reads it', async () => {
@@ -323,17 +339,19 @@ describe('Highlighter: caller highlights', () => {
 
         // `c` covers [10,24): with `a` over [0,15) it adds [10,15) a+c and [15,24) c.
         const root = rootIn(host);
-        expect(segmentElement(root, 10).getAttribute('data-ids')).toBe('a,c');
-        expect(segmentElement(root, 15).getAttribute('data-ids')).toBe('c');
-        expect(reported.clicks[0].highlights).toHaveLength(1);
-        expect(reported.clicks[0].highlights[0]).toBe(highlights[1]);
+        expect(segmentElement(root, 10).getAttribute('data-om-ids')).toBe(
+            'a c',
+        );
+        expect(segmentElement(root, 15).getAttribute('data-om-ids')).toBe('c');
+        expect(reported.clicks[0]!.highlights).toHaveLength(1);
+        expect(reported.clicks[0]!.highlights[0]).toBe(highlights[1]);
     });
 
     it('renders a highlight changed in place in a deep $state array', () => {
         const highlights = deepState<Highlight[]>([{ ...a }]);
         const host = givenMounted(Highlighter, { text: TEXT, highlights });
 
-        highlights[0].end = 5;
+        highlights[0]!.end = 5;
         flushSync();
 
         expect(segmentElement(rootIn(host), 0).textContent).toBe('Hello');
@@ -355,7 +373,7 @@ describe('Highlighter: caller highlights', () => {
         await clickCharacter(rootIn(host), 20);
 
         expect(reported.clicks).toHaveLength(1);
-        expect(reported.clicks[0].highlights[0]).toBe(c);
+        expect(reported.clicks[0]!.highlights[0]).toBe(c);
     });
 });
 
@@ -423,7 +441,7 @@ describe('Highlighter: equal highlights passed again in a new array', () => {
         // Live positive control: moving out leaves the segment entered first.
         await userEvent.hover(outside);
         expect(reported.hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-        expect(reported.hovers[1].segment).toBe(reported.hovers[0].segment);
+        expect(reported.hovers[1]!.segment).toBe(reported.hovers[0]!.segment);
     });
 });
 
@@ -471,7 +489,7 @@ describe('Highlighter: removal and remounting', () => {
         flushSync();
 
         expect(reported.hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-        expect(reported.hovers[1].segment).toBe(reported.hovers[0].segment);
-        expect(reported.hovers[1].event).toBeNull();
+        expect(reported.hovers[1]!.segment).toBe(reported.hovers[0]!.segment);
+        expect(reported.hovers[1]!.event).toBeNull();
     });
 });

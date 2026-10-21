@@ -1,20 +1,21 @@
-import {
-    computeSegments,
-    decorationTarget,
-    rootAttributes,
-    segmentElements,
-    segmentKey,
-} from '@overlapmark/core';
+import { computeSegments } from '@overlapmark/core';
 import type {
-    ElementSpec,
     Highlight,
     HoverDetail,
+    Overlap,
     PointDetail,
     RenderOptions,
     Segment,
     SelectDetail,
     Strategy,
 } from '@overlapmark/core';
+import {
+    decorationTarget,
+    rootAttributes,
+    segmentElements,
+    segmentKey,
+} from '@overlapmark/core/adapter';
+import type { ElementSpec } from '@overlapmark/core/adapter';
 import {
     attachInteractions,
     captureViewState,
@@ -56,9 +57,16 @@ export interface HighlighterOwnProps<T = unknown> {
     highlights?: readonly Highlight<T>[];
     /** How overlaps are drawn. Default `'layers'`. */
     strategy?: Strategy;
-    /** Put `tabindex="0"` on highlighted segments; Enter/Space calls `onClick`. Default `true`. */
+    /** How nested layers combine with the `layers` strategy. Default `'multiply'`. */
+    overlap?: Overlap;
+    /** Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space calls `onClick`. Default `true`. */
     focusable?: boolean;
-    /** Color baked into the `--om-brush` image for highlights without `color`. */
+    /**
+     * Words the accessible description of a focusable segment from the
+     * highlights covering it. Default `'1 highlight'` / `` `${n} highlights` ``.
+     */
+    describe?: (highlights: readonly Highlight<T>[]) => string;
+    /** Color of highlights without `color`: set on the root as `--om-default-color` and baked into their `--om-brush`. */
     defaultColor?: string;
     /** Returns a CSS image value for `--om-brush`. */
     brush?: (color: string) => string;
@@ -151,7 +159,7 @@ function rendersNothing(node: ReactNode): boolean {
  */
 function segmentElement<T>(
     segment: Segment<T>,
-    options: RenderOptions,
+    options: RenderOptions<T>,
     renderDecoration: ((segment: Segment<T>) => ReactNode) | undefined,
 ): ReactElement {
     const specs = segmentElements(segment, options);
@@ -171,15 +179,18 @@ function segmentElement<T>(
     const childrenAt = (i: number, inner: ReactNode): ReactNode[] =>
         decoration && i === target?.index ? [inner, decoration] : [inner];
     let inner: ReactNode = segment.text;
-    for (let i = specs.length - 1; i > 0; i--)
+    for (let i = specs.length - 1; i > 0; i--) {
+        const spec = specs[i]!; // 0 < i < length
         inner = createElement(
-            specs[i].tag,
-            propsOfSpec(specs[i]),
+            spec.tag,
+            propsOfSpec(spec),
             ...childrenAt(i, inner),
         );
+    }
+    const [outermost] = specs;
     return createElement(
-        specs[0].tag,
-        { key: segmentKey(segment), ...propsOfSpec(specs[0]) },
+        outermost.tag,
+        { key: segmentKey(segment), ...propsOfSpec(outermost) },
         ...childrenAt(0, inner),
     );
 }
@@ -206,12 +217,12 @@ class ViewStateBoundary extends Component<{
     root: RefObject<HTMLElement | null>;
     children: ReactNode;
 }> {
-    getSnapshotBeforeUpdate(): ViewState | null {
+    override getSnapshotBeforeUpdate(): ViewState | null {
         const root = this.props.root.current;
         return root ? captureViewState(root) : null;
     }
 
-    componentDidUpdate(
+    override componentDidUpdate(
         _props: unknown,
         _state: unknown,
         view: ViewState | null,
@@ -220,7 +231,7 @@ class ViewStateBoundary extends Component<{
         if (root && view) restoreViewState(root, view);
     }
 
-    render(): ReactNode {
+    override render(): ReactNode {
         return this.props.children;
     }
 }
@@ -233,7 +244,9 @@ function HighlighterRender<T>(
         text,
         highlights = NO_HIGHLIGHTS,
         strategy,
+        overlap,
         focusable,
+        describe,
         defaultColor,
         brush,
         minSelectionLength,
@@ -244,6 +257,7 @@ function HighlighterRender<T>(
         onHover,
         renderDecoration,
         className,
+        style,
         ...divProps
     } = props;
 
@@ -306,18 +320,27 @@ function HighlighterRender<T>(
     // emits still finds the root in the caller's ref.
     useImperativeHandle(ref, () => root.current!, []);
 
-    const options: RenderOptions = {
+    const options: RenderOptions<T> = {
         strategy,
+        overlap,
         focusable,
+        describe,
         defaultColor,
         brush,
     };
     const rootSpec = rootAttributes(options);
+    // The caller's style, with core's properties over it; none at all when
+    // both are empty, so the server renders no empty `style` attribute.
+    const rootStyle =
+        Object.keys(rootSpec.style).length > 0
+            ? { ...style, ...rootSpec.style }
+            : style;
     return (
         <ViewStateBoundary root={root}>
             <div
                 {...divProps}
                 {...reactAttrs(rootSpec.attrs)}
+                style={rootStyle}
                 ref={root}
                 className={
                     className

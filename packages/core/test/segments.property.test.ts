@@ -75,7 +75,7 @@ function keepTiesInInputOrder(
         group.push(i);
         tiesInInputOrder.set(keyOf(i), group);
     });
-    return order.map((i) => hs[tiesInInputOrder.get(keyOf(i))!.shift()!]);
+    return order.map((i) => hs[tiesInInputOrder.get(keyOf(i))!.shift()!]!);
 }
 
 describe('computeSegments properties', () => {
@@ -115,11 +115,11 @@ describe('computeSegments properties', () => {
                     expect(s).toEqual([]);
                     return;
                 }
-                expect(s[0].start).toBe(0);
-                expect(s[s.length - 1].end).toBe(text.length);
+                expect(s[0]!.start).toBe(0);
+                expect(s[s.length - 1]!.end).toBe(text.length);
                 s.forEach((x, i) => {
                     expect(x.start).toBeLessThan(x.end);
-                    if (i > 0) expect(x.start).toBe(s[i - 1].end);
+                    if (i > 0) expect(x.start).toBe(s[i - 1]!.end);
                 });
             }),
         );

@@ -26,7 +26,7 @@ import {
     startTransition,
     useLayoutEffect,
 } from 'react';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it, onTestFinished } from 'vitest';
@@ -112,6 +112,29 @@ describe('Highlighter: root element', () => {
         expect(root.id).toBe('body-text');
         expect(root.getAttribute('aria-label')).toBe('Article body');
         expect(root.dataset.testid).toBe('highlighter');
+    });
+
+    it('sets --om-default-color on the root beside the style the caller passes', () => {
+        const { host } = givenRendered(
+            <Highlighter
+                text={TEXT}
+                highlights={[a]}
+                defaultColor="#123456"
+                style={
+                    {
+                        lineHeight: '2',
+                        '--om-default-color': 'red',
+                    } as CSSProperties
+                }
+            />,
+        );
+
+        const root = host.firstElementChild as HTMLElement;
+
+        expect(root.style.lineHeight).toBe('2');
+        expect(root.style.getPropertyValue('--om-default-color')).toBe(
+            '#123456',
+        );
     });
 
     it('keeps its own root class and strategy attribute over those the caller passes', () => {
@@ -308,8 +331,8 @@ describe('Highlighter: renderDecoration', () => {
 
             // Live positive control: the overlap segment [6,15) is decorated.
             expect(decorations).toHaveLength(1);
-            expect(decorations[0].textContent).toBe('overlap');
-            expect(decorations[0].closest('[data-om-start]')).toBe(
+            expect(decorations[0]!.textContent).toBe('overlap');
+            expect(decorations[0]!.closest('[data-om-start]')).toBe(
                 segmentElement(rootIn(host), 6),
             );
         },
@@ -375,7 +398,7 @@ describe('Highlighter: equal highlights passed again in a new array', () => {
         // Live positive control: moving out leaves the segment entered first.
         await userEvent.hover(outside);
         expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-        expect(hovers[1].segment).toBe(hovers[0].segment);
+        expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
     });
 });
 
@@ -462,7 +485,7 @@ describe('Highlighter: handler props changed between renders', () => {
         await userEvent.hover(outside);
 
         expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-        expect(hovers[1].event).toBeInstanceOf(PointerEvent);
+        expect(hovers[1]!.event).toBeInstanceOf(PointerEvent);
     });
 });
 
@@ -544,7 +567,7 @@ describe('Highlighter: an update rendered as a transition', () => {
         );
 
         // Precondition: the transition patched the DOM (a new a+b segment).
-        expect(segmentElement(root, 6).getAttribute('data-ids')).toBe('a,b');
+        expect(segmentElement(root, 6).getAttribute('data-om-ids')).toBe('a b');
         expect(getSelectionOffsets(root)).toEqual({ start: 8, end: 18 });
     });
 });

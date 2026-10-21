@@ -2,9 +2,10 @@
 // chosen by the query, rendered with createHighlighter as the README shows,
 // and every event appended to #log as JSON.
 import '@overlapmark/core/styles.css';
-import type { Highlight, Segment, Strategy } from '@overlapmark/core';
+import type { Highlight, Overlap, Segment, Strategy } from '@overlapmark/core';
 import { createHighlighter } from '@overlapmark/dom';
 import fixtures from '../../../fixtures.json';
+import { embeddedHost } from '../../../scripts/embed';
 
 const params = new URLSearchParams(location.search);
 const fixture =
@@ -26,6 +27,14 @@ if (params.get('scroll') === '1') {
     host.replaceWith(scroller);
     scroller.append(host);
 }
+if (params.get('bg') === '1') {
+    const tinted = document.createElement('div');
+    tinted.id = 'tinted';
+    tinted.style.background = '#e7f5ff';
+    tinted.style.padding = '12px';
+    host.replaceWith(tinted);
+    tinted.append(host);
+}
 if (params.get('css') === 'default-color') {
     const style = document.createElement('style');
     style.textContent = '#host .om-root { --om-default-color: rgb(255, 0, 0) }';
@@ -42,14 +51,17 @@ const record = (event: string, entry: object): void => {
 const idsOf = (covering: readonly Highlight[]): string[] =>
     covering.map((h) => h.id);
 
-const root = document.createElement('div');
-host.append(root);
+const mountIn = embeddedHost(host, params.get('embed'));
+const root = mountIn.ownerDocument.createElement('div');
+mountIn.append(root);
 const strategy = params.get('strategy') as Strategy | null;
+const overlap = params.get('overlap') as Overlap | null;
 const minSelectionLength = params.get('minSelectionLength');
 const hl = createHighlighter(root, {
     text: fixture.text,
     highlights,
     ...(strategy && { strategy }),
+    ...(overlap && { overlap }),
     ...(minSelectionLength && {
         minSelectionLength: Number(minSelectionLength),
     }),

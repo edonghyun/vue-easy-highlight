@@ -2,10 +2,14 @@ import { copyFileSync, mkdirSync } from 'node:fs';
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-    entry: { index: 'src/index.ts', 'dom/index': 'src/dom/index.ts' },
+    entry: {
+        index: 'src/index.ts',
+        'adapter/index': 'src/adapter.ts',
+        'dom/index': 'src/dom/index.ts',
+    },
     format: ['esm', 'cjs'],
     dts: true,
-    // Shared chunks for CJS too: dom/ must reuse core's module state (segment ranks WeakMap).
+    // Keep splitting on for CJS too: the dom/ and adapter/ entries share chunks with the main entry instead of bundling their own copies.
     splitting: true,
     clean: true,
     onSuccess: async () => {

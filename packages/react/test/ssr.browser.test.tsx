@@ -12,7 +12,7 @@ import {
 } from '@overlapmark/adapter-contract';
 import type { ContractProps } from '@overlapmark/adapter-contract';
 import '@overlapmark/core/styles.css';
-import type { PointDetail, Strategy } from '@overlapmark/core';
+import type { PointDetail } from '@overlapmark/core';
 import { act } from 'react';
 import type { ReactNode } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
@@ -94,17 +94,22 @@ function givenConsoleSpies() {
     return { warn, error };
 }
 
-const cases: { strategy: Strategy }[] = [
-    { strategy: 'layers' },
-    { strategy: 'depth' },
+// The last case puts a style on the root, which hydration must take over too.
+const cases: { label: string; options: Partial<ContractProps> }[] = [
+    { label: 'the layers strategy', options: { strategy: 'layers' } },
+    { label: 'the depth strategy', options: { strategy: 'depth' } },
+    {
+        label: 'the darken overlap and a defaultColor',
+        options: { overlap: 'darken', defaultColor: '#123456' },
+    },
 ];
 
 describe.each(cases)(
-    'Highlighter SSR with the $strategy strategy and decorations',
-    ({ strategy }) => {
+    'Highlighter SSR with $label and decorations',
+    ({ options }) => {
         const props: ContractProps = {
             ...partialOverlap,
-            strategy,
+            ...options,
             decoration: (segment) =>
                 `[${segment.highlights.map((h) => h.id).join('+')}]`,
         };
@@ -172,7 +177,7 @@ describe('Highlighter after hydration', () => {
         await userEvent.click(el, { position });
 
         expect(clicks.map((d) => d.offset)).toEqual([10]);
-        expect(clicks[0].highlights[0]).toBe(a);
-        expect(clicks[0].highlights[1]).toBe(b);
+        expect(clicks[0]!.highlights[0]).toBe(a);
+        expect(clicks[0]!.highlights[1]).toBe(b);
     });
 });

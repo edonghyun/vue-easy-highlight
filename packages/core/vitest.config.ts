@@ -19,12 +19,12 @@ export default defineConfig({
                 extends: true,
                 // Measured regression ceilings: run alone via `pnpm test:perf`
                 // so timings are not skewed by the concurrent default projects.
+                // No retry: a miss fails.
                 test: {
                     name: 'perf',
                     environment: 'node',
                     include: ['test/perf/**/*.test.ts'],
                     fileParallelism: false,
-                    retry: 2,
                 },
             },
             {

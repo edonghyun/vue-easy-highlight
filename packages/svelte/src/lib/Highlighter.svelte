@@ -7,14 +7,15 @@
 -->
 <script lang="ts" module>
     import type {
-        ElementSpec,
         Highlight,
         HoverDetail,
+        Overlap,
         PointDetail,
         Segment,
         SelectDetail,
         Strategy,
     } from '@overlapmark/core';
+    import type { ElementSpec } from '@overlapmark/core/adapter';
     import type { Snippet } from 'svelte';
     import type { HTMLAttributes } from 'svelte/elements';
 
@@ -26,9 +27,17 @@
         highlights?: readonly Highlight<T>[];
         /** How overlaps are drawn. Default `'layers'`. */
         strategy?: Strategy;
-        /** Put `tabindex="0"` on highlighted segments; Enter/Space calls `onclick`. Default `true`. */
+        /** How nested layers combine with the `layers` strategy. Default `'multiply'`. */
+        overlap?: Overlap;
+        /** Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space calls `onclick`. Default `true`. */
         focusable?: boolean;
-        /** Color baked into the `--om-brush` image for highlights without `color`. */
+        /**
+         * Words the accessible description of a focusable segment from the
+         * highlights covering it. Default `'1 highlight'` /
+         * `` `${n} highlights` ``.
+         */
+        describe?: (highlights: readonly Highlight<T>[]) => string;
+        /** Color of highlights without `color`: set on the root as `--om-default-color` and baked into their `--om-brush`. */
         defaultColor?: string;
         /** Returns a CSS image value for `--om-brush`. */
         brush?: (color: string) => string;
@@ -83,23 +92,40 @@
     function attributesOf(spec: ElementSpec): Record<string, string> {
         const attributes = { ...spec.attrs };
         if (spec.className) attributes.class = spec.className;
-        const style = Object.entries(spec.style)
-            .map(([name, value]) => `${name}: ${value}`)
-            .join('; ');
+        const style = styleText(spec.style);
         if (style) attributes.style = style;
         return attributes;
+    }
+
+    /** `style` as the text of a `style` attribute. */
+    function styleText(style: Record<string, string>): string {
+        return Object.entries(style)
+            .map(([name, value]) => `${name}: ${value}`)
+            .join('; ');
+    }
+
+    /**
+     * The root's `style`: the caller's, then core's properties so they win;
+     * `undefined` when both are empty, so no empty attribute renders.
+     */
+    function rootStyleOf(
+        own: string | null | undefined,
+        core: Record<string, string>,
+    ): string | undefined {
+        return [own, styleText(core)].filter(Boolean).join('; ') || undefined;
     }
 </script>
 
 <script lang="ts" generics="T = unknown">
+    import { computeSegments } from '@overlapmark/core';
+    import type { RenderOptions } from '@overlapmark/core';
     import {
-        computeSegments,
         decorationTarget,
         rootAttributes,
         segmentElements,
         segmentKey,
-    } from '@overlapmark/core';
-    import type { DecorationTarget, RenderOptions } from '@overlapmark/core';
+    } from '@overlapmark/core/adapter';
+    import type { DecorationTarget } from '@overlapmark/core/adapter';
     import {
         attachInteractions,
         captureViewState,
@@ -112,12 +138,15 @@
         text,
         highlights = [],
         strategy,
+        overlap,
         focusable,
+        describe,
         defaultColor,
         brush,
         minSelectionLength,
         touchSelectionDelay,
         class: className,
+        style,
         onselect,
         onclick,
         ondblclick,
@@ -130,9 +159,11 @@
     // segments hold the caller's objects, and when the caller keeps them in
     // `$state`, changes made in place are read here and re-render.
     const segments = $derived(computeSegments(text, highlights));
-    const options: RenderOptions = $derived({
+    const options: RenderOptions<T> = $derived({
         strategy,
+        overlap,
         focusable,
+        describe,
         defaultColor,
         brush,
     });
@@ -187,11 +218,12 @@
     (the innermost holds the text), then the decoration if `target` puts it
     there. No whitespace between the tags and blocks: it would be text in the
     segment, shifting every offset after it. Hand-formatted for that reason.
+    `i` stays below `specs.length`.
 -->
 <!-- prettier-ignore -->
 {#snippet layer(segment: Segment<T>, specs: ElementSpec[], target: DecorationTarget | null, i: number)}<svelte:element
-    this={specs[i].tag}
-    {...attributesOf(specs[i])}
+    this={specs[i]!.tag}
+    {...attributesOf(specs[i]!)}
 >{#if i + 1 < specs.length}{@render layer(segment, specs, target, i + 1)}{:else}{segment.text}{/if}{#if decoration && target?.index === i}<svelte:element
     this={target.container.tag}
     {...attributesOf(target.container)}
@@ -200,6 +232,7 @@
 <div
     {...rest}
     {...rootSpec.attrs}
+    style={rootStyleOf(style, rootSpec.style)}
     bind:this={root}
     class={className
         ? `${rootSpec.className} ${className}`

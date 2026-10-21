@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type {
     Highlight,
     HoverDetail,
+    Overlap,
     PointDetail,
     SelectDetail,
     Strategy,
@@ -36,6 +37,7 @@ export function HarnessApp({ params }: { params: Record<string, string> }) {
     const fixture =
         fixtures[(params.fixture ?? 'overlaps') as keyof typeof fixtures];
     const strategy = params.strategy as Strategy | undefined;
+    const overlap = params.overlap as Overlap | undefined;
     const minSelectionLength = params.minSelectionLength
         ? Number(params.minSelectionLength)
         : undefined;
@@ -67,6 +69,7 @@ export function HarnessApp({ params }: { params: Record<string, string> }) {
             text={fixture.text}
             highlights={highlights}
             strategy={strategy}
+            overlap={overlap}
             minSelectionLength={minSelectionLength}
             onSelect={onSelect}
             onClick={onClick}

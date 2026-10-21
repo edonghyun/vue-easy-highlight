@@ -18,5 +18,5 @@ export function medianSegmentsMs(): number {
         samples.push(performance.now() - t0);
     }
     samples.sort((a, b) => a - b);
-    return samples[Math.floor(SAMPLES / 2)];
+    return samples[Math.floor(SAMPLES / 2)]!; // SAMPLES > 0
 }

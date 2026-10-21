@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { compareHighlights } from '../src/adapter';
 import {
-    compareHighlights,
     computeSegments,
     highlightsInRange,
     segmentAt,
@@ -59,7 +59,7 @@ describe('computeSegments', () => {
             [6, 15, 2],
             [15, 21, 1],
         ]);
-        expectIds(segments[1].highlights, ['a', 'b']);
+        expectIds(segments[1]!.highlights, ['a', 'b']);
     });
 
     it('orders a containing highlight outside the contained one', () => {
@@ -77,7 +77,7 @@ describe('computeSegments', () => {
 
         const segments = computeSegments(text, [x, y]);
 
-        expectIds(segments[0].highlights, ['x', 'y']);
+        expectIds(segments[0]!.highlights, ['x', 'y']);
     });
 
     it('does not merge adjacent highlights', () => {
@@ -105,7 +105,7 @@ describe('computeSegments', () => {
     it('returns caller highlight objects by reference', () => {
         const segments = computeSegments(text, [A]);
 
-        expect(segments[0].highlights[0]).toBe(A);
+        expect(segments[0]!.highlights[0]).toBe(A);
     });
 });
 
@@ -168,7 +168,7 @@ describe('computeSegments with invalid or stale ranges', () => {
 
         const segments = computeSegments('abc', [first, second]);
 
-        expect(segments[0].highlights).toEqual([first, second]);
+        expect(segments[0]!.highlights).toEqual([first, second]);
     });
 
     it('normalizes each highlight on its own when invalid ranges are mixed', () => {
@@ -189,6 +189,21 @@ describe('computeSegments with invalid or stale ranges', () => {
 });
 
 describe('computeSegments dev warnings', () => {
+    it('warns once for an id that contains whitespace', async () => {
+        const warn = silenceWarnings();
+        const core = await givenFreshCore();
+        const spaced = { id: 'two words', start: 0, end: 2 };
+
+        core.computeSegments('abc', [spaced]);
+        core.computeSegments('abc', [spaced]);
+        core.computeSegments('abc', [{ id: 'fine', start: 0, end: 2 }]);
+
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(
+            '[overlapmark] highlight id "two words" contains whitespace; ids are space-separated in data-om-ids',
+        );
+    });
+
     it('reports a clamped range', async () => {
         const warn = silenceWarnings();
         const core = await givenFreshCore();
@@ -255,7 +270,7 @@ describe('computeSegments dev warnings', () => {
         core.computeSegments('abc', [{ id: 'rev', start: 2, end: 1 }]);
 
         expect(warn).toHaveBeenCalledTimes(1);
-        expect(warn.mock.calls[0][0]).toContain('rev');
+        expect(warn.mock.calls[0]![0]).toContain('rev');
     });
 });
 
@@ -298,7 +313,7 @@ describe('highlightsInRange', () => {
 
         const highlights = highlightsInRange(segments, 0, 3);
 
-        expectIds(segments[0].highlights, ['b', 'a']);
+        expectIds(segments[0]!.highlights, ['b', 'a']);
         expectIds(highlights, ['b', 'a']);
     });
 

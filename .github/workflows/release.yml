@@ -1,0 +1,43 @@
+name: Release
+
+# Opens or updates the "Version Packages" pull request on pushes to main, and
+# publishes to npm when that pull request is merged. Off until the repository
+# variable RELEASE_ENABLED is 'true'; see RELEASING.md for what to set up first.
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+permissions:
+    contents: write
+    pull-requests: write
+    id-token: write
+
+concurrency:
+    group: release
+    cancel-in-progress: false
+
+jobs:
+    release:
+        if: vars.RELEASE_ENABLED == 'true' && github.ref == 'refs/heads/main'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@v7
+            # Node 24 ships an npm that supports trusted publishing (OIDC).
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 24.11.0
+            - run: corepack enable
+            - run: pnpm install --frozen-lockfile
+            - uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+              with:
+                  publish: pnpm release
+                  title: 'chore: version packages'
+                  commit: 'chore: version packages'
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  # Used for the first release; once trusted publishing is set
+                  # up, delete the secret and npm authenticates through OIDC.
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+                  NPM_CONFIG_PROVENANCE: true

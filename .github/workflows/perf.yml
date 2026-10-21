@@ -1,0 +1,48 @@
+name: Perf
+
+# Runs the computeSegments regression ceiling 20 times on a CI runner and
+# prints each run's median, so the ceiling in
+# packages/core/test/perf/segments.regression.test.ts is pinned from CI
+# numbers. Every run must pass: there are no retries.
+on:
+    pull_request:
+        paths:
+            - 'packages/core/**'
+            - '.github/workflows/perf.yml'
+    push:
+        branches: [main]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: perf-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    perf:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 22.22.0
+            - run: corepack enable
+            - run: pnpm install --frozen-lockfile
+            - name: Run the perf project 20 times
+              env:
+                  OM_PERF_OUT: ${{ runner.temp }}/perf-medians.txt
+              run: |
+                  failed=0
+                  for i in $(seq 1 20); do
+                      pnpm --filter @overlapmark/core test:perf || failed=1
+                  done
+                  {
+                      echo '### computeSegments median per run (ms)'
+                      echo
+                      nl -w2 -s'. ' "$OM_PERF_OUT"
+                      echo
+                      echo "max: $(sort -g "$OM_PERF_OUT" | tail -1) ms"
+                  } | tee -a "$GITHUB_STEP_SUMMARY"
+                  exit $failed

@@ -5,6 +5,10 @@ export interface SelectDetail<T = unknown> {
     start: number;
     end: number;
     text: string;
+    /**
+     * The bounding rect of the selected text inside the root, clipped to it,
+     * in the viewport of the root's own window.
+     */
     rect: DOMRect;
     highlights: Highlight<T>[];
 }

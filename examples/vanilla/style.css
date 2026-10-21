@@ -1,0 +1,634 @@
+:root {
+    --bg: #eef1f6;
+    --paper: #ffffff;
+    --ink: #1a1f2b;
+    --muted: #586174;
+    --line: #d9dee8;
+    --soft: #e4e8f0;
+    --focus: #2453c4;
+    --code-bg: #f5f7fa;
+    --serif: 'Literata', Georgia, 'Times New Roman', serif;
+    --sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    /* the reading cards' paper, light in both themes (see .page) */
+    --sheet: #ffffff;
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+        --bg: #11141a;
+        --paper: #1a1e26;
+        --ink: #e6e9ef;
+        --muted: #9ba4b4;
+        --line: #2c323d;
+        --soft: #252a34;
+        --focus: #8fb0ff;
+        --code-bg: #151920;
+        --sheet: #eef0f4;
+        color-scheme: dark;
+    }
+}
+
+:root[data-theme='dark'] {
+    --bg: #11141a;
+    --paper: #1a1e26;
+    --ink: #e6e9ef;
+    --muted: #9ba4b4;
+    --line: #2c323d;
+    --soft: #252a34;
+    --focus: #8fb0ff;
+    --code-bg: #151920;
+    --sheet: #eef0f4;
+    color-scheme: dark;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.55 var(--sans);
+    -webkit-text-size-adjust: 100%;
+}
+
+a {
+    color: inherit;
+    text-decoration-color: var(--muted);
+    text-underline-offset: 3px;
+}
+
+a:hover {
+    text-decoration-color: currentColor;
+}
+
+:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+code,
+pre {
+    font-family: var(--mono);
+    font-size: 0.875em;
+}
+
+h2 {
+    font-size: 1.5rem;
+    line-height: 1.25;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.quiet {
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.875rem;
+}
+
+.quiet:hover {
+    background: var(--soft);
+}
+
+/* ---- intro ------------------------------------------------------------ */
+
+.intro,
+main,
+.foot {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+.intro {
+    position: relative;
+    padding-top: 3rem;
+    padding-bottom: 2rem;
+}
+
+.theme {
+    position: absolute;
+    top: 1rem;
+    right: 16px;
+}
+
+.wordmark {
+    /* every letter is under a light mark, so the ink stays dark in both themes */
+    color: #1a1f2b;
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(2.75rem, 9vw, 4.75rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin: 0 0 1rem;
+}
+
+.wordmark {
+    /* opaque marks: they read as paper stickers on either theme */
+    --om-alpha: 100%;
+}
+
+.wordmark .om-hl {
+    padding: 0 0.03em;
+    border-radius: 0.06em;
+    cursor: default;
+}
+
+.pitch {
+    font-size: clamp(1.125rem, 2.4vw, 1.375rem);
+    line-height: 1.45;
+    max-width: 36em;
+    margin: 0 0 1.25rem;
+}
+
+.install {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+    margin-bottom: 1.25rem;
+}
+
+.install code {
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+    font-size: 0.9375rem;
+}
+
+/* ---- controls ----------------------------------------------------------- */
+
+.controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 2rem;
+    margin-bottom: 1.25rem;
+}
+
+.control {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+}
+
+.control legend {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    padding: 0;
+    margin-bottom: 0.4rem;
+}
+
+.segmented {
+    display: inline-flex;
+    background: var(--soft);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.segmented.wrap {
+    flex-wrap: wrap;
+}
+
+.segmented label {
+    position: relative;
+}
+
+.segmented input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+.segmented span {
+    display: block;
+    padding: 0.35rem 0.85rem;
+    border-radius: 6px;
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+.segmented input:checked + span {
+    background: var(--paper);
+    color: var(--ink);
+    font-weight: 500;
+    box-shadow: 0 0 0 1px var(--line);
+}
+
+.segmented input:focus-visible + span {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+}
+
+.control.is-off .segmented {
+    opacity: 0.55;
+}
+
+.explain {
+    color: var(--muted);
+    font-size: 0.9375rem;
+    margin: 0.5rem 0 0;
+    max-width: 38em;
+}
+
+/* ---- the reader ------------------------------------------------------------ */
+
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+/*
+ * The reading cards are paper in both themes: multiply darkens on a light
+ * backdrop, and on a dark one it would also tint the light text. Inside a
+ * card the tokens take their light values.
+ */
+.page {
+    --ink: #1a1f2b;
+    --muted: #586174;
+    --line: #d9dee8;
+    --soft: #e4e8f0;
+    --focus: #2453c4;
+    --paper: var(--sheet);
+    color-scheme: light;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.75rem 2rem;
+}
+
+.passage {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    line-height: 1.75;
+    margin: 0;
+    max-width: 36em;
+}
+
+/* a softer focus ring than the stylesheet's currentColor one */
+.om-root .om-hl:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+/* the analysis a legend chip points at */
+.om-root .om-hl.is-emph {
+    outline: 2px solid var(--ink);
+    outline-offset: 1px;
+}
+
+.legend {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    padding: 0.2rem 0.7rem 0.2rem 0.45rem;
+    font-size: 0.875rem;
+}
+
+.chip:hover {
+    background: var(--soft);
+}
+
+.chip.is-covering {
+    border-color: var(--ink);
+    background: var(--soft);
+}
+
+.swatch {
+    flex: none;
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+}
+
+.inspector {
+    scroll-margin-top: 12px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.25rem;
+}
+
+.inspector h3 {
+    font-size: 1rem;
+    margin: 0 0 0.75rem;
+}
+
+.inspector .empty {
+    color: var(--muted);
+    margin: 0;
+}
+
+.cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.15rem 0.6rem;
+    align-items: baseline;
+}
+
+.card .swatch {
+    align-self: center;
+}
+
+.card .label {
+    font-weight: 600;
+}
+
+.card .quote {
+    grid-column: 2;
+    color: var(--muted);
+    font-family: var(--serif);
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.card .own {
+    grid-column: 2;
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+.card .own input {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    font-size: 0.875rem;
+    color: inherit;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+}
+
+.note {
+    margin: 0 0 0.75rem;
+    font-size: 0.9375rem;
+}
+
+.hint {
+    color: var(--muted);
+    font-size: 0.875rem;
+    border-top: 1px solid var(--line);
+    margin: 1.25rem 0 0.75rem;
+    padding-top: 0.9rem;
+}
+
+.touch-only {
+    display: none;
+}
+
+@media (hover: none) {
+    .pointer-only {
+        display: none;
+    }
+    .touch-only {
+        display: inline;
+    }
+}
+
+.peek {
+    position: fixed;
+    z-index: 10;
+    pointer-events: none;
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 6px;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    max-width: 260px;
+}
+
+.peek .row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.peek .swatch {
+    width: 0.7rem;
+    height: 0.7rem;
+    box-shadow: none;
+}
+
+/* ---- styling showcase --------------------------------------------------- */
+
+.styling,
+.code {
+    margin-top: 4rem;
+}
+
+.lede {
+    color: var(--muted);
+    max-width: 38em;
+    margin: 0 0 1.5rem;
+}
+
+.styling-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.sample {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    line-height: 2.1;
+    margin: 0;
+}
+
+.knobs,
+.sample-col {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.slider {
+    display: grid;
+    grid-template-columns: 9.5rem minmax(0, 1fr) 3rem;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--mono);
+    font-size: 0.875rem;
+}
+
+.slider input {
+    width: 100%;
+    accent-color: var(--focus);
+}
+
+.slider output {
+    text-align: right;
+}
+
+.check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9375rem;
+}
+
+.check input {
+    accent-color: var(--focus);
+    width: 1rem;
+    height: 1rem;
+}
+
+.css,
+.snippet {
+    margin: 0;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+    overflow-x: auto;
+    line-height: 1.55;
+}
+
+/* the count badge from decorate */
+.badge {
+    display: inline-block;
+    font-family: var(--sans);
+    font-size: 0.6em;
+    font-weight: 600;
+    line-height: 1;
+    vertical-align: super;
+    margin: 0 0.25em 0 0.15em;
+    padding: 0.15em 0.35em;
+    border-radius: 999px;
+    background: var(--ink);
+    color: var(--paper);
+}
+
+/* "Your class": any class you pass in highlight.className */
+.om-root .om-hl.squiggle {
+    background: none;
+    text-decoration: underline wavy var(--om-color);
+    text-decoration-thickness: 2px;
+    text-underline-offset: calc(4px + var(--om-level) * 5px);
+}
+
+/* ---- code tabs -------------------------------------------------------------- */
+
+.tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 1rem 0 0.75rem;
+}
+
+.tabs button {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 0.3rem 0.8rem;
+    color: var(--muted);
+}
+
+.tabs button[aria-selected='true'] {
+    color: var(--ink);
+    border-color: var(--line);
+    background: var(--paper);
+    font-weight: 500;
+}
+
+.foot {
+    color: var(--muted);
+    font-size: 0.875rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+}
+
+/* ---- narrow screens ------------------------------------------------------ */
+
+@media (max-width: 860px) {
+    .layout,
+    .styling-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .intro {
+        padding-top: 3.5rem;
+    }
+    .controls {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .page {
+        padding: 1.25rem;
+    }
+    .install code {
+        white-space: normal;
+    }
+    .passage,
+    .sample {
+        font-size: 1.125rem;
+    }
+    .slider {
+        grid-template-columns: minmax(0, 1fr) 3rem;
+    }
+    .slider input {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+}

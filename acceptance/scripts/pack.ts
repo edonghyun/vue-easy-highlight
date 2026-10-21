@@ -37,12 +37,13 @@ export async function pack(): Promise<Record<string, string>> {
         const before = new Set(await readdir(tarballs));
         await run('pnpm', ['pack', '--pack-destination', tarballs], { cwd });
         const added = (await readdir(tarballs)).filter((f) => !before.has(f));
-        if (added.length !== 1) {
+        const [tarball] = added;
+        if (!tarball || added.length !== 1) {
             throw new Error(
                 `expected one tarball for ${manifest.name}, got ${added.join(', ') || 'none'}`,
             );
         }
-        result[manifest.name] = join(tarballs, added[0]);
+        result[manifest.name] = join(tarballs, tarball);
     }
     return result;
 }

@@ -14,7 +14,7 @@ export interface ElementTree {
 export type TreeNode = ElementTree | string;
 
 /** The root element: its tag is the adapter's choice, so it is not part of the contract. */
-export type RootTree = Omit<ElementTree, 'tag' | 'style'>;
+export type RootTree = Omit<ElementTree, 'tag'>;
 
 export function classTokens(className: string): string[] {
     return className.split(/\s+/).filter(Boolean).sort();
@@ -69,6 +69,7 @@ export function serializeRoot(root: HTMLElement): RootTree {
     return {
         classes: classTokens(root.className),
         attrs: attributesOf(root),
+        style: styleOf(root),
         children: childrenOf(root),
     };
 }

@@ -4,6 +4,7 @@ import { onMounted, ref } from 'vue';
 import type {
     Highlight,
     HoverDetail,
+    Overlap,
     PointDetail,
     SelectDetail,
     Strategy,
@@ -16,6 +17,7 @@ const props = defineProps<{ params: Record<string, string> }>();
 const fixture =
     fixtures[(props.params.fixture ?? 'overlaps') as keyof typeof fixtures];
 const strategy = props.params.strategy as Strategy | undefined;
+const overlap = props.params.overlap as Overlap | undefined;
 const minSelectionLength = props.params.minSelectionLength
     ? Number(props.params.minSelectionLength)
     : undefined;
@@ -67,6 +69,7 @@ onMounted(() => {
         :text="fixture.text"
         :highlights="highlights"
         :strategy="strategy"
+        :overlap="overlap"
         :min-selection-length="minSelectionLength"
         @select="onSelect"
         @click="onClick"

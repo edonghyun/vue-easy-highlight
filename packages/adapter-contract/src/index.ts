@@ -5,12 +5,13 @@
  *
  * This package imports `@overlapmark/core` without declaring it: core's own
  * tests run this suite, so a declared dependency would be a workspace cycle.
- * Every consumer resolves `@overlapmark/core` (and `/dom`) to core's sources
+ * Every consumer resolves `@overlapmark/core` (and `/adapter`, `/dom`) to core's sources
  * through the shared `vitest.workspace-aliases.ts` and
  * `tsconfig.workspace-paths.json` at the repository root, so the suite and the
  * adapter share one module instance.
  */
 import type {
+    Highlight,
     HoverDetail,
     PointDetail,
     Segment,
@@ -125,6 +126,8 @@ export function selectEvent(
 
 /** A mounted adapter together with the record the suite keeps of its events. */
 interface ContractAdapter extends MountedAdapter, EventSource {
+    /** The element the suite mounted the adapter in. */
+    readonly host: HTMLElement;
     /**
      * Calls `inspect` with each event recorded from now on, at the moment it
      * is recorded, so a test can read the page as a subscriber of that event
@@ -182,6 +185,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await clearSelectionAndWait();
         });
         return {
+            host,
             get root() {
                 return mounted.root;
             },
@@ -245,11 +249,57 @@ export function defineAdapterContract(factory: AdapterFactory): void {
         it('makes every highlighted segment focusable by default', async () => {
             const { root } = await givenAdapter(partialOverlap);
 
-            const highlighted = [...root.querySelectorAll('[data-depth]')];
+            const highlighted = [...root.querySelectorAll('[data-om-depth]')];
 
             expect(highlighted).toHaveLength(3);
             for (const el of highlighted)
                 expect(el.getAttribute('tabindex')).toBe('0');
+        });
+
+        it('matches a segment with [data-om-ids~=id] for each covering highlight', async () => {
+            const { root } = await givenAdapter(partialOverlap);
+
+            const coveredByA = root.querySelectorAll('[data-om-ids~="a"]');
+            const coveredByB = root.querySelectorAll('[data-om-ids~="b"]');
+            const coveredByBoth = root.querySelectorAll(
+                '[data-om-ids~="a"][data-om-ids~="b"]',
+            );
+
+            expect(coveredByA).toHaveLength(2);
+            expect(coveredByB).toHaveLength(2);
+            expect(coveredByBoth).toHaveLength(1);
+        });
+
+        it('marks the root with the multiply overlap mode by default', async () => {
+            const { root } = await givenAdapter(partialOverlap);
+
+            expect(root.getAttribute('data-om-overlap')).toBe('multiply');
+        });
+
+        it('marks the root with the overlap mode it was given', async () => {
+            const { root } = await givenAdapter({
+                ...partialOverlap,
+                overlap: 'darken',
+            });
+
+            expect(root.getAttribute('data-om-overlap')).toBe('darken');
+            expect(serializeRoot(root)).toEqual(
+                expectedTree({ ...partialOverlap, overlap: 'darken' }),
+            );
+        });
+
+        it('sets --om-default-color on the root only when defaultColor is given', async () => {
+            const given = await givenAdapter({
+                ...partialOverlap,
+                defaultColor: CUSTOM_COLOR,
+            });
+
+            const absent = await givenAdapter(partialOverlap);
+
+            expect(
+                given.root.style.getPropertyValue('--om-default-color'),
+            ).toBe(CUSTOM_COLOR);
+            expect(absent.root.hasAttribute('style')).toBe(false);
         });
 
         it('renders no tabindex when focusable is false', async () => {
@@ -258,7 +308,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 focusable: false,
             });
 
-            expect(root.querySelectorAll('[data-depth]')).toHaveLength(3);
+            expect(root.querySelectorAll('[data-om-depth]')).toHaveLength(3);
             expect(root.querySelectorAll('[tabindex]')).toHaveLength(0);
         });
 
@@ -281,6 +331,136 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 });
             },
         );
+    });
+
+    describe(`${name} — accessibility`, () => {
+        /** Names the covering highlights instead of counting them. */
+        const namesOf = (highlights: readonly Highlight[]): string =>
+            highlights.map((h) => h.id).join(' and ');
+
+        it('gives a focusable segment the button role and a description of how many highlights cover it', async () => {
+            const { root } = await givenAdapter(partialOverlap);
+
+            const coveredOnce = segmentElement(root, 0);
+            const coveredTwice = segmentElement(root, 6);
+
+            await expect.element(coveredTwice).toHaveRole('button');
+            await expect
+                .element(coveredTwice)
+                .toHaveAccessibleName(TEXT.slice(6, 15));
+            await expect
+                .element(coveredTwice)
+                .toHaveAccessibleDescription('2 highlights');
+            await expect
+                .element(coveredOnce)
+                .toHaveAccessibleDescription('1 highlight');
+        });
+
+        it('uses describe to word the description', async () => {
+            const { root } = await givenAdapter({
+                ...partialOverlap,
+                describe: namesOf,
+            });
+
+            const coveredTwice = segmentElement(root, 6);
+
+            await expect
+                .element(coveredTwice)
+                .toHaveAccessibleDescription('a and b');
+        });
+
+        it('gives no role to an unfocusable segment', async () => {
+            const focusable = await givenAdapter(partialOverlap);
+            const unfocusable = await givenAdapter({
+                ...partialOverlap,
+                focusable: false,
+            });
+
+            // Live control: the same segment, focusable.
+            await expect
+                .element(segmentElement(focusable.root, 6))
+                .toHaveRole('button');
+            await expect
+                .element(segmentElement(focusable.root, 6))
+                .toHaveAccessibleDescription();
+            expect(unfocusable.root.querySelectorAll('[role]')).toHaveLength(0);
+            await expect
+                .element(segmentElement(unfocusable.root, 6))
+                .not.toHaveAccessibleDescription();
+        });
+
+        it('keeps the description out of the select text and offsets', async () => {
+            const decoration = (segment: Segment): string =>
+                `[${segment.highlights.length}]`;
+            const adapter = await givenAdapter({
+                ...partialOverlap,
+                decoration,
+            });
+            const coveredTwice = segmentElement(adapter.root, 6);
+            await expect
+                .element(coveredTwice)
+                .toHaveAccessibleDescription('2 highlights');
+            await expect
+                .element(coveredTwice)
+                .toHaveAccessibleName(TEXT.slice(6, 15));
+            await selectAndWait(adapter.root, 3, 20);
+
+            release();
+
+            await expect
+                .poll(() => eventsOf(adapter, 'select'))
+                .toEqual([selectEvent(3, 20, [a, b])]);
+            expect(getTextLength(adapter.root)).toBe(TEXT.length);
+            expect(getSelectionOffsets(adapter.root)).toEqual({
+                start: 3,
+                end: 20,
+            });
+        });
+
+        it('rewords the description when describe is replaced', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+
+            await adapter.update({ describe: namesOf });
+
+            await expect
+                .element(segmentElement(adapter.root, 6))
+                .toHaveAccessibleDescription('a and b');
+            expect(serializeRoot(adapter.root)).toEqual(
+                expectedTree({ ...partialOverlap, describe: namesOf }),
+            );
+        });
+
+        it('recounts the description when the covering highlights change', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+
+            await adapter.update({ highlights: [a, b, c] });
+
+            // `c` starts at 10: [10,15) is now covered by a, b and c.
+            await expect
+                .element(segmentElement(adapter.root, 10))
+                .toHaveAccessibleDescription('3 highlights');
+        });
+    });
+
+    describe(`${name} — color validation`, () => {
+        const unsafe = 'red; position: fixed';
+
+        it('renders an unsafe color as the default color without the injected text in the markup', async () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            onTestFinished(() => warn.mockRestore());
+            const safe = await givenAdapter({
+                ...partialOverlap,
+                highlights: [{ ...a, color: '#123456' }, b],
+            });
+            const injected = await givenAdapter({
+                ...partialOverlap,
+                highlights: [{ ...a, color: unsafe }, b],
+            });
+
+            expect(safe.root.outerHTML).toContain('#123456');
+            expect(injected.root.outerHTML).not.toContain('position');
+            expect(injected.root.outerHTML).not.toContain('fixed');
+        });
     });
 
     describe(`${name} — offset contract`, () => {
@@ -513,7 +693,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 await expect
                     .poll(() => eventsOf(adapter, 'select'))
                     .toHaveLength(1);
-                const [detail] = detailsOf(adapter, 'select');
+                const detail = detailsOf(adapter, 'select')[0]!;
                 expect(detail.highlights[0]).toBe(a);
                 expect(detail.highlights[1]).toBe(b);
             });
@@ -527,7 +707,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 await expect
                     .poll(() => eventsOf(adapter, 'select'))
                     .toHaveLength(1);
-                const [detail] = detailsOf(adapter, 'select');
+                const detail = detailsOf(adapter, 'select')[0]!;
                 expect(detail.rect.width).toBeGreaterThan(0);
             });
 
@@ -560,6 +740,35 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 await expect
                     .poll(() => eventsOf(adapter, 'select'))
                     .toEqual([selectEvent(2, 5, [a])]);
+            });
+
+            it('ignores a 0-length selection and reports a 1-character one by default', async () => {
+                const adapter = await givenAdapter(partialOverlap);
+                await selectAndWait(adapter.root, 4, 4);
+
+                settle(release);
+
+                // Live positive control: one character, released the same way.
+                await selectAndWait(adapter.root, 4, 5);
+                settle(release);
+                expect(eventsOf(adapter, 'select')).toEqual([
+                    selectEvent(4, 5, [a]),
+                ]);
+            });
+
+            it('confirms a touch selection after 500 ms by default', async () => {
+                const adapter = await givenAdapter(partialOverlap);
+                givenFakeTimeouts();
+                pointer('pointerdown', adapter.root, { pointerType: 'touch' });
+
+                await selectAndWait(adapter.root, 8, 18);
+
+                vi.advanceTimersByTime(499);
+                expect(eventsOf(adapter, 'select')).toEqual([]);
+                vi.advanceTimersByTime(1);
+                expect(eventsOf(adapter, 'select')).toEqual([
+                    selectEvent(8, 18, [a, b]),
+                ]);
             });
 
             it('emits a keyboard selection once, when the modifier key is released', async () => {
@@ -634,7 +843,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                         event: expect.any(MouseEvent),
                     },
                 ]);
-                expect(clicks[0].event.type).toBe('click');
+                expect(clicks[0]!.event.type).toBe('click');
             });
 
             it('reports empty highlights for a click on plain text', async () => {
@@ -667,7 +876,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 el.dispatchEvent(control);
                 const clicks = detailsOf(adapter, 'click');
                 expect(clicks).toHaveLength(1);
-                expect(clicks[0].event).toBe(control);
+                expect(clicks[0]!.event).toBe(control);
             });
 
             it('emits select but not click when a real drag ends inside a highlight', async () => {
@@ -708,7 +917,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                         event: expect.any(MouseEvent),
                     },
                 ]);
-                expect(dblclicks[0].event.type).toBe('dblclick');
+                expect(dblclicks[0]!.event.type).toBe('dblclick');
                 expect(window.getSelection()!.toString()).toBe('wonderful');
             });
 
@@ -737,7 +946,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                             event: expect.any(KeyboardEvent),
                         },
                     ]);
-                    expect((clicks[0].event as KeyboardEvent).key).toBe(key);
+                    expect((clicks[0]!.event as KeyboardEvent).key).toBe(key);
                 },
             );
 
@@ -838,8 +1047,8 @@ export function defineAdapterContract(factory: AdapterFactory): void {
 
                 const hovers = detailsOf(adapter, 'hover');
                 expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-                expect(hovers[1].segment).toBe(hovers[0].segment);
-                expect(hovers[1].highlights).toEqual([a, b]);
+                expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
+                expect(hovers[1]!.highlights).toEqual([a, b]);
             });
 
             // Adapters must detach core's listeners while the component can
@@ -853,8 +1062,8 @@ export function defineAdapterContract(factory: AdapterFactory): void {
 
                 const hovers = detailsOf(adapter, 'hover');
                 expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-                expect(hovers[1].segment).toBe(hovers[0].segment);
-                expect(hovers[1].event).toBeNull();
+                expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
+                expect(hovers[1]!.event).toBeNull();
             });
 
             it('reports the entered segment, its highlights and the pointer event', async () => {
@@ -921,6 +1130,59 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             );
         });
 
+        it('switches the overlap mode in place and keeps the selection', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            const root = adapter.root;
+            setSelection(createRangeFromOffsets(root, 8, 18)!);
+
+            await adapter.update({ overlap: 'none' });
+
+            expect(adapter.root).toBe(root);
+            expect(root.getAttribute('data-om-overlap')).toBe('none');
+            expect(serializeRoot(root)).toEqual(
+                expectedTree({ ...partialOverlap, overlap: 'none' }),
+            );
+            expect(getSelectionOffsets(root)).toEqual({ start: 8, end: 18 });
+        });
+
+        it('applies a new defaultColor in place', async () => {
+            const adapter = await givenAdapter({
+                ...partialOverlap,
+                defaultColor: CUSTOM_COLOR,
+            });
+            const root = adapter.root;
+
+            await adapter.update({ defaultColor: '#123456' });
+
+            expect(adapter.root).toBe(root);
+            expect(root.style.getPropertyValue('--om-default-color')).toBe(
+                '#123456',
+            );
+            expect(serializeRoot(root)).toEqual(
+                expectedTree({ ...partialOverlap, defaultColor: '#123456' }),
+            );
+        });
+
+        it('takes --om-default-color off the root when defaultColor is removed', async () => {
+            const adapter = await givenAdapter({
+                ...partialOverlap,
+                defaultColor: CUSTOM_COLOR,
+            });
+
+            const before =
+                adapter.root.style.getPropertyValue('--om-default-color');
+
+            await adapter.update({ defaultColor: undefined });
+
+            expect(before).toBe(CUSTOM_COLOR);
+            expect(
+                adapter.root.style.getPropertyValue('--om-default-color'),
+            ).toBe('');
+            expect(serializeRoot(adapter.root)).toEqual(
+                expectedTree(partialOverlap),
+            );
+        });
+
         it('renders a brush given in place of the first', async () => {
             const adapter = await givenAdapter({
                 ...partialOverlap,
@@ -963,7 +1225,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                     event: expect.any(MouseEvent),
                 },
             ]);
-            expect(clicks[0].highlights[0]).toBe(c);
+            expect(clicks[0]!.highlights[0]).toBe(c);
         });
 
         it('emits select text from the updated text', async () => {
@@ -1119,7 +1381,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await adapter.update({ highlights: [c] });
 
             expect(
-                segmentElement(adapter.root, 0).hasAttribute('data-depth'),
+                segmentElement(adapter.root, 0).hasAttribute('data-om-depth'),
             ).toBe(false);
             expect(adapter.root.contains(document.activeElement)).toBe(false);
         });
@@ -1147,7 +1409,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await adapter.update({ focusable: false });
 
             expect(
-                segmentElement(adapter.root, 6).hasAttribute('data-depth'),
+                segmentElement(adapter.root, 6).hasAttribute('data-om-depth'),
             ).toBe(true);
             expect(adapter.root.contains(document.activeElement)).toBe(false);
         });
@@ -1183,7 +1445,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await adapter.update({ highlights: [a], focusable: false });
 
             expect(
-                segmentElement(adapter.root, 0).hasAttribute('data-depth'),
+                segmentElement(adapter.root, 0).hasAttribute('data-om-depth'),
             ).toBe(true);
             expect(adapter.root.contains(document.activeElement)).toBe(false);
         });
@@ -1221,11 +1483,11 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             const hovers = detailsOf(adapter, 'hover');
             expect(hovers[1]).toEqual({
                 type: 'leave',
-                segment: hovers[0].segment,
+                segment: hovers[0]!.segment,
                 highlights: [a, b],
                 event: null,
             });
-            expect(hovers[1].segment).toBe(hovers[0].segment);
+            expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
         });
 
         it('emits that leave only once', async () => {
@@ -1276,12 +1538,12 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             expect(leaves).toEqual([
                 {
                     type: 'leave',
-                    segment: hovers[0].segment,
+                    segment: hovers[0]!.segment,
                     highlights: [a, b],
                     event: null,
                 },
             ]);
-            expect(leaves[0].segment).toBe(hovers[0].segment);
+            expect(leaves[0]!.segment).toBe(hovers[0]!.segment);
         });
 
         it('emits nothing when an update re-renders the hovered segment unchanged', async () => {
@@ -1298,7 +1560,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await userEvent.hover(outside);
             const hovers = detailsOf(adapter, 'hover');
             expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-            expect(hovers[1].segment).toBe(hovers[0].segment);
+            expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
         });
 
         it('emits that leave after the update restored the selection and focus', async () => {
@@ -1321,12 +1583,12 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await adapter.update({ highlights: [left] });
 
             await expect.poll(() => seen).toHaveLength(1);
-            expect(seen[0].event).toEqual({
+            expect(seen[0]!.event).toEqual({
                 type: 'hover',
                 detail: expect.objectContaining({ type: 'leave', event: null }),
             });
-            expect(seen[0].offsets).toEqual({ start: 16, end: 19 });
-            expect(seen[0].focused).toBe(segmentElement(adapter.root, 0));
+            expect(seen[0]!.offsets).toEqual({ start: 16, end: 19 });
+            expect(seen[0]!.focused).toBe(segmentElement(adapter.root, 0));
         });
     });
 
@@ -1381,5 +1643,24 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 expect(eventsOf(live, type)).toHaveLength(1);
             },
         );
+
+        // Taking the host out of the document is not unmounting: the
+        // instance still renders updates, though no selection can be in it.
+        it('applies an update made while its host is out of the document and the page has a selection', async () => {
+            const removed = await givenAdapter(partialOverlap);
+            const live = await givenAdapter(partialOverlap);
+            removed.host.remove();
+            await selectAndWait(live.root, 8, 18);
+
+            await removed.update({ highlights: [a] });
+
+            expect(
+                removed.root.querySelectorAll('[data-om-ids~="b"]'),
+            ).toHaveLength(0);
+            expect(getSelectionOffsets(live.root)).toEqual({
+                start: 8,
+                end: 18,
+            });
+        });
     });
 }

@@ -72,7 +72,7 @@ test.describe('Long-pressing text', () => {
         });
 
         await expect.poll(() => logEntries(page, 'select')).toHaveLength(1);
-        const [record] = await logEntries(page, 'select');
+        const record = (await logEntries(page, 'select'))[0]!;
         const selected = await selectedTextInRoot(page);
         expect(selected).not.toBe('');
         expect(record).toMatchObject({ text: selected });

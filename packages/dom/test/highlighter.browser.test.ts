@@ -68,7 +68,8 @@ function alphaOf(css: string): number {
         .getContext('2d', { willReadFrequently: true })!;
     ctx.fillStyle = css;
     ctx.fillRect(0, 0, 1, 1);
-    return ctx.getImageData(0, 0, 1, 1).data[3] / 255;
+    // A 1×1 image holds exactly four bytes.
+    return ctx.getImageData(0, 0, 1, 1).data[3]! / 255;
 }
 
 describe('createHighlighter: rendering', () => {
@@ -96,7 +97,7 @@ describe('createHighlighter: rendering', () => {
     it('paints highlights translucently with the shipped stylesheet', () => {
         const { el } = givenHighlighter();
 
-        const mark = el.querySelector('mark[data-id="b"]')!;
+        const mark = el.querySelector('mark[data-om-id="b"]')!;
 
         // Without the stylesheet Chromium paints <mark> opaque yellow.
         const alpha = alphaOf(getComputedStyle(mark).backgroundColor);
@@ -322,11 +323,11 @@ describe('createHighlighter: update() re-rendering focus and hover', () => {
         expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
         expect(hovers[1]).toEqual({
             type: 'leave',
-            segment: hovers[0].segment,
+            segment: hovers[0]!.segment,
             highlights: [a, b],
             event: null,
         });
-        expect(hovers[1].segment).toBe(hovers[0].segment);
+        expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
     });
 
     it('does not emit that leave again when the pointer next moves', async () => {
@@ -401,6 +402,23 @@ describe('createHighlighter: destroy()', () => {
 
         expect(el.hasAttribute('class')).toBe(false);
         expect(el.hasAttribute('data-om-strategy')).toBe(false);
+    });
+
+    it('removes the overlap attribute and the root style it set, and keeps the element style', () => {
+        const el = givenElement();
+        el.style.color = 'navy';
+        const h = createHighlighter(el, {
+            text: TEXT,
+            highlights: [a],
+            defaultColor: '#123456',
+        });
+        expect(el.style.getPropertyValue('--om-default-color')).toBe('#123456');
+
+        h.destroy();
+
+        expect(el.hasAttribute('data-om-overlap')).toBe(false);
+        expect(el.style.getPropertyValue('--om-default-color')).toBe('');
+        expect(el.style.color).toBe('navy');
     });
 
     it('ignores update() after destroy()', () => {

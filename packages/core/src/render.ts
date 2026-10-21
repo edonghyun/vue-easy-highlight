@@ -1,13 +1,45 @@
 import { DEFAULT_COLOR, defaultBrush } from './brush';
-import type { Segment } from './types';
+import { safeColor } from './color';
+import type { Highlight, Segment } from './types';
 
 export { DEFAULT_COLOR, defaultBrush };
 
 export type Strategy = 'layers' | 'depth';
 
-export interface RenderOptions {
+/**
+ * How nested layers of the `layers` strategy combine, set on the root as
+ * `data-om-overlap` for the stylesheet:
+ * - `multiply`: each layer multiplies with those under it, so a spot gets
+ *   darker with every highlight that covers it, for any color except pure
+ *   white (a white layer does not darken).
+ * - `darken`: each layer's own color is mixed toward `--om-depth-ink` by
+ *   `--om-depth-step` per nesting level. It darkens reliably only for colors
+ *   of similar lightness.
+ * - `none`: plain translucent layers.
+ */
+export type Overlap = 'multiply' | 'darken' | 'none';
+
+export interface RenderOptions<T = unknown> {
     strategy?: Strategy;
+    /** How nested layers combine with the `layers` strategy. Default `'multiply'`. */
+    overlap?: Overlap;
+    /**
+     * Put `tabindex="0"` and `role="button"` on highlighted segments, with an
+     * accessible description from `describe`. Default `true`.
+     */
     focusable?: boolean;
+    /**
+     * Words the accessible description of a focusable segment from the
+     * highlights covering it, in library order. Default: `'1 highlight'` /
+     * `` `${n} highlights` ``. It is the segment's `aria-description`, so it
+     * is never part of the text, a selection, a copy or the offsets. Return
+     * `''` for no description.
+     */
+    describe?: (highlights: readonly Highlight<T>[]) => string;
+    /**
+     * Color of highlights without `color`: baked into their brush and set as
+     * `--om-default-color` on the root.
+     */
     defaultColor?: string;
     brush?: (color: string) => string;
 }
@@ -19,19 +51,29 @@ export interface ElementSpec {
     style: Record<string, string>;
 }
 
+/** The default `describe`: how many highlights cover a segment. */
+function countHighlights(highlights: readonly Highlight[]): string {
+    return highlights.length === 1
+        ? '1 highlight'
+        : `${highlights.length} highlights`;
+}
+
+/** The elements of one segment, outermost first: always at least one. */
 export function segmentElements<T>(
     segment: Segment<T>,
-    options: RenderOptions = {},
-): ElementSpec[] {
+    options: RenderOptions<T> = {},
+): [ElementSpec, ...ElementSpec[]] {
     const {
         strategy = 'layers',
         focusable = true,
-        defaultColor = DEFAULT_COLOR,
         brush = defaultBrush,
+        describe = countHighlights,
     } = options;
+    const defaultColor = safeColor(options.defaultColor) ?? DEFAULT_COLOR;
     const { highlights, depth, start } = segment;
+    const first = highlights[0];
 
-    if (depth === 0 || highlights.length === 0) {
+    if (depth === 0 || !first) {
         return [
             {
                 tag: 'span',
@@ -44,10 +86,19 @@ export function segmentElements<T>(
 
     const segAttrs: Record<string, string> = {
         'data-om-start': String(start),
-        'data-depth': String(depth),
-        'data-ids': highlights.map((h) => h.id).join(','),
+        'data-om-depth': String(depth),
+        'data-om-ids': highlights.map((h) => h.id).join(' '),
     };
-    if (focusable) segAttrs.tabindex = '0';
+    if (focusable) {
+        // Activating a segment reports the highlights covering it, so it is
+        // announced as a button: its text, then the description. An
+        // attribute rather than an aria-describedby target, which would
+        // need an id unique per instance and the same on server and client.
+        segAttrs.tabindex = '0';
+        segAttrs.role = 'button';
+        const description = describe(highlights);
+        if (description) segAttrs['aria-description'] = description;
+    }
 
     if (strategy === 'depth') {
         const classes: string[] = [];
@@ -55,7 +106,7 @@ export function segmentElements<T>(
             if (h.className && !classes.includes(h.className))
                 classes.push(h.className);
         }
-        const color = highlights.find((h) => h.color)?.color;
+        const color = highlights.map((h) => safeColor(h.color)).find(Boolean);
         const style: Record<string, string> = { '--om-depth': String(depth) };
         if (color) style['--om-color'] = color;
         style['--om-brush'] = brush(color ?? defaultColor);
@@ -69,21 +120,26 @@ export function segmentElements<T>(
         ];
     }
 
-    return highlights.map((h, i) => {
+    const markOf = (h: Highlight<T>, i: number): ElementSpec => {
         const style: Record<string, string> = { '--om-level': String(i) };
-        if (h.color) style['--om-color'] = h.color;
-        style['--om-brush'] = brush(h.color ?? defaultColor);
+        const color = safeColor(h.color);
+        if (color) style['--om-color'] = color;
+        style['--om-brush'] = brush(color ?? defaultColor);
         const cls = h.className ? `om-hl ${h.className}` : 'om-hl';
         return {
-            tag: 'mark' as const,
+            tag: 'mark',
             className: i === 0 ? `om-seg ${cls}` : cls,
             attrs:
                 i === 0
-                    ? { ...segAttrs, 'data-id': h.id }
-                    : { 'data-id': h.id },
+                    ? { ...segAttrs, 'data-om-id': h.id }
+                    : { 'data-om-id': h.id },
             style,
         };
-    });
+    };
+    return [
+        markOf(first, 0),
+        ...highlights.slice(1).map((h, i) => markOf(h, i + 1)),
+    ];
 }
 
 /**
@@ -93,20 +149,31 @@ export function segmentElements<T>(
  * covering the segment change. An element is then reused only for the same
  * highlights, and a stale hover target is never patched into a different
  * segment. Ids are joined with U+0000, which ids do not contain in practice,
- * so an id holding a comma cannot pass for two ids.
+ * so an id holding a space cannot pass for two ids.
  */
 export function segmentKey(segment: Segment): string {
     const ids = segment.highlights.map((h) => h.id).join('\u0000');
     return `${segment.start}:${segment.end}:${ids}`;
 }
 
-export function rootAttributes(options: RenderOptions = {}): {
+/**
+ * The class, attributes and inline style of the root element. `style` holds
+ * `--om-default-color` when `defaultColor` is given and safe, and is empty
+ * otherwise.
+ */
+export function rootAttributes<T>(options: RenderOptions<T> = {}): {
     className: 'om-root';
-    attrs: { 'data-om-strategy': Strategy };
+    attrs: { 'data-om-strategy': Strategy; 'data-om-overlap': Overlap };
+    style: Record<string, string>;
 } {
+    const defaultColor = safeColor(options.defaultColor);
     return {
         className: 'om-root',
-        attrs: { 'data-om-strategy': options.strategy ?? 'layers' },
+        attrs: {
+            'data-om-strategy': options.strategy ?? 'layers',
+            'data-om-overlap': options.overlap ?? 'multiply',
+        },
+        style: defaultColor ? { '--om-default-color': defaultColor } : {},
     };
 }
 

@@ -1,8 +1,5 @@
-import {
-    computeSegments,
-    rootAttributes,
-    segmentElements,
-} from '@overlapmark/core';
+import { computeSegments } from '@overlapmark/core';
+import { rootAttributes, segmentElements } from '@overlapmark/core/adapter';
 import type { RenderOptions } from '@overlapmark/core';
 import type { ContractProps } from './types';
 import { classTokens } from './serialize';
@@ -18,17 +15,20 @@ import type { ElementTree, RootTree, TreeNode } from './serialize';
 export function expectedTree(props: ContractProps): RootTree {
     const options: RenderOptions = {
         strategy: props.strategy,
+        overlap: props.overlap,
         focusable: props.focusable,
         defaultColor: props.defaultColor,
         brush: props.brush,
+        describe: props.describe,
     };
     const root = rootAttributes(options);
     return {
         classes: classTokens(root.className),
         attrs: { ...root.attrs },
+        style: { ...root.style },
         children: computeSegments(props.text, [...props.highlights]).map(
             (segment) => {
-                const innermost: TreeNode[] = [segment.text];
+                const innermost: [TreeNode, ...TreeNode[]] = [segment.text];
                 const decoration =
                     props.decoration && segment.depth > 0
                         ? props.decoration(segment)
@@ -39,7 +39,7 @@ export function expectedTree(props: ContractProps): RootTree {
                 const [outermost] = segmentElements(
                     segment,
                     options,
-                ).reduceRight<TreeNode[]>(
+                ).reduceRight<[TreeNode, ...TreeNode[]]>(
                     (children, spec) => [
                         {
                             tag: spec.tag,

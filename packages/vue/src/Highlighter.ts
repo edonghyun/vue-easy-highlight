@@ -1,20 +1,21 @@
-import {
-    computeSegments,
-    decorationTarget,
-    rootAttributes,
-    segmentElements,
-    segmentKey,
-} from '@overlapmark/core';
+import { computeSegments } from '@overlapmark/core';
 import type {
-    ElementSpec,
     Highlight,
     HoverDetail,
+    Overlap,
     PointDetail,
     RenderOptions,
     Segment,
     SelectDetail,
     Strategy,
 } from '@overlapmark/core';
+import {
+    decorationTarget,
+    rootAttributes,
+    segmentElements,
+    segmentKey,
+} from '@overlapmark/core/adapter';
+import type { ElementSpec } from '@overlapmark/core/adapter';
 import {
     attachInteractions,
     captureViewState,
@@ -51,8 +52,8 @@ import type {
     VNodeProps,
 } from 'vue';
 
-/** Scoped slots of `Highlighter`. */
-export interface HighlighterSlots {
+/** Scoped slots of `Highlighter`, for highlights whose `data` is a `T`. */
+export interface HighlighterSlots<T = unknown> {
     /**
      * Decoration for each highlighted segment (style tier 3), such as a count
      * or an icon. It is rendered in `<span data-om-skip aria-hidden="true">`
@@ -63,7 +64,7 @@ export interface HighlighterSlots {
      * nothing (`v-if`, or `null`, `undefined`, `false`, `''` or `[]` from a
      * render function) to leave a segment without a container.
      */
-    decoration: { segment: Segment };
+    decoration: { segment: Segment<T> };
 }
 
 /**
@@ -132,27 +133,33 @@ function segmentVNode(
     const childrenAt = (i: number, inner: VNodeChild): VNodeChild[] =>
         decoration && i === target?.index ? [inner, decoration] : [inner];
     let inner: VNodeChild = segment.text;
-    for (let i = specs.length - 1; i > 0; i--)
-        inner = h(specs[i].tag, propsOfSpec(specs[i]), childrenAt(i, inner));
+    for (let i = specs.length - 1; i > 0; i--) {
+        const spec = specs[i]!; // 0 < i < length
+        inner = h(spec.tag, propsOfSpec(spec), childrenAt(i, inner));
+    }
+    const [outermost] = specs;
     return h(
-        specs[0].tag,
+        outermost.tag,
         {
             // A segment whose covering ids change gets a new element, so a
             // hover target is never patched into a different segment.
             key: segmentKey(segment),
-            ...propsOfSpec(specs[0]),
+            ...propsOfSpec(outermost),
         },
         childrenAt(0, inner),
     );
 }
 
-/** The props options of `Highlighter`. */
-const highlighterProps = {
+/**
+ * The props options of `Highlighter`, for highlights whose `data` is a `T`.
+ * Only types depend on `T`: every call returns the same options.
+ */
+const highlighterPropsOf = <T>() => ({
     /** The source text. Positions are UTF-16 indices. */
     text: { type: String, required: true as const },
     /** `{ id, start, end, color?, className?, data? }`; `end` is exclusive. */
     highlights: {
-        type: Array as PropType<readonly Highlight[]>,
+        type: Array as PropType<readonly Highlight<T>[]>,
         default: () => [],
     },
     // `default: undefined` leaves the defaults to core. For `focusable` it
@@ -160,9 +167,21 @@ const highlighterProps = {
     // a bare `focusable` attribute still casts to `true`.
     /** How overlaps are drawn. Default `'layers'`. */
     strategy: { type: String as PropType<Strategy>, default: undefined },
-    /** Put `tabindex="0"` on highlighted segments; Enter/Space emits `click`. Default `true`. */
+    /** How nested layers combine with the `layers` strategy. Default `'multiply'`. */
+    overlap: { type: String as PropType<Overlap>, default: undefined },
+    /** Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space emits `click`. Default `true`. */
     focusable: { type: Boolean, default: undefined },
-    /** Color baked into the `--om-brush` image for highlights without `color`. */
+    /**
+     * Words the accessible description of a focusable segment from the
+     * highlights covering it. Default `'1 highlight'` / `` `${n} highlights` ``.
+     */
+    describe: {
+        type: Function as PropType<
+            (highlights: readonly Highlight<T>[]) => string
+        >,
+        default: undefined,
+    },
+    /** Color of highlights without `color`: set on the root as `--om-default-color` and baked into their `--om-brush`. */
     defaultColor: { type: String, default: undefined },
     /** Returns a CSS image value for `--om-brush`. */
     brush: {
@@ -177,60 +196,87 @@ const highlighterProps = {
      * selection change.
      */
     touchSelectionDelay: { type: Number, default: undefined },
-};
+});
 
 /** The emits options of `Highlighter`, typing each event's detail. */
-const highlighterEmits = {
-    select: (_detail: SelectDetail) => true,
-    click: (_detail: PointDetail) => true,
-    dblclick: (_detail: PointDetail) => true,
-    hover: (_detail: HoverDetail) => true,
-};
+const highlighterEmitsOf = <T>() => ({
+    select: (_detail: SelectDetail<T>) => true,
+    click: (_detail: PointDetail<T>) => true,
+    dblclick: (_detail: PointDetail<T>) => true,
+    hover: (_detail: HoverDetail<T>) => true,
+});
 
-/** The listener props of `highlighterEmits`. */
-interface HighlighterListeners {
-    onSelect?: (detail: SelectDetail) => unknown;
-    onClick?: (detail: PointDetail) => unknown;
-    onDblclick?: (detail: PointDetail) => unknown;
-    onHover?: (detail: HoverDetail) => unknown;
-}
+type HighlighterPropsOptions<T> = ReturnType<typeof highlighterPropsOf<T>>;
+type HighlighterEmitsOptions<T> = ReturnType<typeof highlighterEmitsOf<T>>;
+
+/**
+ * The listener props of the emits options `E`, `onSelect` for `select`, as
+ * Vue derives them: its own `EmitsToProps` is not exported before 3.5.
+ */
+type ListenersOf<E> = {
+    [K in keyof E & string as `on${Capitalize<K>}`]?: E[K] extends (
+        ...args: infer A
+    ) => unknown
+        ? (...args: A) => unknown
+        : never;
+};
 
 /** No setup bindings, data, computed or methods, as Vue writes it. */
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type None = {};
 
 /**
- * The type of `Highlighter`, spelled out so its declaration holds on every
- * Vue the peer range admits. The type `defineComponent` infers is emitted
- * with every type argument of the Vue the package builds with (20 in late
- * 3.5 patches, 19 in 3.5.0, 13 in 3.3 and 3.4) and with `PublicProps`, which
- * Vue 3.3 does not export. These are the 13 arguments all of them take.
+ * The type of `Highlighter` for highlights whose `data` is a `T`, spelled out
+ * so its declaration holds on every Vue the peer range admits. The type
+ * `defineComponent` infers is emitted with every type argument of the Vue the
+ * package builds with (20 in late 3.5 patches, 19 in 3.5.0, 13 in 3.3 and
+ * 3.4) and with `PublicProps`, which Vue 3.3 does not export. These are the
+ * 13 arguments all of them take.
  */
-type HighlighterComponent = DefineComponent<
-    typeof highlighterProps,
+type HighlighterComponentOf<T> = DefineComponent<
+    HighlighterPropsOptions<T>,
     None,
     None,
     None,
     None,
     ComponentOptionsMixin,
     ComponentOptionsMixin,
-    typeof highlighterEmits,
+    HighlighterEmitsOptions<T>,
     string,
     VNodeProps & AllowedComponentProps & ComponentCustomProps,
-    Readonly<ExtractPropTypes<typeof highlighterProps>> & HighlighterListeners,
-    ExtractDefaultPropTypes<typeof highlighterProps>,
-    SlotsType<HighlighterSlots>
+    Readonly<ExtractPropTypes<HighlighterPropsOptions<T>>> &
+        ListenersOf<HighlighterEmitsOptions<T>>,
+    ExtractDefaultPropTypes<HighlighterPropsOptions<T>>,
+    SlotsType<HighlighterSlots<T>>
 >;
 
-// Annotated apart from `defineComponent`: the annotation would otherwise
-// steer the inference of its options.
+/**
+ * `HighlighterComponentOf<unknown>` with a constructor generic over `T`. A
+ * template type checker (vue-tsc) constructs the component from the props it
+ * is given, so `T` is inferred from `highlights`, and the instance types the
+ * listeners, `describe` and the decoration slot with it.
+ *
+ * `Omit` drops the constructor `DefineComponent` has: TypeScript reads its
+ * `new (...args: any[])` as a mixin and would intersect every instance with
+ * the instance for `unknown`.
+ */
+type HighlighterComponent = {
+    new <T = unknown>(
+        props: InstanceType<HighlighterComponentOf<T>>['$props'],
+    ): InstanceType<HighlighterComponentOf<T>>;
+} & Omit<HighlighterComponentOf<unknown>, never>;
+
+// Typed apart from `defineComponent`: an annotation would otherwise steer the
+// inference of its options. `Highlighter` checks it against the declared type
+// for `unknown`, then casts to `HighlighterComponent`, which only adds the
+// generic constructor: only types depend on `T`.
 const component = defineComponent({
     name: 'Highlighter',
     // Merged by hand in the render function: Vue's own fallthrough would let
     // a caller's `data-om-strategy` override the root attributes core sets.
     inheritAttrs: false,
-    props: highlighterProps,
-    emits: highlighterEmits,
+    props: highlighterPropsOf<unknown>(),
+    emits: highlighterEmitsOf<unknown>(),
     slots: Object as SlotsType<HighlighterSlots>,
     setup(props, { attrs, emit, slots }) {
         const root = ref<HTMLElement>();
@@ -289,7 +335,9 @@ const component = defineComponent({
         return () => {
             const options: RenderOptions = {
                 strategy: props.strategy,
+                overlap: props.overlap,
                 focusable: props.focusable,
+                describe: props.describe,
                 defaultColor: props.defaultColor,
                 brush: props.brush,
             };
@@ -298,10 +346,14 @@ const component = defineComponent({
             return h(
                 'div',
                 // The caller's classes follow `om-root`; core's attributes
-                // come last so the caller's cannot replace them.
+                // and style properties come last so the caller's cannot
+                // replace them. An empty style is left out, as on segments.
                 mergeProps({ class: rootSpec.className }, attrs, {
                     ref: root,
                     ...rootSpec.attrs,
+                    ...(Object.keys(rootSpec.style).length > 0 && {
+                        style: rootSpec.style,
+                    }),
                 }),
                 rendered.segments.map((segment) =>
                     segmentVNode(
@@ -321,4 +373,5 @@ const component = defineComponent({
  * `select`, `click`, `dblclick` and `hover` with core's detail objects.
  * Attributes and classes given to the component land on that `div`.
  */
-export const Highlighter: HighlighterComponent = component;
+export const Highlighter =
+    component satisfies HighlighterComponentOf<unknown> as HighlighterComponent;

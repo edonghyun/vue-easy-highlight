@@ -4,6 +4,7 @@ import type { Alias, Plugin } from 'vite';
 const scope = /@overlapmark\//;
 const specifiers = [
     '@overlapmark/core',
+    '@overlapmark/core/adapter',
     '@overlapmark/core/dom',
     '@overlapmark/core/styles.css',
     '@overlapmark/dom',

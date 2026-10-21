@@ -1,15 +1,26 @@
-import { describe, expect, it } from 'vitest';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    onTestFinished,
+    vi,
+} from 'vitest';
 import {
     DEFAULT_COLOR,
     computeSegments,
     defaultBrush,
-    rootAttributes,
     segmentAt,
+    type Highlight,
+    type RenderOptions,
+} from '../src';
+import {
+    decorationTarget,
+    rootAttributes,
     segmentElements,
     segmentKey,
-    decorationTarget,
-    type Highlight,
-} from '../src';
+} from '../src/adapter';
 
 const text = 'Hello wonderful world';
 const A = { id: 'a', start: 0, end: 15, className: 'note', color: '#ff0000' };
@@ -25,7 +36,7 @@ const overlap = segmentOf([A, B], 6);
 
 describe('segmentElements', () => {
     it('renders a plain segment as a single span.om-seg', () => {
-        const plain = computeSegments('abc', [])[0];
+        const plain = computeSegments('abc', [])[0]!;
 
         expect(segmentElements(plain)).toEqual([
             {
@@ -59,12 +70,14 @@ describe('segmentElements with the layers strategy', () => {
 
         expect(outer.attrs).toEqual({
             'data-om-start': '6',
-            'data-depth': '2',
-            'data-ids': 'a,b',
-            'data-id': 'a',
+            'data-om-depth': '2',
+            'data-om-ids': 'a b',
+            'data-om-id': 'a',
             tabindex: '0',
+            role: 'button',
+            'aria-description': '2 highlights',
         });
-        expect(inner.attrs).toEqual({ 'data-id': 'b' });
+        expect(inner!.attrs).toEqual({ 'data-om-id': 'b' });
     });
 
     it('gives each mark its own level, color and brush', () => {
@@ -75,7 +88,7 @@ describe('segmentElements with the layers strategy', () => {
             '--om-color': '#ff0000',
             '--om-brush': defaultBrush('#ff0000'),
         });
-        expect(inner.style).toEqual({
+        expect(inner!.style).toEqual({
             '--om-level': '1',
             '--om-brush': defaultBrush(DEFAULT_COLOR),
         });
@@ -84,7 +97,7 @@ describe('segmentElements with the layers strategy', () => {
     it('paints uncolored highlights with the defaultColor option', () => {
         const [, inner] = segmentElements(overlap, { defaultColor: '#00ff00' });
 
-        expect(inner.style['--om-brush']).toBe(defaultBrush('#00ff00'));
+        expect(inner!.style['--om-brush']).toBe(defaultBrush('#00ff00'));
     });
 
     it('paints each mark with a custom brush applied to its resolved color', () => {
@@ -98,22 +111,94 @@ describe('segmentElements with the layers strategy', () => {
         ]);
     });
 
-    it('lists data-ids in highlight order, not input order (§4.3)', () => {
+    it('lists data-om-ids in highlight order, not input order (§4.3)', () => {
         const segment = segmentOf([B, A], 6);
 
         const [outer] = segmentElements(segment);
 
-        expect(outer.attrs['data-ids']).toBe('a,b');
+        expect(outer.attrs['data-om-ids']).toBe('a b');
+    });
+
+    it('marks a segment with data-om-ids joined by spaces', () => {
+        const [outer] = segmentElements(overlap);
+
+        expect(outer.attrs['data-om-ids']).toBe('a b');
+    });
+
+    it('emits none of the unprefixed attributes', () => {
+        const specs = [
+            ...segmentElements(overlap),
+            ...segmentElements(overlap, { strategy: 'depth' }),
+        ];
+
+        const keys = specs.flatMap((s) => Object.keys(s.attrs));
+
+        expect(keys).toContain('data-om-start');
+        expect(keys).not.toContain('data-id');
+        expect(keys).not.toContain('data-ids');
+        expect(keys).not.toContain('data-depth');
+    });
+});
+
+describe('segmentElements for assistive technology', () => {
+    /** [0, 6): covered by A alone. */
+    const single = segmentOf([A, B], 0);
+
+    it.each(['layers', 'depth'] as const)(
+        'makes a focusable segment a button described by its highlight count with the %s strategy',
+        (strategy) => {
+            const [once] = segmentElements(single, { strategy });
+            const [twice] = segmentElements(overlap, { strategy });
+
+            expect(once.attrs).toMatchObject({
+                role: 'button',
+                'aria-description': '1 highlight',
+            });
+            expect(twice.attrs).toMatchObject({
+                role: 'button',
+                'aria-description': '2 highlights',
+            });
+        },
+    );
+
+    it('words the description with describe, given the covering highlights in library order', () => {
+        const describeHighlights = vi.fn(
+            (highlights: readonly Highlight[]) =>
+                `covered by ${highlights.map((h) => h.id).join(', ')}`,
+        );
+
+        const [outer] = segmentElements(segmentOf([B, A], 6), {
+            describe: describeHighlights,
+        });
+
+        expect(outer.attrs['aria-description']).toBe('covered by a, b');
+        expect(describeHighlights).toHaveBeenCalledWith([A, B]);
+    });
+
+    it('gives an unfocusable segment neither the button role nor a description', () => {
+        const [focusable] = segmentElements(overlap);
+        const [unfocusable] = segmentElements(overlap, { focusable: false });
+
+        expect(focusable.attrs.role).toBe('button');
+        expect(unfocusable.attrs).not.toHaveProperty('role');
+        expect(unfocusable.attrs).not.toHaveProperty('aria-description');
+    });
+
+    it("leaves the description out when describe returns ''", () => {
+        const [outer] = segmentElements(overlap, { describe: () => '' });
+
+        expect(outer.attrs.role).toBe('button');
+        expect(outer.attrs).not.toHaveProperty('aria-description');
     });
 });
 
 describe('segmentElements with the depth strategy', () => {
-    it('renders a single mark carrying --om-depth and no data-id', () => {
+    it('renders a single mark carrying --om-depth and no data-om-id', () => {
         const elements = segmentElements(overlap, { strategy: 'depth' });
 
         expect(elements).toHaveLength(1);
         expect(elements[0].style['--om-depth']).toBe('2');
-        expect(elements[0].attrs['data-id']).toBeUndefined();
+        expect(elements[0].attrs['data-om-id']).toBeUndefined();
     });
 
     it('merges the highlight classes into the mark', () => {
@@ -163,15 +248,49 @@ describe('rootAttributes', () => {
     it('defaults to the layers strategy', () => {
         expect(rootAttributes()).toEqual({
             className: 'om-root',
-            attrs: { 'data-om-strategy': 'layers' },
+            attrs: {
+                'data-om-strategy': 'layers',
+                'data-om-overlap': 'multiply',
+            },
+            style: {},
         });
     });
 
     it('reports the depth strategy when given', () => {
-        expect(rootAttributes({ strategy: 'depth' })).toEqual({
-            className: 'om-root',
-            attrs: { 'data-om-strategy': 'depth' },
+        expect(rootAttributes({ strategy: 'depth' }).attrs).toEqual({
+            'data-om-strategy': 'depth',
+            'data-om-overlap': 'multiply',
         });
+    });
+
+    it('marks the root with the overlap mode, multiply by default', () => {
+        const modes = (['multiply', 'darken', 'none'] as const).map(
+            (overlap) => rootAttributes({ overlap }).attrs['data-om-overlap'],
+        );
+
+        expect(rootAttributes().attrs['data-om-overlap']).toBe('multiply');
+        expect(modes).toEqual(['multiply', 'darken', 'none']);
+    });
+
+    it('puts --om-default-color inline on the root only when defaultColor is given', () => {
+        const given = rootAttributes({ defaultColor: '#123456' });
+
+        const absent = rootAttributes();
+
+        expect(given.style).toEqual({ '--om-default-color': '#123456' });
+        expect(absent.style).toEqual({});
+    });
+
+    it('leaves an unsafe defaultColor off the root', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        onTestFinished(() => warn.mockRestore());
+
+        const unsafe = rootAttributes({
+            defaultColor: 'blue} body {color: red',
+        });
+
+        expect(unsafe.style).toEqual({});
+        expect(warn).toHaveBeenCalled();
     });
 });
 
@@ -258,5 +377,46 @@ describe('decorationTarget', () => {
         expect(
             decorationTarget(highlighted, segmentElements(highlighted)),
         ).not.toBeNull();
+    });
+});
+
+describe('segmentElements with an unsafe color', () => {
+    beforeEach(() => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+    afterEach(() => vi.restoreAllMocks());
+
+    const unsafe = 'red; position: fixed';
+    const bySafety = (color: string) => ({ id: 'a', start: 0, end: 5, color });
+
+    function styleOf(color: string, options: RenderOptions = {}) {
+        return segmentElements(segmentOf([bySafety(color)], 0), options)[0]
+            .style;
+    }
+
+    it.each(['layers', 'depth'] as const)(
+        'falls back to the default color with the %s strategy',
+        (strategy) => {
+            const style = styleOf(unsafe, { strategy });
+            const control = styleOf('#123456', { strategy });
+
+            expect(style['--om-color']).toBeUndefined();
+            expect(style['--om-brush']).toBe(defaultBrush(DEFAULT_COLOR));
+            expect(control['--om-color']).toBe('#123456');
+        },
+    );
+
+    it('falls back to the built-in color for an unsafe defaultColor', () => {
+        const highlighted = segmentOf([{ id: 'a', start: 0, end: 5 }], 0);
+
+        const [element] = segmentElements(highlighted, {
+            defaultColor: unsafe,
+        });
+        const [control] = segmentElements(highlighted, {
+            defaultColor: '#123456',
+        });
+
+        expect(element.style['--om-brush']).toBe(defaultBrush(DEFAULT_COLOR));
+        expect(control.style['--om-brush']).toBe(defaultBrush('#123456'));
     });
 });

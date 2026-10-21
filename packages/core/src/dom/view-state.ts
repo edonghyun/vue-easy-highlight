@@ -12,6 +12,7 @@ import {
     segmentElementAt,
 } from './offsets';
 import type { TextRange } from './offsets';
+import { activeElementOf, isElement, selectionOf } from './tree';
 
 /**
  * What `captureViewState` recorded. Opaque to adapters: hand it to
@@ -64,7 +65,7 @@ export function restoreViewState(root: Element, state: ViewState): void {
 }
 
 function focusedSegmentStart(root: Element): number | null {
-    const active = document.activeElement;
+    const active = activeElementOf(root);
     if (!active || !root.contains(active)) return null;
     const segment = active.closest(SEG);
     if (!segment || !root.contains(segment)) return null;
@@ -77,7 +78,7 @@ function restoreSelection(
     saved: TextRange | null,
     textChanged: boolean,
 ): void {
-    const selection = window.getSelection();
+    const selection = selectionOf(root);
     if (!saved || !selection) return;
     if (textChanged) {
         selection.removeAllRanges();
@@ -90,8 +91,13 @@ function restoreSelection(
         return;
     const range = createRangeFromOffsets(root, saved.start, saved.end);
     if (!range) return;
-    selection.removeAllRanges();
-    selection.addRange(range);
+    // Not addRange, which WebKit ignores for a range inside a shadow root.
+    selection.setBaseAndExtent(
+        range.startContainer,
+        range.startOffset,
+        range.endContainer,
+        range.endOffset,
+    );
 }
 
 function restoreFocus(
@@ -107,17 +113,14 @@ function restoreFocus(
         !textChanged ||
         covering?.getAttribute('data-om-start') === String(focusedOffset);
     // Only highlighted segments carry tabindex, and only when focusable.
-    if (
-        qualifies &&
-        covering instanceof HTMLElement &&
-        covering.matches(`${SEG}[tabindex]`)
-    ) {
-        if (document.activeElement !== covering)
-            covering.focus({ preventScroll: true });
+    if (qualifies && covering?.matches(`${SEG}[tabindex]`)) {
+        if (activeElementOf(root) !== covering)
+            (covering as HTMLElement).focus({ preventScroll: true });
         return;
     }
     // A patch in place can leave focus on an element that is no longer a
     // focusable segment; not every browser drops it by itself.
-    const active = document.activeElement;
-    if (active instanceof HTMLElement && root.contains(active)) active.blur();
+    const active = activeElementOf(root);
+    if (isElement(active) && root.contains(active))
+        (active as HTMLElement).blur();
 }

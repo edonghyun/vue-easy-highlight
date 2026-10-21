@@ -8,17 +8,19 @@
     },
     "scripts": {
         "build": "pnpm -r build",
-        "test": "pnpm -r test && vitest run -c acceptance/vitest.config.ts",
+        "release": "pnpm -r --filter \"./packages/*\" build && changeset publish",
+        "test": "pnpm -r test && vitest run -c acceptance/vitest.config.ts && vitest run -c scripts/vitest.config.ts",
         "test:perf": "pnpm -r test:perf",
         "lint": "eslint .",
-        "typecheck": "pnpm -r typecheck && tsc -p acceptance",
+        "typecheck": "pnpm -r typecheck && tsc -p acceptance && tsc -p scripts",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "acceptance:pack": "node --experimental-strip-types acceptance/scripts/pack.ts",
         "check:packages": "node --experimental-strip-types acceptance/scripts/check-packages.ts",
         "acceptance:build": "node --experimental-strip-types acceptance/scripts/prepare-app.ts",
         "acceptance": "playwright test -c acceptance/playwright.config.ts",
-        "check:readme": "node --experimental-strip-types acceptance/scripts/check-readme.ts"
+        "check:readme": "node --experimental-strip-types acceptance/scripts/check-readme.ts",
+        "docs:images": "node --experimental-strip-types scripts/render-doc-images.ts"
     },
     "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",

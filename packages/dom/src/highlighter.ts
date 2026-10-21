@@ -1,11 +1,5 @@
-import {
-    computeSegments,
-    decorationTarget,
-    rootAttributes,
-    segmentElements,
-} from '@overlapmark/core';
+import { computeSegments } from '@overlapmark/core';
 import type {
-    ElementSpec,
     Highlight,
     HoverDetail,
     PointDetail,
@@ -14,12 +8,18 @@ import type {
     Segment,
 } from '@overlapmark/core';
 import {
+    decorationTarget,
+    rootAttributes,
+    segmentElements,
+} from '@overlapmark/core/adapter';
+import type { ElementSpec } from '@overlapmark/core/adapter';
+import {
     attachInteractions,
     captureViewState,
     restoreViewState,
 } from '@overlapmark/core/dom';
 
-export interface HighlighterOptions<T = unknown> extends RenderOptions {
+export interface HighlighterOptions<T = unknown> extends RenderOptions<T> {
     text: string;
     highlights?: readonly Highlight<T>[];
     minSelectionLength?: number;
@@ -99,11 +99,24 @@ export function createHighlighter<T>(
         for (const fn of [...listeners[type]]) fn(detail);
     };
 
+    // The root style properties the last render set, so a later render can
+    // take off those it no longer sets without touching the caller's own.
+    let rootStyle: string[] = [];
+    const setRootStyle = (style: Record<string, string>): void => {
+        for (const name of rootStyle)
+            if (!(name in style)) el.style.removeProperty(name);
+        for (const [name, value] of Object.entries(style))
+            el.style.setProperty(name, value);
+        rootStyle = Object.keys(style);
+        if (!el.getAttribute('style')) el.removeAttribute('style');
+    };
+
     const render = (): void => {
         const rootAttrs = rootAttributes(opts);
         el.classList.add(rootAttrs.className);
         for (const [k, v] of Object.entries(rootAttrs.attrs))
             el.setAttribute(k, v);
+        setRootStyle(rootAttrs.style);
 
         segments = computeSegments(opts.text, opts.highlights ?? []);
         const frag = document.createDocumentFragment();
@@ -123,7 +136,8 @@ export function createHighlighter<T>(
             if (target && decoration != null && decoration !== '') {
                 const container = elementOf(target.container);
                 container.append(decoration);
-                elements[target.index].appendChild(container);
+                // target.index indexes the elements built from `specs`.
+                elements[target.index]!.appendChild(container);
             }
         }
         el.replaceChildren(frag);
@@ -176,6 +190,8 @@ export function createHighlighter<T>(
             for (const set of Object.values(listeners)) set.clear();
             el.classList.remove('om-root');
             el.removeAttribute('data-om-strategy');
+            el.removeAttribute('data-om-overlap');
+            setRootStyle({});
             if (!el.getAttribute('class')) el.removeAttribute('class');
             el.textContent = opts.text;
         },
