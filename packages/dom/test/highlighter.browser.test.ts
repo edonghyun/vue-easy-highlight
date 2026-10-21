@@ -146,3 +146,26 @@ describe('createHighlighter', () => {
         );
     });
 });
+
+describe('createHighlighter: interaction options', () => {
+    it('update({ minSelectionLength }) takes effect and keeps subscriptions', async () => {
+        const { el, h } = make([a, b], { minSelectionLength: 5 });
+        const fn = vi.fn();
+        h.on('select', fn);
+        select(el, 2, 4);
+        document.dispatchEvent(
+            new PointerEvent('pointerup', { bubbles: true }),
+        );
+        await tick();
+        expect(fn).not.toHaveBeenCalled();
+
+        h.update({ minSelectionLength: 1 });
+        select(el, 2, 4);
+        document.dispatchEvent(
+            new PointerEvent('pointerup', { bubbles: true }),
+        );
+        await tick();
+        expect(fn).toHaveBeenCalledTimes(1);
+        expect(fn.mock.calls[0][0]).toMatchObject({ start: 2, end: 4 });
+    });
+});
