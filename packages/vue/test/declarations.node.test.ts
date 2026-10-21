@@ -176,10 +176,11 @@ function typeErrorsOf(source: string, vue: string): string[] {
         );
 }
 
+// Emitting builds a whole program too.
 beforeAll(() => {
     out = mkdtempSync(join(tmpdir(), 'overlapmark-vue-dts-'));
     givenEmittedDeclarations();
-});
+}, typeCheckTimeout);
 
 afterAll(() => rmSync(out, { recursive: true, force: true }));
 
