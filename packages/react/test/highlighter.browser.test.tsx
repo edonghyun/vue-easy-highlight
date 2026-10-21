@@ -493,6 +493,30 @@ describe('Highlighter: unmounting while a segment is hovered', () => {
 
         expect(leaves).toEqual([{ connected: true, event: null }]);
     });
+
+    it('still hands the root to the caller ref during that leave', async () => {
+        await givenPointerOutsideRoots();
+        const ref = createRef<HTMLDivElement>();
+        const refsOnLeave: (HTMLDivElement | null)[] = [];
+        const { host, rerender } = givenRendered(
+            <section>
+                <Highlighter
+                    {...propsOf(partialOverlap)}
+                    ref={ref}
+                    onHover={(detail) => {
+                        if (detail.type === 'leave')
+                            refsOnLeave.push(ref.current);
+                    }}
+                />
+            </section>,
+        );
+        const root = rootIn(host);
+        await userEvent.hover(segmentElement(root, 6));
+
+        rerender(<section />);
+
+        expect(refsOnLeave).toEqual([root]);
+    });
 });
 
 describe('Highlighter: an update rendered as a transition', () => {
@@ -571,5 +595,30 @@ describe('Highlighter inside Activity', () => {
         rerender(viewOf('visible', clicks));
         segment.click();
         expect(clicks.map((d) => d.offset)).toEqual([6]);
+    });
+
+    it('still hands the root to the caller ref during the leave hiding emits', async () => {
+        await givenPointerOutsideRoots();
+        const ref = createRef<HTMLDivElement>();
+        const refsOnLeave: (HTMLDivElement | null)[] = [];
+        const view = (mode: 'visible' | 'hidden'): ReactNode => (
+            <Activity mode={mode}>
+                <Highlighter
+                    {...propsOf(partialOverlap)}
+                    ref={ref}
+                    onHover={(detail) => {
+                        if (detail.type === 'leave')
+                            refsOnLeave.push(ref.current);
+                    }}
+                />
+            </Activity>
+        );
+        const { host, rerender } = givenRendered(view('visible'));
+        const root = rootIn(host);
+        await userEvent.hover(segmentElement(root, 6));
+
+        rerender(view('hidden'));
+
+        expect(refsOnLeave).toEqual([root]);
     });
 });
