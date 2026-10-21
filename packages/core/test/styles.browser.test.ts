@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it, onTestFinished } from 'vitest';
 import '../src/styles.css';
-import { mount } from './helpers/mount';
+import type { Highlight } from '../src';
+import { attach, mount } from './helpers/mount';
 
 // Normalise any computed color (rgb, color(srgb), oklab...) through a canvas, then compute relative luminance.
 function rgba(css: string): [number, number, number, number] {
@@ -30,52 +31,78 @@ const three = [
     { id: '3', start: 10, end: 14 },
 ];
 
-const userStyles: HTMLStyleElement[] = [];
+/**
+ * Depth at which darkening stops: the fallback of `var(--om-max-depth, 6)` in
+ * src/styles.css. Kept in sync by hand; the test below fails if it drifts.
+ */
+const DEFAULT_MAX_DEPTH = 6;
+
 /** Adds a user stylesheet before (`first`) or after every other stylesheet in <head>. */
 function userCss(css: string, position: 'first' | 'last'): void {
     const style = document.createElement('style');
     style.textContent = css;
     if (position === 'first') document.head.prepend(style);
     else document.head.append(style);
-    userStyles.push(style);
+    onTestFinished(() => style.remove());
 }
 
-afterEach(() => {
-    document.body.textContent = '';
-    while (userStyles.length) userStyles.pop()!.remove();
-});
+/** Mounts a root inside an ancestor that sets the given CSS variables. */
+function mountWithAncestorVars(
+    vars: Record<string, string>,
+    highlights: Highlight[],
+): HTMLElement {
+    const wrapper = document.createElement('section');
+    for (const [name, value] of Object.entries(vars))
+        wrapper.style.setProperty(name, value);
+    const root = mount('abc', highlights);
+    wrapper.appendChild(root);
+    attach(wrapper);
+    return root;
+}
+
+function markOf(root: Element): HTMLElement {
+    return root.querySelector('mark')!;
+}
 
 describe('default stylesheet', () => {
-    it('depth strategy: deeper segments are darker', () => {
+    it('darkens deeper segments with the depth strategy', () => {
         const root = mount('aaaa bbbb cccc', three, { strategy: 'depth' });
+
         const l = [...root.querySelectorAll<HTMLElement>('[data-depth]')].map(
             (el) => luminance(bg(el)),
         );
+
         expect(l).toHaveLength(3);
         expect(l[0]).toBeGreaterThan(l[1]);
         expect(l[1]).toBeGreaterThan(l[2]);
     });
 
-    it('depth darkening stops at --om-max-depth', () => {
-        const hs = Array.from({ length: 8 }, (_, i) => ({
+    it('stops darkening at the default --om-max-depth', () => {
+        const hs = Array.from({ length: DEFAULT_MAX_DEPTH + 2 }, (_, i) => ({
             id: String(i),
             start: i,
-            end: 8,
+            end: DEFAULT_MAX_DEPTH + 2,
         }));
         const root = mount('abcdefgh', hs, { strategy: 'depth' });
+
         const byDepth = new Map<string, string>();
         root.querySelectorAll<HTMLElement>('[data-depth]').forEach((el) =>
             byDepth.set(el.dataset.depth!, bg(el)),
         );
-        expect(byDepth.get('6')).not.toBe(byDepth.get('5'));
-        expect(byDepth.get('7')).toBe(byDepth.get('6'));
-        expect(byDepth.get('8')).toBe(byDepth.get('6'));
+        const at = (depth: number) => byDepth.get(String(depth));
+
+        expect(at(DEFAULT_MAX_DEPTH)).not.toBe(at(DEFAULT_MAX_DEPTH - 1));
+        expect(at(DEFAULT_MAX_DEPTH + 1)).toBe(at(DEFAULT_MAX_DEPTH));
+        expect(at(DEFAULT_MAX_DEPTH + 2)).toBe(at(DEFAULT_MAX_DEPTH));
     });
 
-    it('layers strategy: every nested mark paints a translucent background', () => {
+    it('paints a translucent background on every nested mark with the layers strategy', () => {
         const root = mount('aaaa bbbb cccc', three);
+
         const marks = root.querySelectorAll('mark.om-hl');
-        expect(marks.length).toBeGreaterThan(3);
+
+        // Segments [0,5), [5,10) and [10,14) nest 1 + 2 + 3 marks.
+        expect(marks).toHaveLength(6);
         for (const el of marks) {
             const a = rgba(bg(el))[3];
             expect(a).toBeGreaterThan(0);
@@ -83,98 +110,107 @@ describe('default stylesheet', () => {
         }
     });
 
-    it('layers: an uncolored highlight nested in a colored one uses the default color, not the parent color', () => {
+    it('uses the default color, not the parent color, for an uncolored highlight nested in a colored one', () => {
         const nested = mount('abcdef', [
             { id: 'a', start: 0, end: 6, color: '#ff0000' },
             { id: 'b', start: 2, end: 4 },
         ]);
+        const alone = mount('abcdef', [{ id: 'c', start: 2, end: 4 }]);
+
         const inner = nested.querySelector('mark[data-id="b"]')!;
-        const alone = mount('abcdef', [
-            { id: 'c', start: 2, end: 4 },
-        ]).querySelector('mark[data-id="c"]')!;
-        expect(bg(inner)).toBe(bg(alone));
+
+        expect(bg(inner)).toBe(bg(alone.querySelector('mark[data-id="c"]')!));
         expect(bg(inner)).not.toBe(
             bg(nested.querySelector('mark[data-id="a"]')!),
         );
     });
 
-    it('theme variables set on an ancestor of the root take effect', () => {
-        const red = mount('abc', [
-            { id: 'r', start: 0, end: 3, color: '#ff0000' },
-        ]).querySelector('mark')!;
-        const plain = mount('abc', [
-            { id: 'p', start: 0, end: 3 },
-        ]).querySelector('mark')!;
-        const wrapper = document.createElement('section');
-        wrapper.style.setProperty('--om-default-color', '#ff0000');
-        const themed = mount('abc', [{ id: 't', start: 0, end: 3 }]);
-        wrapper.appendChild(themed);
-        document.body.appendChild(wrapper);
-        const mark = themed.querySelector('mark')!;
-        expect(bg(mark)).toBe(bg(red));
-        expect(bg(mark)).not.toBe(bg(plain));
+    it('applies theme variables set on an ancestor of the root', () => {
+        const red = markOf(
+            mount('abc', [{ id: 'r', start: 0, end: 3, color: '#ff0000' }]),
+        );
+        const plain = markOf(mount('abc', [{ id: 'p', start: 0, end: 3 }]));
+
+        const themed = markOf(
+            mountWithAncestorVars({ '--om-default-color': '#ff0000' }, [
+                { id: 't', start: 0, end: 3 },
+            ]),
+        );
+
+        expect(bg(themed)).toBe(bg(red));
+        expect(bg(themed)).not.toBe(bg(plain));
     });
 
-    it('an ancestor --om-alpha override takes effect', () => {
-        const base = mount('abc', [
-            { id: 'p', start: 0, end: 3 },
-        ]).querySelector('mark')!;
-        const wrapper = document.createElement('section');
-        wrapper.style.setProperty('--om-alpha', '100%');
-        const root = mount('abc', [{ id: 'q', start: 0, end: 3 }]);
-        wrapper.appendChild(root);
-        document.body.appendChild(wrapper);
-        expect(rgba(bg(root.querySelector('mark')!))[3]).toBe(1);
+    it('applies an --om-alpha override set on an ancestor', () => {
+        const base = markOf(mount('abc', [{ id: 'p', start: 0, end: 3 }]));
+
+        const overridden = markOf(
+            mountWithAncestorVars({ '--om-alpha': '100%' }, [
+                { id: 'q', start: 0, end: 3 },
+            ]),
+        );
+
+        expect(rgba(bg(overridden))[3]).toBe(1);
         expect(rgba(bg(base))[3]).toBeLessThan(1);
     });
 
-    for (const position of ['first', 'last'] as const) {
-        it(`a user class from highlight.className wins over library rules (user CSS ${position})`, () => {
-            userCss(
-                '.memo { background-color: rgb(255, 192, 203); } .tint { --om-color: #00ff00; }',
-                position,
-            );
-            const root = mount('abcdef', [
-                { id: 'm', start: 0, end: 3, className: 'memo' },
-                { id: 't', start: 3, end: 6, className: 'tint' },
-            ]);
-            expect(bg(root.querySelector('mark[data-id="m"]')!)).toBe(
-                'rgb(255, 192, 203)',
-            );
-            const green = mount('abc', [
-                { id: 'g', start: 0, end: 3, color: '#00ff00' },
-            ]).querySelector('mark')!;
-            expect(bg(root.querySelector('mark[data-id="t"]')!)).toBe(
-                bg(green),
-            );
-        });
-    }
+    describe.each(['first', 'last'] as const)(
+        'with user CSS placed %s in <head>',
+        (position) => {
+            it('lets a highlight.className rule override the library background', () => {
+                userCss(
+                    '.memo { background-color: rgb(255, 192, 203); }',
+                    position,
+                );
+                const root = mount('abc', [
+                    { id: 'm', start: 0, end: 3, className: 'memo' },
+                ]);
 
-    it('inline highlight.color still wins over a user --om-color class', () => {
+                expect(bg(markOf(root))).toBe('rgb(255, 192, 203)');
+            });
+
+            it('lets a highlight.className set --om-color', () => {
+                userCss('.tint { --om-color: #00ff00; }', position);
+                const tinted = mount('abc', [
+                    { id: 't', start: 0, end: 3, className: 'tint' },
+                ]);
+                const green = mount('abc', [
+                    { id: 'g', start: 0, end: 3, color: '#00ff00' },
+                ]);
+
+                expect(bg(markOf(tinted))).toBe(bg(markOf(green)));
+            });
+        },
+    );
+
+    it('keeps inline highlight.color above a user --om-color class', () => {
         userCss('.tint { --om-color: #00ff00; }', 'last');
         const root = mount('abc', [
             { id: 'x', start: 0, end: 3, color: '#ff0000', className: 'tint' },
         ]);
         const red = mount('abc', [
             { id: 'r', start: 0, end: 3, color: '#ff0000' },
-        ]).querySelector('mark')!;
-        expect(bg(root.querySelector('mark')!)).toBe(bg(red));
+        ]);
+
+        expect(bg(markOf(root))).toBe(bg(markOf(red)));
     });
 
-    it('marker preset paints --om-brush instead of a background color', () => {
+    it('paints --om-brush instead of a background color for the marker preset', () => {
         const root = mount('abc', [
             { id: 'm', start: 0, end: 3, className: 'om-style-marker' },
         ]);
-        const el = root.querySelector('mark')!;
-        const cs = getComputedStyle(el);
+
+        const cs = getComputedStyle(markOf(root));
+
         expect(cs.backgroundImage.startsWith('url("data:image/svg+xml')).toBe(
             true,
         );
         expect(rgba(cs.backgroundColor)[3]).toBe(0);
     });
 
-    it('root preserves whitespace', () => {
+    it('preserves whitespace on the root', () => {
         const root = mount('a  b', []);
+
         expect(getComputedStyle(root).whiteSpace).toBe('pre-wrap');
     });
 });

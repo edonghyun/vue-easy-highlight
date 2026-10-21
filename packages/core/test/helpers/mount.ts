@@ -1,5 +1,6 @@
 // Shared browser-test helpers. Intentionally does NOT import the stylesheet:
 // tests that need it import '../src/styles.css' themselves.
+import { onTestFinished } from 'vitest';
 import { computeSegments, rootAttributes, segmentElements } from '../../src';
 import type { Highlight, RenderOptions } from '../../src';
 import { createRangeFromOffsets } from '../../src/dom';
@@ -9,8 +10,21 @@ export interface MountOptions extends RenderOptions {
     before?: string;
     /** Text node inserted as the root's next sibling (outside the root). */
     after?: string;
-    /** Appends `<span data-om-skip aria-hidden="true">{decorate}</span>` inside the first highlight element with `data-id="b"`. */
-    decorate?: string;
+    /** Appends `<span data-om-skip aria-hidden="true">{text}</span>` inside the first element with `data-id={id}`. */
+    decorate?: { id: string; text: string };
+}
+
+/**
+ * Appends `node` to the body and removes it when the current test finishes,
+ * together with any selection the test left behind.
+ */
+export function attach<T extends Node>(node: T): T {
+    document.body.appendChild(node);
+    onTestFinished(() => {
+        node.parentNode?.removeChild(node);
+        window.getSelection()?.removeAllRanges();
+    });
+    return node;
 }
 
 export function mount(
@@ -38,18 +52,20 @@ export function mount(
         parent.append(seg.text);
     }
     if (decorate !== undefined) {
-        const target = root.querySelector('[data-id="b"]');
+        const target = root.querySelector(`[data-id="${decorate.id}"]`);
         if (!target)
-            throw new Error('mount: decorate needs a highlight with id "b"');
+            throw new Error(
+                `mount: decorate needs a highlight with id "${decorate.id}"`,
+            );
         const deco = document.createElement('span');
         deco.setAttribute('data-om-skip', '');
         deco.setAttribute('aria-hidden', 'true');
-        deco.textContent = decorate;
+        deco.textContent = decorate.text;
         target.appendChild(deco);
     }
-    if (before !== undefined) document.body.append(before);
-    document.body.appendChild(root);
-    if (after !== undefined) document.body.append(after);
+    if (before !== undefined) attach(document.createTextNode(before));
+    attach(root);
+    if (after !== undefined) attach(document.createTextNode(after));
     return root;
 }
 
@@ -77,12 +93,4 @@ export function selectFromOutsideTo(root: Element, offset: number): void {
     range.setStart(outside, 0);
     range.setEnd(inner.endContainer, inner.endOffset);
     setSelection(range);
-}
-
-/** True when index `i` falls between the two halves of a surrogate pair. */
-export function isLowSurrogateAt(text: string, i: number): boolean {
-    if (i <= 0 || i >= text.length) return false;
-    const lo = text.charCodeAt(i);
-    const hi = text.charCodeAt(i - 1);
-    return lo >= 0xdc00 && lo <= 0xdfff && hi >= 0xd800 && hi <= 0xdbff;
 }
