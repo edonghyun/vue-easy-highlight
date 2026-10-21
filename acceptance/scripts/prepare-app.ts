@@ -64,13 +64,17 @@ export async function prepareApp(
         });
     }
     // The apps import the shared fixtures (`../../../fixtures.json` from
-    // src/) and the provenance plugin and SSR build (`../../scripts/`) by
-    // relative path. `.work/apps/<name>` is as deep as `apps/<app>`, so
-    // copies at the same places under `.work/` keep those paths valid in the
-    // work dir.
+    // src/), the provenance plugin and SSR build (`../../scripts/`) and the
+    // SSR hydration watch (`../../../scripts/` from src/) by relative path.
+    // `.work/apps/<name>` is as deep as `apps/<app>`, so copies at the same
+    // places under `.work/` keep those paths valid in the work dir.
     await mkdir(join(work, 'scripts'), { recursive: true });
     await cp(join(acceptance, 'fixtures.json'), join(work, 'fixtures.json'));
-    for (const script of ['provenance-plugin.ts', 'ssr-build.ts']) {
+    for (const script of [
+        'provenance-plugin.ts',
+        'ssr-build.ts',
+        'hydration.ts',
+    ]) {
         await cp(
             join(acceptance, 'scripts', script),
             join(work, 'scripts', script),

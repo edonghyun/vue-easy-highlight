@@ -5,7 +5,8 @@
 // watchHydration catches as changed markup. Either marks the page.
 import { hydrate } from 'svelte';
 import HarnessApp from './HarnessApp.svelte';
-import { hydratingParams, setUpPage, watchHydration } from './page';
+import { hydratingParams, watchHydration } from '../../../scripts/hydration';
+import { setUpPage } from './page';
 
 const params = new URLSearchParams(location.search);
 

@@ -4,7 +4,8 @@
 // errors mark the page.
 import { hydrateRoot } from 'react-dom/client';
 import { HarnessApp } from './HarnessApp';
-import { hydratingParams, setUpPage, watchHydration } from './page';
+import { hydratingParams, watchHydration } from '../../../scripts/hydration';
+import { setUpPage } from './page';
 
 const params = new URLSearchParams(location.search);
 

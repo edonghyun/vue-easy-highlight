@@ -3,7 +3,8 @@
 // (hydration mismatches among them) and console errors mark the page.
 import { createSSRApp } from 'vue';
 import Harness from './Harness.vue';
-import { hydratingParams, setUpPage, watchHydration } from './page';
+import { hydratingParams, watchHydration } from '../../../scripts/hydration';
+import { setUpPage } from './page';
 
 const params = new URLSearchParams(location.search);
 
