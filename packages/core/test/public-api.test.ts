@@ -13,6 +13,7 @@ describe('@overlapmark/core entry point', () => {
             'DEFAULT_COLOR',
             'compareHighlights',
             'computeSegments',
+            'decorationTarget',
             'defaultBrush',
             'findMatches',
             'highlightsInRange',

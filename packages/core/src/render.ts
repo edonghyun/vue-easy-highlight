@@ -109,3 +109,37 @@ export function rootAttributes(options: RenderOptions = {}): {
         attrs: { 'data-om-strategy': options.strategy ?? 'layers' },
     };
 }
+
+/** Where a segment's decoration (style tier 3) goes in its rendered elements. */
+export interface DecorationTarget {
+    /**
+     * Index in the segment's `segmentElements` of the element holding the
+     * decoration: the innermost one. The container is its last child, right
+     * after the segment text.
+     */
+    index: number;
+    /** The decoration container: skipped by offsets, hidden from assistive technology. */
+    container: ElementSpec;
+}
+
+/**
+ * The one placement rule for decorations: only highlighted segments get one,
+ * as the last child of their innermost element, after the text. `elements`
+ * is what `segmentElements` returned for `segment`. Returns `null` for a
+ * plain segment.
+ */
+export function decorationTarget(
+    segment: Segment,
+    elements: readonly ElementSpec[],
+): DecorationTarget | null {
+    if (segment.depth === 0 || elements.length === 0) return null;
+    return {
+        index: elements.length - 1,
+        container: {
+            tag: 'span',
+            className: '',
+            attrs: { 'data-om-skip': '', 'aria-hidden': 'true' },
+            style: {},
+        },
+    };
+}

@@ -7,6 +7,7 @@ import {
     segmentAt,
     segmentElements,
     segmentKey,
+    decorationTarget,
     type Highlight,
 } from '../src';
 
@@ -219,5 +220,43 @@ describe('segmentKey', () => {
         );
 
         expect(segmentKey(oneId)).not.toBe(segmentKey(twoIds));
+    });
+});
+
+describe('decorationTarget', () => {
+    const container = {
+        tag: 'span',
+        className: '',
+        attrs: { 'data-om-skip': '', 'aria-hidden': 'true' },
+        style: {},
+    };
+
+    it.each([
+        { strategy: 'layers' as const, index: 1 },
+        { strategy: 'depth' as const, index: 0 },
+    ])(
+        'places the decoration of a highlighted segment in its innermost element with the $strategy strategy',
+        ({ strategy, index }) => {
+            const elements = segmentElements(overlap, { strategy });
+
+            const target = decorationTarget(overlap, elements);
+
+            expect(elements).toHaveLength(index + 1);
+            expect(target).toEqual({ index, container });
+        },
+    );
+
+    it('gives a plain segment no decoration', () => {
+        const plain = segmentOf([{ id: 'x', start: 0, end: 5 }], 10);
+
+        const target = decorationTarget(plain, segmentElements(plain));
+
+        expect(plain.depth).toBe(0);
+        // Live positive control: a highlighted segment of the same render gets one.
+        const highlighted = segmentOf([{ id: 'x', start: 0, end: 5 }], 0);
+        expect(target).toBeNull();
+        expect(
+            decorationTarget(highlighted, segmentElements(highlighted)),
+        ).not.toBeNull();
     });
 });

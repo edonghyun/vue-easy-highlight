@@ -1,9 +1,11 @@
 import {
     computeSegments,
+    decorationTarget,
     rootAttributes,
     segmentElements,
 } from '@overlapmark/core';
 import type {
+    ElementSpec,
     Highlight,
     HoverDetail,
     PointDetail,
@@ -42,13 +44,14 @@ export interface HighlighterOptions<T = unknown> extends RenderOptions {
     decorate?: (segment: Segment<T>) => Node | string | null;
 }
 
-/** The decoration container of the DOM contract. */
-function decorationOf(content: Node | string): HTMLElement {
-    const span = document.createElement('span');
-    span.setAttribute('data-om-skip', '');
-    span.setAttribute('aria-hidden', 'true');
-    span.append(content);
-    return span;
+/** The element `spec` describes, without children. */
+function elementOf(spec: ElementSpec): HTMLElement {
+    const node = document.createElement(spec.tag);
+    if (spec.className) node.className = spec.className;
+    for (const [k, v] of Object.entries(spec.attrs)) node.setAttribute(k, v);
+    for (const [k, v] of Object.entries(spec.style))
+        node.style.setProperty(k, v);
+    return node;
 }
 
 type EventMap<T> = {
@@ -105,21 +108,22 @@ export function createHighlighter<T>(
         segments = computeSegments(opts.text, opts.highlights ?? []);
         const frag = document.createDocumentFragment();
         for (const seg of segments) {
+            const specs = segmentElements(seg, opts);
+            const elements = specs.map(elementOf);
             let parent: Node = frag;
-            for (const spec of segmentElements(seg, opts)) {
-                const node = document.createElement(spec.tag);
-                node.className = spec.className;
-                for (const [k, v] of Object.entries(spec.attrs))
-                    node.setAttribute(k, v);
-                for (const [k, v] of Object.entries(spec.style))
-                    node.style.setProperty(k, v);
+            for (const node of elements) {
                 parent.appendChild(node);
                 parent = node;
             }
             parent.appendChild(document.createTextNode(seg.text));
-            const decoration = seg.depth > 0 ? opts.decorate?.(seg) : null;
-            if (decoration != null)
-                parent.appendChild(decorationOf(decoration));
+            const target = decorationTarget(seg, specs);
+            const decoration =
+                target && opts.decorate ? opts.decorate(seg) : null;
+            if (target && decoration != null) {
+                const container = elementOf(target.container);
+                container.append(decoration);
+                elements[target.index].appendChild(container);
+            }
         }
         el.replaceChildren(frag);
     };

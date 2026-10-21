@@ -2,8 +2,13 @@
 // tests that need it import '../src/styles.css' themselves.
 import { setSelection } from '@overlapmark/adapter-contract';
 import { onTestFinished } from 'vitest';
-import { computeSegments, rootAttributes, segmentElements } from '../../src';
-import type { Highlight, RenderOptions, Segment } from '../../src';
+import {
+    computeSegments,
+    decorationTarget,
+    rootAttributes,
+    segmentElements,
+} from '../../src';
+import type { ElementSpec, Highlight, RenderOptions, Segment } from '../../src';
 import { createRangeFromOffsets } from '../../src/dom';
 
 export interface MountOptions extends RenderOptions {
@@ -50,22 +55,31 @@ export function renderInto(
     for (const [k, v] of Object.entries(r.attrs)) root.setAttribute(k, v);
     const frag = document.createDocumentFragment();
     for (const seg of computeSegments(text, [...highlights])) {
+        const specs = segmentElements(seg, options);
+        const elements = specs.map(elementOf);
         let parent: Node = frag;
-        for (const spec of segmentElements(seg, options)) {
-            const el = document.createElement(spec.tag);
-            el.className = spec.className;
-            for (const [k, v] of Object.entries(spec.attrs))
-                el.setAttribute(k, v);
-            for (const [k, v] of Object.entries(spec.style))
-                el.style.setProperty(k, v);
+        for (const el of elements) {
             parent.appendChild(el);
             parent = el;
         }
         parent.appendChild(document.createTextNode(seg.text));
-        if (options.decoration && seg.depth > 0)
-            parent.appendChild(decorationOf(options.decoration(seg)));
+        const target = decorationTarget(seg, specs);
+        if (target && options.decoration) {
+            const deco = elementOf(target.container);
+            deco.textContent = options.decoration(seg);
+            elements[target.index].appendChild(deco);
+        }
     }
     root.replaceChildren(frag);
+}
+
+/** The element `spec` describes, without children. */
+function elementOf(spec: ElementSpec): HTMLElement {
+    const el = document.createElement(spec.tag);
+    if (spec.className) el.className = spec.className;
+    for (const [k, v] of Object.entries(spec.attrs)) el.setAttribute(k, v);
+    for (const [k, v] of Object.entries(spec.style)) el.style.setProperty(k, v);
+    return el;
 }
 
 function decorationOf(text: string): HTMLElement {
