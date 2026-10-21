@@ -208,8 +208,11 @@ In Vue, render `Highlighter` from [`@overlapmark/vue`](packages/vue) in place of
 
 ## Known limitations
 
-- **Untested peer lower bounds.** `@overlapmark/react` declares React 18 or later and `@overlapmark/vue` Vue 3.3 or later, but the test suites run on React 19 and Vue 3.5 only; React 18 and Vue 3.3–3.4 are not tested yet.
-- **Programmatic hover `leave`.** A `leave` caused by unmounting, destroying or an update, not by the mouse, carries `event: null`.
+- **Untested peer lower bounds.** `@overlapmark/react` declares React 18 or later, `@overlapmark/vue` Vue 3.3 or later and `@overlapmark/svelte` Svelte 5 or later, but the test suites run on React 19, Vue 3.5 and Svelte 5.57 only; React 18, Vue 3.3–3.4 and earlier Svelte 5 releases are not tested yet.
+- **Chromium only.** The browser tests run in Chromium; Firefox and WebKit are not tested yet.
+- **ESM only for the framework adapters.** `@overlapmark/vue`, `@overlapmark/react` and `@overlapmark/svelte` ship ES modules only; `@overlapmark/core` and `@overlapmark/dom` ship both ES modules and CommonJS.
+- **Programmatic hover `leave`.** A `leave` caused by unmounting, destroying or an update, not by the mouse, carries `event: null`. Hiding the component also emits one for a hovered segment: React's `<Activity mode="hidden">` and Vue's `<KeepAlive>` deactivating it.
+- **Vue `data` is untyped.** The Vue `Highlighter` is not generic over `Highlight<T>`, so `data` in its events and slot is `unknown`; cast it where you read it. The React and Svelte components are generic.
 - **Svelte differences.**
     - When the component is removed while a segment is hovered, the `leave` still reaches `onhover`, but Svelte has already taken the root `div` out of the document by then.
     - Every highlighted segment gets a decoration container when a `decoration` snippet is given: what a snippet renders is only known once it rendered, so a segment it renders nothing for keeps an empty container (no text, takes no space). The other adapters render no container for a decoration that renders nothing (see [Styling](#styling), tier 3).
