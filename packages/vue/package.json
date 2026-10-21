@@ -4,10 +4,25 @@
     "description": "Vue 3 component for overlapping text highlights",
     "license": "MIT",
     "author": "Donghyun Lee",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/edonghyun/vue-easy-highlight.git",
+        "directory": "packages/vue"
+    },
+    "homepage": "https://github.com/edonghyun/vue-easy-highlight#readme",
+    "bugs": "https://github.com/edonghyun/vue-easy-highlight/issues",
+    "keywords": [
+        "highlight",
+        "overlapping-highlights",
+        "text-highlight",
+        "annotation",
+        "vue"
+    ],
     "type": "module",
     "sideEffects": false,
     "files": [
-        "dist"
+        "dist",
+        "LICENSE"
     ],
     "module": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -27,7 +42,8 @@
     "scripts": {
         "build": "tsup",
         "test": "vitest run --project node --project browser",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "prepack": "cp ../../LICENSE LICENSE"
     },
     "devDependencies": {
         "@overlapmark/adapter-contract": "workspace:*",

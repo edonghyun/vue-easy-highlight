@@ -4,12 +4,26 @@
     "description": "Framework-agnostic core for overlapping text highlights",
     "license": "MIT",
     "author": "Donghyun Lee",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/edonghyun/vue-easy-highlight.git",
+        "directory": "packages/core"
+    },
+    "homepage": "https://github.com/edonghyun/vue-easy-highlight#readme",
+    "bugs": "https://github.com/edonghyun/vue-easy-highlight/issues",
+    "keywords": [
+        "highlight",
+        "overlapping-highlights",
+        "text-highlight",
+        "annotation"
+    ],
     "type": "module",
     "sideEffects": [
         "*.css"
     ],
     "files": [
-        "dist"
+        "dist",
+        "LICENSE"
     ],
     "main": "./dist/index.cjs",
     "module": "./dist/index.js",
@@ -43,7 +57,8 @@
         "test": "vitest run --project node --project browser",
         "test:perf": "vitest run --project perf",
         "bench": "vitest bench --run --reporter=verbose",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "prepack": "cp ../../LICENSE LICENSE"
     },
     "devDependencies": {
         "@overlapmark/adapter-contract": "workspace:*"

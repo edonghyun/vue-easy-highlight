@@ -4,10 +4,25 @@
     "description": "Svelte 5 component for overlapping text highlights",
     "license": "MIT",
     "author": "Donghyun Lee",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/edonghyun/vue-easy-highlight.git",
+        "directory": "packages/svelte"
+    },
+    "homepage": "https://github.com/edonghyun/vue-easy-highlight#readme",
+    "bugs": "https://github.com/edonghyun/vue-easy-highlight/issues",
+    "keywords": [
+        "highlight",
+        "overlapping-highlights",
+        "text-highlight",
+        "annotation",
+        "svelte"
+    ],
     "type": "module",
     "sideEffects": false,
     "files": [
-        "dist"
+        "dist",
+        "LICENSE"
     ],
     "svelte": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -26,9 +41,10 @@
         "svelte": ">=5"
     },
     "scripts": {
-        "build": "svelte-package",
+        "build": "svelte-package && cp dist/Highlighter.svelte.d.ts dist/Highlighter.d.svelte.ts",
         "test": "vitest run --project node --project browser",
-        "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings"
+        "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
+        "prepack": "cp ../../LICENSE LICENSE"
     },
     "devDependencies": {
         "@overlapmark/adapter-contract": "workspace:*",

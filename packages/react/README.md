@@ -11,6 +11,27 @@ Requires React 18 or later (`react` and `react-dom`). The tests run on React 19;
 ```tsx
 import '@overlapmark/core/styles.css';
 import { useState } from 'react';
+import type { Highlight, SelectDetail } from '@overlapmark/core';
+import { Highlighter } from '@overlapmark/react';
+
+export function Article({ text }: { text: string }) {
+    const [highlights, setHighlights] = useState<Highlight[]>([]);
+    const add = ({ start, end }: SelectDetail) =>
+        setHighlights((list) => [
+            ...list,
+            { id: crypto.randomUUID(), start, end },
+        ]);
+    return <Highlighter text={text} highlights={highlights} onSelect={add} />;
+}
+```
+
+## More
+
+A class on the root, and handlers for clicks:
+
+```tsx
+import '@overlapmark/core/styles.css';
+import { useState } from 'react';
 import type { Highlight } from '@overlapmark/core';
 import { Highlighter } from '@overlapmark/react';
 
