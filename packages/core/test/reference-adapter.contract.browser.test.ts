@@ -2,10 +2,7 @@
 // from core primitives, so the suite itself is proven on the code every real
 // adapter builds on.
 import { defineAdapterContract } from '@overlapmark/adapter-contract';
-import type {
-    AdapterEvent,
-    ContractProps,
-} from '@overlapmark/adapter-contract';
+import type { ContractProps } from '@overlapmark/adapter-contract';
 import '../src/styles.css';
 import { computeSegments } from '../src';
 import type { Segment } from '../src';
@@ -18,10 +15,9 @@ import { renderInto } from './helpers/mount';
 
 defineAdapterContract({
     name: 'reference',
-    async mount(host, initial) {
+    async mount(host, initial, record) {
         let props: ContractProps = { ...initial };
         let segments: readonly Segment[] = [];
-        const events: AdapterEvent[] = [];
         const root = document.createElement('div');
         host.append(root);
 
@@ -40,15 +36,14 @@ defineAdapterContract({
             get touchSelectionDelay() {
                 return props.touchSelectionDelay;
             },
-            onSelect: (detail) => events.push({ type: 'select', detail }),
-            onClick: (detail) => events.push({ type: 'click', detail }),
-            onDblclick: (detail) => events.push({ type: 'dblclick', detail }),
-            onHover: (detail) => events.push({ type: 'hover', detail }),
+            onSelect: (detail) => record({ type: 'select', detail }),
+            onClick: (detail) => record({ type: 'click', detail }),
+            onDblclick: (detail) => record({ type: 'dblclick', detail }),
+            onHover: (detail) => record({ type: 'hover', detail }),
         });
 
         return {
             root,
-            events,
             // Re-renders from scratch, restoring the selection by offset (spec
             // §6) and the focused segment by its start offset. Focus restore is
             // not in the spec; the contract's updates group requires it.

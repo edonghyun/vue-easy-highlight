@@ -53,9 +53,16 @@ import type {
     AdapterFactory,
     ContractProps,
     MountedAdapter,
+    RecordEvent,
 } from './types';
 
-export type { AdapterEvent, AdapterFactory, ContractProps, MountedAdapter };
+export type {
+    AdapterEvent,
+    AdapterFactory,
+    ContractProps,
+    MountedAdapter,
+    RecordEvent,
+};
 export { expectedTree } from './reference-tree';
 export { serializeRoot } from './serialize';
 export type { ElementTree, RootTree, TreeNode } from './serialize';
@@ -68,8 +75,10 @@ type DetailOf<K extends AdapterEvent['type']> = K extends 'select'
       ? HoverDetail
       : PointDetail;
 
-/** Anything that records adapter events: a mounted adapter, or a bare recorder. */
-type EventSource = Pick<MountedAdapter, 'events'>;
+/** Anything holding recorded adapter events, in order. */
+export interface EventSource {
+    readonly events: readonly AdapterEvent[];
+}
 
 /**
  * The recorded events of one type, in order. Assertions look at one type at a
@@ -108,6 +117,16 @@ export function selectEvent(
     };
 }
 
+/** A mounted adapter together with the record the suite keeps of its events. */
+interface ContractAdapter extends MountedAdapter, EventSource {
+    /**
+     * Calls `inspect` with each event recorded from now on, at the moment it
+     * is recorded, so a test can read the page as a subscriber of that event
+     * would.
+     */
+    whenRecorded(inspect: (event: AdapterEvent) => void): void;
+}
+
 const strategies: { strategy: Strategy }[] = [
     { strategy: 'layers' },
     { strategy: 'depth' },
@@ -117,14 +136,23 @@ export function defineAdapterContract(factory: AdapterFactory): void {
     const { name } = factory;
 
     /**
-     * Mounts `props` in a fresh host at the end of the body. Unmounting, host
-     * removal and clearing the selection are registered here, so tests never
-     * clean up by hand.
+     * Mounts `props` in a fresh host at the end of the body and records every
+     * event the factory passes to `record`. Unmounting, host removal and
+     * clearing the selection are registered here, so tests never clean up by
+     * hand.
      */
-    async function givenAdapter(props: ContractProps): Promise<MountedAdapter> {
+    async function givenAdapter(
+        props: ContractProps,
+    ): Promise<ContractAdapter> {
         const host = document.createElement('div');
         document.body.append(host);
-        const mounted = await factory.mount(host, props);
+        const events: AdapterEvent[] = [];
+        const inspectors: ((event: AdapterEvent) => void)[] = [];
+        const record: RecordEvent = (event) => {
+            events.push(event);
+            for (const inspect of inspectors) inspect(event);
+        };
+        const mounted = await factory.mount(host, props, record);
         let live = true;
         onTestFinished(async () => {
             if (live) await mounted.unmount();
@@ -135,8 +163,9 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             get root() {
                 return mounted.root;
             },
-            get events() {
-                return mounted.events;
+            events,
+            whenRecorded: (inspect) => {
+                inspectors.push(inspect);
             },
             update: (next) => mounted.update(next),
             unmount: async () => {
@@ -144,26 +173,6 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 await mounted.unmount();
             },
         };
-    }
-
-    /**
-     * Calls `inspect` with each event `adapter` records from now on, at the
-     * moment it is recorded, so a test can read the page as a subscriber of
-     * that event would.
-     */
-    function whenRecorded(
-        adapter: MountedAdapter,
-        inspect: (event: AdapterEvent) => void,
-    ): void {
-        const events = adapter.events as AdapterEvent[];
-        events.push = (...items) => {
-            const length = Array.prototype.push.apply(events, items);
-            for (const item of items) inspect(item);
-            return length;
-        };
-        onTestFinished(() => {
-            delete (events as { push?: unknown }).push;
-        });
     }
 
     /** A text node between the instances mounted before and after it. */
@@ -768,14 +777,14 @@ export function defineAdapterContract(factory: AdapterFactory): void {
 
     describe(`${name} — hover across an update`, () => {
         /** The trail of recorded hover events, as `type:segmentStart`. */
-        const hoverTrail = (adapter: MountedAdapter): string[] =>
+        const hoverTrail = (adapter: ContractAdapter): string[] =>
             detailsOf(adapter, 'hover').map(
                 (d) => `${d.type}:${d.segment.start}`,
             );
 
         /** Hovers character 7, inside the [6,15) a+b segment of `partialOverlap`. */
         async function givenHoveredOverlap(): Promise<{
-            adapter: MountedAdapter;
+            adapter: ContractAdapter;
             outside: HTMLElement;
         }> {
             const outside = await givenPointerOutsideRoots();
@@ -860,9 +869,14 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             const { adapter } = await givenHoveredOverlap();
             segmentElement(adapter.root, 0).focus();
             await selectAndWait(adapter.root, 16, 19);
-            const seen: { offsets: unknown; focused: Element | null }[] = [];
-            whenRecorded(adapter, () =>
+            const seen: {
+                event: AdapterEvent;
+                offsets: unknown;
+                focused: Element | null;
+            }[] = [];
+            adapter.whenRecorded((event) =>
                 seen.push({
+                    event,
                     offsets: getSelectionOffsets(adapter.root),
                     focused: document.activeElement,
                 }),
@@ -871,6 +885,10 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await adapter.update({ highlights: [left] });
 
             await expect.poll(() => seen).toHaveLength(1);
+            expect(seen[0].event).toEqual({
+                type: 'hover',
+                detail: expect.objectContaining({ type: 'leave', event: null }),
+            });
             expect(seen[0].offsets).toEqual({ start: 16, end: 19 });
             expect(seen[0].focused).toBe(segmentElement(adapter.root, 0));
         });
