@@ -39,7 +39,11 @@ type EventMap<T> = {
 
 export interface Highlighter<T = unknown> {
     update(options: Partial<HighlighterOptions<T>>): void;
-    /** Subscribes to an event; returns the function that unsubscribes. */
+    /**
+     * Subscribes to an event; returns the function that removes this
+     * subscription. Every call is a separate subscription, so a function
+     * subscribed twice is called twice per event.
+     */
     on<K extends keyof EventMap<T>>(
         type: K,
         fn: (d: EventMap<T>[K]) => void,
@@ -129,9 +133,12 @@ export function createHighlighter<T>(
         },
         on(type, fn) {
             const set = listeners[type] as Set<typeof fn>;
-            set.add(fn);
+            // A fresh wrapper per call: each unsubscribe removes its own
+            // subscription, even when the same fn is subscribed again.
+            const subscription: typeof fn = (d) => fn(d);
+            set.add(subscription);
             return () => {
-                set.delete(fn);
+                set.delete(subscription);
             };
         },
         getSegments: () => segments,

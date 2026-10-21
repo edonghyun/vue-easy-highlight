@@ -136,6 +136,42 @@ describe('createHighlighter: unsubscribing', () => {
 
         expect(subscribed).toHaveBeenCalledTimes(1);
     });
+    // Each on() is its own subscription, even for a function already subscribed.
+    it('keeps calling a later subscription of the same function when an earlier unsubscribe runs again', () => {
+        const { el, h } = givenHighlighter();
+        const fn = vi.fn();
+        const offEarlier = h.on('click', fn);
+        offEarlier();
+        h.on('click', fn);
+
+        offEarlier();
+        segmentElement(el, 6).click();
+
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls a function subscribed twice once per subscription', () => {
+        const { el, h } = givenHighlighter();
+        const fn = vi.fn();
+        h.on('click', fn);
+        h.on('click', fn);
+
+        segmentElement(el, 6).click();
+
+        expect(fn).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps the other subscription of a function subscribed twice when one is removed', () => {
+        const { el, h } = givenHighlighter();
+        const fn = vi.fn();
+        const offFirst = h.on('click', fn);
+        h.on('click', fn);
+
+        offFirst();
+        segmentElement(el, 6).click();
+
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
 });
 
 describe('createHighlighter: update() re-rendering a selection', () => {
@@ -161,7 +197,7 @@ describe('createHighlighter: update() re-rendering a selection', () => {
         expect(window.getSelection()!.toString()).toBe(TEXT.slice(8, 18));
     });
 
-    // D3: a changed delay applies from the next selectionchange, and re-rendering
+    // A changed delay applies from the next selectionchange, and re-rendering
     // the selection is one, so a touch selection already waiting restarts its
     // wait with the new delay.
     it('restarts a pending touch wait with a changed touchSelectionDelay', async () => {
@@ -213,7 +249,7 @@ describe('createHighlighter: update() re-rendering focus and hover', () => {
         return hovers;
     }
 
-    // D2: the hovered element is replaced, so the pointer can no longer leave it.
+    // The hovered element is replaced, so the pointer can no longer leave it.
     it('emits leave for the hovered segment it re-renders, with no pointer event', async () => {
         const { el, h } = givenHighlighter();
         const hovers = await givenHoveredSegment(el, h);
