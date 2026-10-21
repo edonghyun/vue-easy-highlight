@@ -70,11 +70,11 @@ A runnable playground lives in [`examples/vanilla`](examples/vanilla): `pnpm --f
 
 Three levels, from least to most control:
 
-1. **Theme with CSS variables.** Set them on `.om-root` or any ancestor.
+1. **Theme with CSS variables.** Set them on `.om-root` or any ancestor (values shown are the defaults).
     ```css
     .om-root {
-        --om-default-color: #ffe58f; /* color of highlights that have no `color` */
-        --om-depth-step: 15%; /* how much darker per overlap level (depth strategy) */
+        --om-default-color: #ddd6ff; /* color of highlights that have no `color` */
+        --om-depth-step: 12%; /* how much darker per overlap level (depth strategy) */
         --om-max-depth: 6; /* depth at which darkening stops */
         --om-alpha: 55%; /* opacity of each layer (layers strategy) */
     }

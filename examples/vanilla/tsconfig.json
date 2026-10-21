@@ -1,7 +1,13 @@
 {
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
-        "types": ["vite/client"]
+        "types": ["vite/client"],
+        "paths": {
+            "@overlapmark/core": ["../../packages/core/src/index.ts"],
+            "@overlapmark/core/dom": ["../../packages/core/src/dom/index.ts"],
+            "@overlapmark/core/styles.css": ["../../packages/core/src/styles.css"],
+            "@overlapmark/dom": ["../../packages/dom/src/index.ts"]
+        }
     },
     "include": ["main.ts", "vite.config.ts"]
 }
