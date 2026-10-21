@@ -70,6 +70,7 @@ export { expectedTree } from './reference-tree';
 export { serializeRoot } from './serialize';
 export type { ElementTree, RootTree, TreeNode } from './serialize';
 export * from './fixtures';
+export { propsOf } from './props';
 export * from './gestures';
 
 type DetailOf<K extends AdapterEvent['type']> = K extends 'select'
