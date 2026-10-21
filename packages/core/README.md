@@ -19,7 +19,7 @@ Positions are UTF-16 string indices; `start` is inclusive, `end` exclusive. Segm
 | Export                                    | Description                                                                                                                                                   |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `computeSegments(text, highlights)`       | Flatten overlapping highlights into `Segment[]` (`{ start, end, text, highlights, depth }`). Invalid or stale ranges are handled deterministically.           |
-| `compareHighlights(a, b)`                 | The ordering used everywhere: `start` ascending, longer first, then input order                                                                               |
+| `compareHighlights(a, b, indexOf)`        | The ordering used everywhere: `start` ascending, longer first, then input order (`indexOf(h)` returns a highlight's input index)                             |
 | `segmentAt(segments, offset)`             | The segment containing an offset                                                                                                                              |
 | `highlightsInRange(segments, start, end)` | Highlights overlapping a range                                                                                                                                |
 | `findMatches(text, query, options?)`      | Literal search; `query` is a string or array. Options: `caseSensitive` (false), `overlapping` (true), `wholeWord` (false). Returns `{ start, end }[]`.        |

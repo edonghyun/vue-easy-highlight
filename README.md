@@ -85,7 +85,9 @@ Three levels, from least to most control:
     { id: 'note', start: 0, end: 12, color: '#ffd6d6', className: 'om-style-underline' }
     ```
     You can also write your own CSS against the DOM contract (`.om-hl`, `[data-depth]`, `[data-ids]`, `--om-level`); see the package README. Every library selector is wrapped in `:where()` (zero specificity), so a plain class rule such as `.memo { background-color: pink }` or `.memo { --om-color: pink }` wins regardless of stylesheet order.
-3. **Full control.** Skip `@overlapmark/core/styles.css` and style the DOM contract yourself. The library never injects CSS.
+3. **Full control (planned).** Render your own markup per segment and highlight through adapter render slots (Vue/Svelte slots, a React render prop, a vanilla render callback), for badges, tooltip triggers or custom components. This tier is not available yet in `@overlapmark/dom`; it is coming with the framework adapters.
+
+**Unstyled usage.** Independently of the tiers above, you can skip `@overlapmark/core/styles.css` entirely and style the DOM contract yourself. The library never injects CSS.
 
 Overlap strategies (`strategy` option): `layers` (default) stacks one element per highlight; `depth` renders one element per segment and darkens it with the overlap count.
 
