@@ -28,9 +28,11 @@ export interface MountedAdapter {
      * Every emitted event, in order; the factory maps emits / on* props / h.on() into it.
      *
      * Two requirements the suite relies on:
-     * - Push synchronously, inside the core callback that produced the event.
-     *   Tests assert right after a synchronous dispatch (or after `settle()`),
-     *   so an event recorded on a later tick or microtask is missed.
+     * - Push synchronously with `events.push`, inside the core callback that
+     *   produced the event. Tests assert right after a synchronous dispatch (or
+     *   after `settle()`), so an event recorded on a later tick or microtask is
+     *   missed; and some tests wrap `push` to look at the page at the moment an
+     *   event is recorded.
      * - Keep the caller's objects. `detail.highlights` must hold the very
      *   `Highlight` objects passed in `ContractProps` (the suite checks identity
      *   with `toBe`), not reactive proxies or copies. Framework adapters keep

@@ -36,6 +36,7 @@ import {
     clearSelectionAndWait,
     givenPointerOutsideRoots,
     keyUp,
+    mutationsHandled,
     pointer,
     release,
     segmentElement,
@@ -143,6 +144,26 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 await mounted.unmount();
             },
         };
+    }
+
+    /**
+     * Calls `inspect` with each event `adapter` records from now on, at the
+     * moment it is recorded, so a test can read the page as a subscriber of
+     * that event would.
+     */
+    function whenRecorded(
+        adapter: MountedAdapter,
+        inspect: (event: AdapterEvent) => void,
+    ): void {
+        const events = adapter.events as AdapterEvent[];
+        events.push = (...items) => {
+            const length = Array.prototype.push.apply(events, items);
+            for (const item of items) inspect(item);
+            return length;
+        };
+        onTestFinished(() => {
+            delete (events as { push?: unknown }).push;
+        });
     }
 
     /** A text node between the instances mounted before and after it. */
@@ -742,6 +763,116 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             expect(eventsOf(adapter, 'select')).toEqual([
                 selectEvent(8, 18, [a, b]),
             ]);
+        });
+    });
+
+    describe(`${name} — hover across an update`, () => {
+        /** The trail of recorded hover events, as `type:segmentStart`. */
+        const hoverTrail = (adapter: MountedAdapter): string[] =>
+            detailsOf(adapter, 'hover').map(
+                (d) => `${d.type}:${d.segment.start}`,
+            );
+
+        /** Hovers character 7, inside the [6,15) a+b segment of `partialOverlap`. */
+        async function givenHoveredOverlap(): Promise<{
+            adapter: MountedAdapter;
+            outside: HTMLElement;
+        }> {
+            const outside = await givenPointerOutsideRoots();
+            const adapter = await givenAdapter(partialOverlap);
+            const { el, position } = charPosition(adapter.root, 7);
+            await userEvent.hover(el, { position });
+            expect(hoverTrail(adapter)).toEqual(['enter:6']);
+            return { adapter, outside };
+        }
+
+        /** Highlights 0–5 only: character 7 becomes plain text, and segment 0 stays focusable. */
+        const left = { id: 'left', start: 0, end: 5 };
+
+        it('emits leave, with no pointer event, when an update removes the hovered highlight', async () => {
+            const { adapter } = await givenHoveredOverlap();
+
+            await adapter.update({ highlights: [left] });
+
+            await expect.poll(() => hoverTrail(adapter)).toHaveLength(2);
+            const hovers = detailsOf(adapter, 'hover');
+            expect(hovers[1]).toEqual({
+                type: 'leave',
+                segment: hovers[0].segment,
+                highlights: [a, b],
+                event: null,
+            });
+            expect(hovers[1].segment).toBe(hovers[0].segment);
+        });
+
+        it('emits that leave only once', async () => {
+            const { adapter } = await givenHoveredOverlap();
+            await adapter.update({ highlights: [left] });
+            await expect.poll(() => hoverTrail(adapter)).toHaveLength(2);
+
+            await userEvent.hover(segmentElement(adapter.root, 0));
+
+            // Live positive control: the move onto segment 0 is recorded.
+            expect(hoverTrail(adapter)).toEqual([
+                'enter:6',
+                'leave:6',
+                'enter:0',
+            ]);
+        });
+
+        // The pointer moves out before the second update: after a re-render,
+        // Chromium sends boundary events of its own to a pointer that stays put.
+        it('emits enter when the mouse moves back onto a highlight an update brought back', async () => {
+            const { adapter, outside } = await givenHoveredOverlap();
+            await adapter.update({ highlights: [left] });
+            await expect.poll(() => hoverTrail(adapter)).toHaveLength(2);
+            await userEvent.hover(outside);
+            await adapter.update({ highlights: [a, b] });
+
+            const back = charPosition(adapter.root, 7);
+            await userEvent.hover(back.el, { position: back.position });
+
+            expect(hoverTrail(adapter)).toEqual([
+                'enter:6',
+                'leave:6',
+                'enter:6',
+            ]);
+        });
+
+        it('emits nothing when an update re-renders the hovered segment unchanged', async () => {
+            const { adapter, outside } = await givenHoveredOverlap();
+            const handled = mutationsHandled(adapter.root);
+
+            await adapter.update({
+                highlights: [a, b, { id: 'd', start: 24, end: 30 }],
+            });
+            await handled;
+
+            expect(hoverTrail(adapter)).toEqual(['enter:6']);
+            // Live positive control: moving out still leaves the segment entered first.
+            await userEvent.hover(outside);
+            const hovers = detailsOf(adapter, 'hover');
+            expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
+            expect(hovers[1].segment).toBe(hovers[0].segment);
+        });
+
+        it('emits that leave after the update restored the selection and focus', async () => {
+            const { adapter } = await givenHoveredOverlap();
+            segmentElement(adapter.root, 0).focus();
+            await selectAndWait(adapter.root, 16, 19);
+            const seen: { offsets: unknown; focused: Element | null }[] = [];
+            whenRecorded(adapter, () =>
+                seen.push({
+                    offsets: getSelectionOffsets(adapter.root),
+                    focused: document.activeElement,
+                }),
+            );
+
+            await adapter.update({ highlights: [left] });
+
+            await expect.poll(() => seen).toHaveLength(1);
+            expect(seen[0].offsets).toEqual({ start: 16, end: 19 });
+            expect(seen[0].focused).toBe(segmentElement(adapter.root, 0));
         });
     });
 

@@ -56,6 +56,24 @@ export async function clearSelectionAndWait(): Promise<void> {
     await changed;
 }
 
+/**
+ * The barrier for work done in mutation observers (core re-checks the hovered
+ * segment in one after an adapter re-renders). Resolves once the observers
+ * notified of the next change under `root` have run. Mutation observers are
+ * notified in the order they were created, so create the barrier after the
+ * observer it waits for, i.e. after the gesture that starts it, and before the
+ * change.
+ */
+export function mutationsHandled(root: Node): Promise<void> {
+    return new Promise((resolve) => {
+        const observer = new MutationObserver(() => {
+            observer.disconnect();
+            resolve();
+        });
+        observer.observe(root, { childList: true, subtree: true });
+    });
+}
+
 /** Dispatches a synthetic pointer event (mouse unless `init.pointerType` says otherwise). */
 export function pointer(
     type: string,

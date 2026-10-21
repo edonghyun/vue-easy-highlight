@@ -188,7 +188,6 @@ export function attachInteractions<T>(
 
     // ---- hover -----------------------------------------------------------
     let hovered: { el: Element; segment: Segment<T> } | null = null;
-
     const highlightedSegmentAt = (
         target: EventTarget | null,
     ): { el: Element; segment: Segment<T> } | null => {
@@ -201,6 +200,7 @@ export function attachInteractions<T>(
         if (!hovered) return;
         const { segment } = hovered;
         hovered = null;
+        observer.disconnect();
         options.onHover?.({
             type: 'leave',
             segment,
@@ -209,13 +209,49 @@ export function attachInteractions<T>(
         });
     };
 
+    // Where the mouse was at its last pointerover/pointerout, to find what is
+    // under it after a re-render.
+    let pointerX = 0;
+    let pointerY = 0;
+
+    const sameHighlights = (x: Segment<T>, y: Segment<T>): boolean =>
+        x.highlights.length === y.highlights.length &&
+        x.highlights.every((h, i) => h.id === y.highlights[i].id);
+
+    // An adapter re-render can replace the hovered element while the mouse
+    // stays still. Observer callbacks run as microtasks, so this runs after
+    // the adapter's synchronous update, once selection and focus are restored.
+    const onRootMutated = (): void => {
+        if (!hovered || root.contains(hovered.el)) return;
+        const under = highlightedSegmentAt(
+            document.elementFromPoint(pointerX, pointerY),
+        );
+        if (
+            under &&
+            under.segment.start === hovered.segment.start &&
+            sameHighlights(under.segment, hovered.segment)
+        ) {
+            // The same segment, re-rendered: keep hovering it. `leave` still
+            // reports the segment object from `enter`.
+            hovered = { el: under.el, segment: hovered.segment };
+            return;
+        }
+        // The hovered highlight is gone from under the pointer; no pointer
+        // event caused that, hence `event: null`.
+        leave(null);
+    };
+    const observer = new MutationObserver(onRootMutated);
+
     const onPointerOver = (e: PointerEvent): void => {
         if (e.pointerType !== 'mouse') return;
+        pointerX = e.clientX;
+        pointerY = e.clientY;
         const next = highlightedSegmentAt(e.target);
         if (next?.el === hovered?.el) return;
         leave(e);
         if (!next) return;
         hovered = next;
+        observer.observe(root, { childList: true, subtree: true });
         options.onHover?.({
             type: 'enter',
             segment: next.segment,
@@ -226,6 +262,8 @@ export function attachInteractions<T>(
 
     const onPointerOut = (e: PointerEvent): void => {
         if (e.pointerType !== 'mouse') return;
+        pointerX = e.clientX;
+        pointerY = e.clientY;
         // Moving between nested marks of the same segment is not a leave.
         if (highlightedSegmentAt(e.relatedTarget)?.el === hovered?.el) return;
         leave(e);

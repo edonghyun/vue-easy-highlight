@@ -21,9 +21,10 @@ export interface PointDetail<T = unknown> {
  * Payload of `onHover`: the mouse entered or left a highlighted segment.
  * A `leave` carries the same `segment` object as its `enter`.
  *
- * A `leave` with `event: null` was not caused by the pointer: the hovered
- * segment ended because the listeners were detached (adapter destroyed or
- * unmounted) or because an adapter re-rendered the segment's element away.
+ * A `leave` with `event: null` was not caused by the pointer: the listeners
+ * were detached (adapter destroyed or unmounted), or a re-render left a
+ * different segment (other `start` or highlight ids) under the still pointer.
+ * A segment re-rendered unchanged stays hovered and emits nothing.
  */
 export type HoverDetail<T = unknown> =
     | {

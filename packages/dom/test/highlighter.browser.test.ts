@@ -2,8 +2,8 @@
 // highlighter.contract.browser.test.ts runs on it: replacing existing content,
 // the shipped stylesheet, getSegments(), unsubscribing, what update() keeps
 // when it re-renders everything, and destroy(). Nothing here waits a fixed
-// time: tests await the real selectionchange, and the touch delay runs on
-// fake timers.
+// time: tests await the real selectionchange or the mutation observers a
+// re-render notifies, and the touch delay runs on fake timers.
 import {
     TEXT,
     a,
@@ -11,7 +11,9 @@ import {
     c,
     clearSelectionAndWait,
     givenFakeTimeouts,
+    charPosition,
     givenPointerOutsideRoots,
+    mutationsHandled,
     nextSelectionChange,
     partialOverlap,
     pointer,
@@ -217,6 +219,8 @@ describe('createHighlighter: update() re-rendering focus and hover', () => {
         expect(document.activeElement).toBe(after);
     });
 
+    // Current behavior, not a decided contract: the spec says nothing about
+    // focus when its segment disappears. Change this test if that is decided.
     it('drops focus when no focusable segment starts at the focused offset any more', () => {
         const { el, h } = givenHighlighter();
         segmentElement(el, 6).focus();
@@ -228,15 +232,31 @@ describe('createHighlighter: update() re-rendering focus and hover', () => {
         expect(document.activeElement).toBe(document.body);
     });
 
-    // D2: the hovered element is replaced, so the pointer can no longer leave it.
-    it('emits leave for the hovered segment it re-renders, with no pointer event', async () => {
+    /**
+     * Hovers character 12 of segment [6,15) a+b. After `update({ highlights:
+     * [a, b, c] })` that character lies in [10,15) a+b+c, a different segment,
+     * so core reports the leave once the update has re-rendered.
+     */
+    async function givenHoveredSegment(
+        el: HTMLElement,
+        h: Highlighter,
+    ): Promise<HoverDetail[]> {
         await givenPointerOutsideRoots();
-        const { el, h } = givenHighlighter();
         const hovers: HoverDetail[] = [];
         h.on('hover', (d) => hovers.push(d));
-        await userEvent.hover(segmentElement(el, 6));
+        const { el: target, position } = charPosition(el, 12);
+        await userEvent.hover(target, { position });
+        return hovers;
+    }
+
+    // D2: the hovered element is replaced, so the pointer can no longer leave it.
+    it('emits leave for the hovered segment it re-renders, with no pointer event', async () => {
+        const { el, h } = givenHighlighter();
+        const hovers = await givenHoveredSegment(el, h);
+        const handled = mutationsHandled(el);
 
         h.update({ highlights: [a, b, c] });
+        await handled;
 
         expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
         expect(hovers[1]).toEqual({
@@ -249,12 +269,11 @@ describe('createHighlighter: update() re-rendering focus and hover', () => {
     });
 
     it('does not emit that leave again when the pointer next moves', async () => {
-        await givenPointerOutsideRoots();
         const { el, h } = givenHighlighter();
-        const hovers: HoverDetail[] = [];
-        h.on('hover', (d) => hovers.push(d));
-        await userEvent.hover(segmentElement(el, 6));
+        const hovers = await givenHoveredSegment(el, h);
+        const handled = mutationsHandled(el);
         h.update({ highlights: [a, b, c] });
+        await handled;
 
         pointer('pointerover', segmentElement(el, 15));
 
@@ -266,12 +285,11 @@ describe('createHighlighter: update() re-rendering focus and hover', () => {
     });
 
     it('does not emit that leave again on destroy', async () => {
-        await givenPointerOutsideRoots();
         const { el, h } = givenHighlighter();
-        const hovers: HoverDetail[] = [];
-        h.on('hover', (d) => hovers.push(d));
-        await userEvent.hover(segmentElement(el, 6));
+        const hovers = await givenHoveredSegment(el, h);
+        const handled = mutationsHandled(el);
         h.update({ highlights: [a, b, c] });
+        await handled;
 
         h.destroy();
 
@@ -279,10 +297,32 @@ describe('createHighlighter: update() re-rendering focus and hover', () => {
     });
 });
 
-// That destroy() detaches every listener is covered elsewhere: the contract's
-// unmount hover leave shows it calls core's detach, and core's detach tests
-// show detach removes every listener.
 describe('createHighlighter: destroy()', () => {
+    // The element survives destroy(), so a listener left on it would still
+    // handle a segment-like element put back inside it.
+    it('stops handling keys on the element', () => {
+        const { el, h } = givenHighlighter();
+        const space = (): KeyboardEvent =>
+            new KeyboardEvent('keydown', {
+                key: ' ',
+                bubbles: true,
+                cancelable: true,
+            });
+        const beforeDestroy = space();
+        segmentElement(el, 6).dispatchEvent(beforeDestroy);
+        expect(beforeDestroy.defaultPrevented).toBe(true);
+
+        h.destroy();
+        const lookalike = document.createElement('span');
+        lookalike.setAttribute('data-om-start', '6');
+        lookalike.setAttribute('tabindex', '0');
+        el.append(lookalike);
+        const afterDestroy = space();
+        lookalike.dispatchEvent(afterDestroy);
+
+        expect(afterDestroy.defaultPrevented).toBe(false);
+    });
+
     it('leaves the element holding the plain text only', () => {
         const { el, h } = givenHighlighter();
 
