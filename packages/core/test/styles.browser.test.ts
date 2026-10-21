@@ -82,6 +82,17 @@ describe('default stylesheet', () => {
         }
     });
 
+    it('layers: an uncolored highlight nested in a colored one uses the default color, not the parent color', () => {
+        const nested = mount('abcdef', [
+            { id: 'a', start: 0, end: 6, color: '#ff0000' },
+            { id: 'b', start: 2, end: 4 },
+        ]);
+        const inner = nested.querySelector('mark[data-id="b"]')!;
+        const alone = mount('abcdef', [{ id: 'c', start: 2, end: 4 }]).querySelector('mark[data-id="c"]')!;
+        expect(bg(inner)).toBe(bg(alone));
+        expect(bg(inner)).not.toBe(bg(nested.querySelector('mark[data-id="a"]')!));
+    });
+
     it('marker preset paints --om-brush instead of a background color', () => {
         const root = mount('abc', [{ id: 'm', start: 0, end: 3, className: 'om-style-marker' }]);
         const el = root.querySelector('mark')!;

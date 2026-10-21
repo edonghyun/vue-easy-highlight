@@ -8,6 +8,8 @@
 }
 
 .om-hl {
+    /* custom properties inherit; reset so an uncolored mark does not pick up its parent's color */
+    --om-color: initial;
     background: none;
     color: inherit;
     padding: 0.12em 0;
