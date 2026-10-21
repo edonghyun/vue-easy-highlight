@@ -120,7 +120,10 @@ export function attachInteractions<T>(
     // the meantime overwrites or removes that value, and what it rendered
     // stays; only an untouched LIFTED gets the old value back. A mouse press
     // on a highlight therefore focuses it on release, when it ends without a
-    // selection (a click), instead of on press.
+    // selection (a click), instead of on press. Only a plain left press lifts
+    // it: another button, or Ctrl+click on macOS, may open a context menu,
+    // after which no pointerup arrives. The menu opening, or the window
+    // losing focus, also puts the tabindex back.
     const LIFTED = 'om-lifted';
     let lifted: { el: HTMLElement; tabindex: string } | null = null;
 
@@ -137,7 +140,7 @@ export function attachInteractions<T>(
     const onPointerDown = (e: PointerEvent): void => {
         lastPointerType = e.pointerType;
         putBackTabindex();
-        if (e.pointerType === 'touch') return;
+        if (e.pointerType === 'touch' || e.button !== 0 || e.ctrlKey) return;
         const el = segmentElementOf(e.target);
         const tabindex = el?.getAttribute('tabindex');
         if (!(el instanceof HTMLElement) || tabindex == null) return;
@@ -313,6 +316,8 @@ export function attachInteractions<T>(
     document.addEventListener('pointerdown', onPointerDown, true);
     document.addEventListener('pointerup', onPointerUp, true);
     document.addEventListener('pointercancel', putBackTabindex, true);
+    document.addEventListener('contextmenu', putBackTabindex, true);
+    window.addEventListener('blur', putBackTabindex);
     document.addEventListener('keyup', onKeyUp, true);
     root.addEventListener('click', onClick);
     root.addEventListener('dblclick', onDblclick);
@@ -327,6 +332,8 @@ export function attachInteractions<T>(
         document.removeEventListener('pointerdown', onPointerDown, true);
         document.removeEventListener('pointerup', onPointerUp, true);
         document.removeEventListener('pointercancel', putBackTabindex, true);
+        document.removeEventListener('contextmenu', putBackTabindex, true);
+        window.removeEventListener('blur', putBackTabindex);
         document.removeEventListener('keyup', onKeyUp, true);
         root.removeEventListener('click', onClick);
         root.removeEventListener('dblclick', onDblclick);

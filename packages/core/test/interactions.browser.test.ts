@@ -202,6 +202,54 @@ describe('attachInteractions: select on release', () => {
         expect(document.activeElement).not.toBe(pressed);
     });
 
+    // A right press may open the context menu, after which no pointerup arrives.
+    it('leaves the tabindex of a highlight pressed with the right button untouched', () => {
+        const { root } = givenInteractiveRoot();
+        const pressed = segmentElement(root, 6);
+
+        pointer('pointerdown', pressed, { button: 2 });
+
+        expect(pressed.getAttribute('tabindex')).toBe('0');
+        // Live positive control: a left press on the same highlight lifts it.
+        pointer('pointerdown', pressed, { button: 0 });
+        expect(pressed.getAttribute('tabindex')).not.toBe('0');
+    });
+
+    // On macOS Ctrl+click opens the context menu.
+    it('leaves the tabindex of a highlight pressed with Ctrl held untouched', () => {
+        const { root } = givenInteractiveRoot();
+        const pressed = segmentElement(root, 6);
+
+        pointer('pointerdown', pressed, { button: 0, ctrlKey: true });
+
+        expect(pressed.getAttribute('tabindex')).toBe('0');
+        // Live positive control: the same press without Ctrl lifts it.
+        pointer('pointerdown', pressed, { button: 0 });
+        expect(pressed.getAttribute('tabindex')).not.toBe('0');
+    });
+
+    it('puts the tabindex back when a context menu opens during a press', () => {
+        const { root } = givenInteractiveRoot();
+        const pressed = segmentElement(root, 6);
+        pointer('pointerdown', pressed);
+
+        pressed.dispatchEvent(
+            new MouseEvent('contextmenu', { bubbles: true, cancelable: true }),
+        );
+
+        expect(pressed.getAttribute('tabindex')).toBe('0');
+    });
+
+    it('puts the tabindex back when the window loses focus during a press', () => {
+        const { root } = givenInteractiveRoot();
+        const pressed = segmentElement(root, 6);
+        pointer('pointerdown', pressed);
+
+        window.dispatchEvent(new FocusEvent('blur'));
+
+        expect(pressed.getAttribute('tabindex')).toBe('0');
+    });
+
     it('emits select for the word a double click selects', async () => {
         const { root, events } = givenInteractiveRoot();
         const { el, position } = charPosition(root, 10);

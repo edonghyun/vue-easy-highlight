@@ -84,27 +84,27 @@ createHighlighter(el, {
 | `click` / `dblclick` | `{ offset, segment, highlights, event }` (`event` is a `MouseEvent` or, for Enter/Space, a `KeyboardEvent`) |
 | `hover`              | `{ type: 'enter' \| 'leave', segment, highlights, event }`; desktop mouse only                              |
 
-`select` fires one macrotask after `pointerup`/`keyup`, or after `touchSelectionDelay` ms without a selection change on touch. A `touchSelectionDelay` changed by `update()` applies from the next selection change; the re-render of `update()` is itself one, so a touch selection already waiting restarts its wait with the new delay. On the keyboard, `keyup` confirms only once no modifier (Shift/Ctrl/Alt/Meta) is held, so a Shift+Arrow run emits a single `select` when Shift is released. Shift+Arrow extends a selection the user already has; in Chrome and Safari, Shift+Arrow from a caret in static text selects nothing. A mouse press on a focusable highlight focuses it on release when it made no selection (a click), not on press. `highlights` in every event follow the library order: `start` ascending, then longer first, then input order.
+`select` fires one macrotask after `pointerup`/`keyup`, or after `touchSelectionDelay` ms without a selection change on touch. A `touchSelectionDelay` changed by `update()` applies from the next selection change; the re-render of `update()` is itself one, so a touch selection already waiting restarts its wait with the new delay. On the keyboard, `keyup` confirms only once no modifier (Shift/Ctrl/Alt/Meta) is held, so a Shift+Arrow run emits a single `select` when Shift is released. Shift+Arrow extends a selection the user already has; in Chrome and Safari, Shift+Arrow from a caret in static text selects nothing. A left mouse press on a focusable highlight focuses it on release when it made no selection (a click), not on press. `highlights` in every event follow the library order: `start` ascending, then longer first, then input order.
 
 Every hover `enter` is followed by one `leave` for the same `segment` object. Besides the mouse moving away, `destroy()` and an `update()` that removes the hovered highlight from under the mouse also emit its `leave`, with `event: null`. An `update()` that re-renders the hovered segment unchanged (same `start` and highlight ids) emits nothing.
 
 ## DOM contract
 
-| Kind         | Name                                                                    | Meaning                                                                                      |
-| ------------ | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Class        | `om-root`                                                               | The root element                                                                             |
-| Class        | `om-seg`                                                                | Outermost element of a segment                                                               |
-| Class        | `om-hl`                                                                 | A highlight element (a `<mark>`)                                                             |
-| Class        | `om-style-marker`, `om-style-underline`, `om-style-box`                 | Presets, applied through `highlight.className`                                               |
-| Attribute    | `data-om-strategy`                                                      | On the root: `layers` or `depth`                                                             |
-| Attribute    | `data-om-start`                                                         | On `om-seg`: the segment's start index                                                       |
-| Attribute    | `data-depth`                                                            | Number of highlights covering the segment                                                    |
-| Attribute    | `data-ids`                                                              | Comma-separated ids of the covering highlights                                               |
-| Attribute    | `data-id`                                                               | On each layers-strategy `om-hl`: that highlight's id                                         |
-| Attribute    | `tabindex`                                                              | On a focusable `om-seg`: `0`, or `om-lifted` (unfocusable) while a mouse press on it is down |
-| Attribute    | `data-om-skip`                                                          | On the decoration container (with `aria-hidden="true"`): ignored when measuring offsets      |
-| CSS variable | `--om-color`, `--om-brush`, `--om-level`, `--om-depth`                  | Set by the library per element                                                               |
-| CSS variable | `--om-default-color`, `--om-depth-step`, `--om-max-depth`, `--om-alpha` | Theme variables you can set on `.om-root` or an ancestor                                     |
+| Kind         | Name                                                                    | Meaning                                                                                           |
+| ------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Class        | `om-root`                                                               | The root element                                                                                  |
+| Class        | `om-seg`                                                                | Outermost element of a segment                                                                    |
+| Class        | `om-hl`                                                                 | A highlight element (a `<mark>`)                                                                  |
+| Class        | `om-style-marker`, `om-style-underline`, `om-style-box`                 | Presets, applied through `highlight.className`                                                    |
+| Attribute    | `data-om-strategy`                                                      | On the root: `layers` or `depth`                                                                  |
+| Attribute    | `data-om-start`                                                         | On `om-seg`: the segment's start index                                                            |
+| Attribute    | `data-depth`                                                            | Number of highlights covering the segment                                                         |
+| Attribute    | `data-ids`                                                              | Comma-separated ids of the covering highlights                                                    |
+| Attribute    | `data-id`                                                               | On each layers-strategy `om-hl`: that highlight's id                                              |
+| Attribute    | `tabindex`                                                              | On a focusable `om-seg`: `0`, or `om-lifted` (unfocusable) while a left mouse press on it is down |
+| Attribute    | `data-om-skip`                                                          | On the decoration container (with `aria-hidden="true"`): ignored when measuring offsets           |
+| CSS variable | `--om-color`, `--om-brush`, `--om-level`, `--om-depth`                  | Set by the library per element                                                                    |
+| CSS variable | `--om-default-color`, `--om-depth-step`, `--om-max-depth`, `--om-alpha` | Theme variables you can set on `.om-root` or an ancestor                                          |
 
 Setting `--om-color` on the root has no effect (it is reset on each `.om-hl`); use `--om-default-color`. All rules in `styles.css` have zero specificity (`:where()`), so your own class rules always win.
 
