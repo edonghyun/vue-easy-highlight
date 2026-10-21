@@ -1,0 +1,11 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "paths": {
+            "@overlapmark/core": ["../core/src/index.ts"],
+            "@overlapmark/core/dom": ["../core/src/dom/index.ts"],
+            "@overlapmark/core/styles.css": ["../core/src/styles.css"]
+        }
+    },
+    "include": ["src", "test", "*.config.ts"]
+}
