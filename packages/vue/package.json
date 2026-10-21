@@ -48,6 +48,8 @@
     "devDependencies": {
         "@overlapmark/adapter-contract": "workspace:*",
         "vue": "^3.5.0",
-        "vue-3.3-runtime-dom": "npm:@vue/runtime-dom@3.3.13"
+        "vue-3.3-runtime-dom": "npm:@vue/runtime-dom@3.3.13",
+        "vue-3.4-runtime-dom": "npm:@vue/runtime-dom@3.4.38",
+        "vue-3.5.0-runtime-dom": "npm:@vue/runtime-dom@3.5.0"
     }
 }

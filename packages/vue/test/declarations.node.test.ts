@@ -1,7 +1,8 @@
 // The declarations a consumer type-checks against are emitted from the
 // sources with the Vue the package builds with (3.5), but must hold on every
 // Vue the peer range admits, down to 3.3. This emits them as the build does
-// and checks a consumer of them against Vue 3.3's types and the current ones.
+// and checks a consumer of them against the types of Vue 3.3, 3.4, 3.5.0 and
+// the current Vue.
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -18,8 +19,10 @@ const packageDir = (name: string): string =>
     dirname(require.resolve(`${name}/package.json`));
 
 const vueTypes = {
-    // Vue 3.3's `vue` types are `export * from '@vue/runtime-dom'`.
+    // From 3.3 on, `vue`'s types are `export * from '@vue/runtime-dom'`.
     '3.3': packageDir('vue-3.3-runtime-dom'),
+    '3.4': packageDir('vue-3.4-runtime-dom'),
+    '3.5.0': packageDir('vue-3.5.0-runtime-dom'),
     current: packageDir('vue'),
 };
 
@@ -46,6 +49,9 @@ const misusedProp = `
 
     export const vnode = h(Highlighter, { text: 42 });
 `;
+
+// Each check type-checks a whole program, Vue's types included: seconds each.
+const typeCheckTimeout = 30_000;
 
 let out: string;
 
@@ -119,18 +125,26 @@ afterAll(() => rmSync(out, { recursive: true, force: true }));
 describe.each(Object.entries(vueTypes))(
     'The emitted declarations checked against Vue %s types',
     (_, vue) => {
-        it('accept props, listeners and the decoration slot', () => {
-            const errors = typeErrorsOf(correctUse, vue);
+        it(
+            'accept props, listeners and the decoration slot',
+            () => {
+                const errors = typeErrorsOf(correctUse, vue);
 
-            expect(errors).toEqual([]);
-        });
+                expect(errors).toEqual([]);
+            },
+            typeCheckTimeout,
+        );
 
-        it('reject a prop of the wrong type where it is passed', () => {
-            const errors = typeErrorsOf(misusedProp, vue);
+        it(
+            'reject a prop of the wrong type where it is passed',
+            () => {
+                const errors = typeErrorsOf(misusedProp, vue);
 
-            expect(errors).toContainEqual(
-                expect.stringMatching(/^consumer\.ts: /),
-            );
-        });
+                expect(errors).toContainEqual(
+                    expect.stringMatching(/^consumer\.ts: /),
+                );
+            },
+            typeCheckTimeout,
+        );
     },
 );
