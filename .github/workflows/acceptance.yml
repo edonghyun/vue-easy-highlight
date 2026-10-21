@@ -8,6 +8,10 @@ on:
 permissions:
     contents: read
 
+concurrency:
+    group: acceptance-${{ github.ref }}
+    cancel-in-progress: true
+
 jobs:
     packaging:
         runs-on: ubuntu-latest
