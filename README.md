@@ -85,7 +85,7 @@ Three levels, from least to most control:
     { id: 'note', start: 0, end: 12, color: '#ffd6d6', className: 'om-style-underline' }
     ```
     You can also write your own CSS against the DOM contract (`.om-hl`, `[data-depth]`, `[data-ids]`, `--om-level`); see the package README. Every library selector is wrapped in `:where()` (zero specificity), so a plain class rule such as `.memo { background-color: pink }` or `.memo { --om-color: pink }` wins regardless of stylesheet order.
-3. **Full control.** Add your own markup after each highlighted segment, for badges, tooltip triggers or icons. In `@overlapmark/dom` pass `decorate: (segment) => Node | string | null`; the framework adapters will offer the same through a slot (Vue), a render prop (React) and a snippet (Svelte). Decorations sit in `<span data-om-skip aria-hidden="true">`, so they never shift offsets and are hidden from assistive technology.
+3. **Full control.** Add your own presentational markup after each highlighted segment, such as a count or an icon. In `@overlapmark/dom` pass `decorate: (segment) => Node | string | null`; the framework adapters will offer the same through a slot (Vue), a render prop (React) and a snippet (Svelte). Decorations sit in `<span data-om-skip aria-hidden="true">`: they never shift offsets, the stylesheet keeps them out of selections and copies, and they are hidden from assistive technology, so they must not contain interactive content.
 
 **Unstyled usage.** Independently of the tiers above, you can skip `@overlapmark/core/styles.css` entirely and style the DOM contract yourself. The library never injects CSS.
 

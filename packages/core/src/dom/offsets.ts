@@ -126,6 +126,13 @@ function positionOf(root: Element, node: Node, offset: number): number {
     return pos;
 }
 
+/** The original text rendered in `root`: its counted text nodes, decorations excluded. */
+export function renderedText(root: Element): string {
+    return textNodes(root)
+        .map((t) => t.data)
+        .join('');
+}
+
 /** Total length of the original text rendered in `root` (decorations excluded). */
 export function getTextLength(root: Element): number {
     const segs = segments(root);

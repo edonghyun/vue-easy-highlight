@@ -29,12 +29,15 @@ export interface HighlighterOptions<T = unknown> extends RenderOptions {
      */
     touchSelectionDelay?: number;
     /**
-     * Decoration for each highlighted segment (style tier 3), such as a badge
-     * or a tooltip trigger. The result is placed in
+     * Decoration for each highlighted segment (style tier 3), such as a
+     * count or an icon. The result is placed in
      * `<span data-om-skip aria-hidden="true">` right after the text of the
-     * segment's innermost element, so it never counts toward offsets and is
-     * hidden from assistive technology. Return `null` for no decoration.
-     * Called on every render, so return a new Node each time.
+     * segment's innermost element, so it never counts toward offsets, is
+     * left out of selections and copies (with the shipped stylesheet), and is
+     * hidden from assistive technology. Decorations are presentational: do
+     * not put interactive content (buttons, links, focusable elements) in
+     * them. Return `null` for no decoration. Called on every render, so
+     * return a new Node each time.
      */
     decorate?: (segment: Segment<T>) => Node | string | null;
 }
@@ -144,13 +147,11 @@ export function createHighlighter<T>(
         update(next) {
             if (destroyed) return;
             const view = captureViewState(el);
-            const textChanged =
-                next.text !== undefined && next.text !== opts.text;
 
             opts = { ...opts, ...next };
             render();
 
-            restoreViewState(el, view, { textChanged });
+            restoreViewState(el, view);
         },
         on(type, fn) {
             const set = listeners[type] as Set<typeof fn>;

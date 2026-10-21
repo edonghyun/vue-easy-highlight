@@ -8,4 +8,4 @@ export {
 export { attachInteractions } from './interactions';
 export type { InteractionOptions } from './interactions';
 export { captureViewState, restoreViewState } from './view-state';
-export type { ViewState, RestoreViewStateOptions } from './view-state';
+export type { ViewState } from './view-state';

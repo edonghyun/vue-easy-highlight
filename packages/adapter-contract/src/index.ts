@@ -340,8 +340,9 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                     expect(getTextLength(root)).toBe(TEXT.length);
                 });
 
-                // Offsets only: a range across a decoration contains its text,
-                // so Selection#toString includes it.
+                // Offsets only: a DOM range across a decoration contains its
+                // text, and whether Selection#toString shows it depends on the
+                // optional stylesheet (user-select: none).
                 it('maps the selected range back to the same offsets for every start/end pair', async () => {
                     const { root } = await givenDecoratedAdapter(props);
                     const ranges = codePointRanges(TEXT);
@@ -377,6 +378,27 @@ export function defineAdapterContract(factory: AdapterFactory): void {
 
             expect(detailsOf(adapter, 'click').map((d) => d.offset)).toEqual([
                 16,
+            ]);
+        });
+
+        // The point lies on no source character, so the offset falls back to
+        // the start of the segment the decoration belongs to.
+        it('reports a click on a decoration as a click on its segment, at the segment start', async () => {
+            const adapter = await givenDecoratedAdapter(decorated);
+            const decorationEl = adapter.root.querySelector<HTMLElement>(
+                '[data-om-start="6"] [data-om-skip]',
+            )!;
+
+            await userEvent.click(decorationEl);
+
+            const clicks = detailsOf(adapter, 'click');
+            expect(clicks).toEqual([
+                {
+                    offset: 6,
+                    segment: expect.objectContaining({ start: 6, end: 15 }),
+                    highlights: [a, b],
+                    event: expect.any(MouseEvent),
+                },
             ]);
         });
 
@@ -903,11 +925,14 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             expect(window.getSelection()!.toString()).toBe(TEXT.slice(8, 18));
         });
 
-        it('keeps the selection when an update passes the same text again', async () => {
+        it('keeps the selection when an update passes an equal text built anew', async () => {
             const adapter = await givenAdapter(partialOverlap);
             setSelection(createRangeFromOffsets(adapter.root, 8, 18)!);
 
-            await adapter.update({ text: TEXT, highlights: [a, b, c] });
+            await adapter.update({
+                text: [...TEXT].join(''),
+                highlights: [a, b, c],
+            });
 
             expect(getSelectionOffsets(adapter.root)).toEqual({
                 start: 8,
@@ -978,6 +1003,34 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             expect(
                 segmentElement(adapter.root, 0).hasAttribute('data-depth'),
             ).toBe(false);
+            expect(adapter.root.contains(document.activeElement)).toBe(false);
+        });
+
+        // U2 applies to an unchanged text only: in a new text the covering
+        // segment holds other characters.
+        it('does not move focus to another segment when an update replaces the text', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            segmentElement(adapter.root, 6).focus();
+
+            await adapter.update({ text: REPLACED_TEXT, highlights: [a] });
+
+            expect(
+                segmentElement(adapter.root, 0).hasAttribute('tabindex'),
+            ).toBe(true);
+            expect(adapter.root.contains(document.activeElement)).toBe(false);
+        });
+
+        // The segment keeps its segmentKey, so a framework may patch the
+        // focused element in place.
+        it('takes focus off the focused segment when an update makes it unfocusable', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            segmentElement(adapter.root, 6).focus();
+
+            await adapter.update({ focusable: false });
+
+            expect(
+                segmentElement(adapter.root, 6).hasAttribute('data-depth'),
+            ).toBe(true);
             expect(adapter.root.contains(document.activeElement)).toBe(false);
         });
 

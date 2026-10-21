@@ -43,12 +43,12 @@ Replaces the content of `el` with the rendered text and returns a `Highlighter`.
 
 ### What `update()` keeps
 
-- **Selection:** restored at the same text offsets, unless `update()` changed `text`. Then the selection is cleared, since the same offsets would now select other characters. Selections outside the element are never touched.
-- **Focus:** a focused highlight gets focus back on its re-rendered element. If its segment is gone, focus moves to the segment now covering the start of the old one, when that segment is highlighted and focusable. Otherwise focus is not moved.
+- **Selection:** restored at the same text offsets, unless the re-render changed the text. Then the selection is cleared, since the same offsets would now select other characters. Whether the text changed is read from what is rendered, so passing an equal string again keeps the selection. Selections outside the element are never touched.
+- **Focus:** a focused highlight gets focus back on its re-rendered element. If its segment is gone and the text is unchanged, focus moves to the segment now covering the start of the old one, when that segment is highlighted and focusable. Otherwise focus leaves the element and is not moved elsewhere; in particular a changed text never moves focus to another segment.
 
 ### Decorations
 
-`decorate` is the full-control styling tier: return a badge, an icon or a tooltip trigger for a highlighted segment. The result goes in `<span data-om-skip aria-hidden="true">`, the last child of the segment's innermost element (right after its text), so it never shifts the offsets `select` and `click` report and is hidden from assistive technology. Plain segments are not decorated. `decorate` runs on every render; return a new `Node` each time.
+`decorate` is the full-control styling tier: return presentational markup, such as a count or an icon, for a highlighted segment. The result goes in `<span data-om-skip aria-hidden="true">`, the last child of the segment's innermost element (right after its text). It never shifts the offsets `select` and `click` report, the shipped stylesheet keeps it out of selections and copies (`user-select: none`), and it is hidden from assistive technology. Because it is `aria-hidden`, it must not contain interactive content such as buttons, links or other focusable elements. A click on a decoration is reported as a `click` on its segment, with `offset` at the segment's start. Plain segments are not decorated. `decorate` runs on every render; return a new `Node` each time.
 
 ```ts
 createHighlighter(el, {

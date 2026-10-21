@@ -48,13 +48,11 @@ defineAdapterContract({
             // and focus the contract requires.
             async update(next) {
                 const view = captureViewState(root);
-                const textChanged =
-                    next.text !== undefined && next.text !== props.text;
 
                 props = { ...props, ...next };
                 render();
 
-                restoreViewState(root, view, { textChanged });
+                restoreViewState(root, view);
             },
             async unmount() {
                 detach();

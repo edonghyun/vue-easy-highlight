@@ -12,6 +12,12 @@
     white-space: pre-wrap;
 }
 
+/* Decorations are presentational: they are not part of a selection or a copy. */
+:where([data-om-skip]) {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 :where(.om-hl) {
     /* custom properties inherit; reset so an uncolored mark does not pick up its parent's color */
     --om-color: initial;
