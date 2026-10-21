@@ -41,6 +41,7 @@
     "scripts": {
         "build": "tsup",
         "test": "vitest run",
+        "bench": "vitest bench --run --reporter=verbose",
         "typecheck": "tsc --noEmit"
     }
 }
