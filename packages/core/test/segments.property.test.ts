@@ -1,21 +1,12 @@
 import fc from 'fast-check';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     computeSegments,
     highlightsInRange,
     segmentAt,
     type Highlight,
 } from '../src/index';
-
-const textArb = fc
-    .array(
-        fc.oneof(
-            fc.string({ unit: 'grapheme', maxLength: 4 }),
-            fc.constantFrom('😀', '한글', '👨‍👩‍👧', 'é', '\r\n', '🏳️‍🌈'),
-        ),
-        { maxLength: 12 },
-    )
-    .map((parts) => parts.join(''));
+import { LONE_SURROGATE, codePointBoundaries, textArb } from './helpers/text';
 
 const inputArb = textArb.chain((text) => {
     const n = text.length;
@@ -30,9 +21,6 @@ const inputArb = textArb.chain((text) => {
     });
 });
 
-const LONE =
-    /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
-
 interface Norm {
     h: Highlight;
     s: number;
@@ -40,33 +28,22 @@ interface Norm {
     i: number;
 }
 
+/**
+ * Oracle for spec §4.2, written from the spec rather than from production:
+ * clamp to [0, length], drop empty or reversed ranges, then widen each end
+ * outward to the nearest code-point boundary.
+ */
 function normalizedEntries(text: string, hs: Highlight[]): Norm[] {
-    const n = text.length;
-    const out: Norm[] = [];
-    hs.forEach((h, i) => {
-        let s = Math.max(0, Math.min(h.start, n));
-        let e = Math.max(0, Math.min(h.end, n));
-        if (s >= e) return;
-        const code = (i: number) => text.charCodeAt(i);
-        if (
-            s > 0 &&
-            code(s) >= 0xdc00 &&
-            code(s) <= 0xdfff &&
-            code(s - 1) >= 0xd800 &&
-            code(s - 1) <= 0xdbff
-        )
-            s--;
-        if (
-            e < n &&
-            code(e) >= 0xdc00 &&
-            code(e) <= 0xdfff &&
-            code(e - 1) >= 0xd800 &&
-            code(e - 1) <= 0xdbff
-        )
-            e++;
-        out.push({ h, s, e, i });
+    const bounds = codePointBoundaries(text);
+    const clamp = (x: number) => Math.max(0, Math.min(x, text.length));
+    return hs.flatMap((h, i) => {
+        const start = clamp(h.start);
+        const end = clamp(h.end);
+        if (start >= end) return [];
+        const s = Math.max(...bounds.filter((b) => b <= start));
+        const e = Math.min(...bounds.filter((b) => b >= end));
+        return [{ h, s, e, i }];
     });
-    return out;
 }
 
 function normalizedRanges(text: string, hs: Highlight[]): [number, number][] {
@@ -76,16 +53,53 @@ function normalizedRanges(text: string, hs: Highlight[]): [number, number][] {
 const byRule = (x: Norm, y: Norm) =>
     x.s - y.s || y.e - y.s - (x.e - x.s) || x.i - y.i;
 
+/**
+ * Applies `order` (a permutation of input indices) but keeps highlights whose
+ * normalized (start, length) keys tie in their original relative order, since
+ * input order is the documented tie-breaker.
+ */
+function keepTiesInInputOrder(
+    order: number[],
+    text: string,
+    hs: Highlight[],
+): Highlight[] {
+    const keys = new Map<number, string>();
+    for (const x of normalizedEntries(text, hs))
+        keys.set(x.i, `${x.s}:${x.e - x.s}`);
+    const keyOf = (i: number) => keys.get(i) ?? `dropped:${i}`;
+    const tiesInInputOrder = new Map<string, number[]>();
+    hs.forEach((_, i) => {
+        const group = tiesInInputOrder.get(keyOf(i)) ?? [];
+        group.push(i);
+        tiesInInputOrder.set(keyOf(i), group);
+    });
+    return order.map((i) => hs[tiesInInputOrder.get(keyOf(i))!.shift()!]);
+}
+
 describe('computeSegments properties', () => {
-    beforeAll(() => {
+    beforeEach(() => {
         vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+    afterEach(() => {
+        vi.restoreAllMocks();
     });
 
     it('segments concatenate back to the original text', () => {
         fc.assert(
             fc.property(inputArb, ({ text, highlights }) => {
                 const s = computeSegments(text, highlights);
+
                 expect(s.map((x) => x.text).join('')).toBe(text);
+            }),
+        );
+    });
+
+    it('each segment text equals text.slice(start, end)', () => {
+        fc.assert(
+            fc.property(inputArb, ({ text, highlights }) => {
+                for (const seg of computeSegments(text, highlights)) {
+                    expect(seg.text).toBe(text.slice(seg.start, seg.end));
+                }
             }),
         );
     });
@@ -94,6 +108,7 @@ describe('computeSegments properties', () => {
         fc.assert(
             fc.property(inputArb, ({ text, highlights }) => {
                 const s = computeSegments(text, highlights);
+
                 if (text.length === 0) {
                     expect(s).toEqual([]);
                     return;
@@ -111,8 +126,10 @@ describe('computeSegments properties', () => {
     it('depth matches brute force', () => {
         fc.assert(
             fc.property(inputArb, ({ text, highlights }) => {
-                const s = computeSegments(text, highlights);
                 const ranges = normalizedRanges(text, highlights);
+
+                const s = computeSegments(text, highlights);
+
                 for (let i = 0; i < text.length; i++) {
                     const expected = ranges.filter(
                         ([a, b]) => a <= i && i < b,
@@ -125,21 +142,14 @@ describe('computeSegments properties', () => {
         );
     });
 
-    it('ordering is deterministic', () => {
-        fc.assert(
-            fc.property(inputArb, ({ text, highlights }) => {
-                expect(computeSegments(text, highlights)).toEqual(
-                    computeSegments(text, highlights),
-                );
-            }),
-        );
-    });
-
     it('segment highlights follow the ordering rule on normalized ranges', () => {
         fc.assert(
             fc.property(inputArb, ({ text, highlights }) => {
                 const norm = normalizedEntries(text, highlights);
-                for (const seg of computeSegments(text, highlights)) {
+
+                const s = computeSegments(text, highlights);
+
+                for (const seg of s) {
                     const expected = norm
                         .filter((x) => x.s <= seg.start && seg.end <= x.e)
                         .sort(byRule)
@@ -149,6 +159,31 @@ describe('computeSegments properties', () => {
                         expect(h).toBe(expected[k]),
                     );
                 }
+            }),
+        );
+    });
+
+    it('input order only breaks ties: other reorderings give the same segments', () => {
+        const reorderedArb = inputArb.chain(({ text, highlights }) => {
+            const indices = highlights.map((_, i) => i);
+            return fc
+                .shuffledSubarray(indices, {
+                    minLength: indices.length,
+                    maxLength: indices.length,
+                })
+                .map((order) => ({
+                    text,
+                    highlights,
+                    reordered: keepTiesInInputOrder(order, text, highlights),
+                }));
+        });
+        fc.assert(
+            fc.property(reorderedArb, ({ text, highlights, reordered }) => {
+                const expected = computeSegments(text, highlights);
+
+                const actual = computeSegments(text, reordered);
+
+                expect(actual).toEqual(expected);
             }),
         );
     });
@@ -165,7 +200,9 @@ describe('computeSegments properties', () => {
                         .filter((x) => x.s < b && a < x.e && a < b)
                         .sort(byRule)
                         .map((x) => x.h);
+
                     const actual = highlightsInRange(s, a, b);
+
                     expect(actual.length).toBe(expected.length);
                     actual.forEach((h, k) => expect(h).toBe(expected[k]));
                 },
@@ -173,7 +210,7 @@ describe('computeSegments properties', () => {
         );
     });
 
-    it('highlightsInRange on shallow-copied segments returns the same order', () => {
+    it('highlightsInRange returns the same order for copies of the segments', () => {
         fc.assert(
             fc.property(
                 inputArb,
@@ -185,8 +222,10 @@ describe('computeSegments properties', () => {
                         ...x,
                         highlights: [...x.highlights],
                     }));
+
                     const original = highlightsInRange(s, a, b);
                     const copied = highlightsInRange(copies, a, b);
+
                     expect(copied.length).toBe(original.length);
                     copied.forEach((h, k) => expect(h).toBe(original[k]));
                 },
@@ -198,7 +237,7 @@ describe('computeSegments properties', () => {
         fc.assert(
             fc.property(inputArb, ({ text, highlights }) => {
                 for (const seg of computeSegments(text, highlights)) {
-                    expect(LONE.test(seg.text)).toBe(false);
+                    expect(LONE_SURROGATE.test(seg.text)).toBe(false);
                 }
             }),
         );
