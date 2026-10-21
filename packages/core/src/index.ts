@@ -5,3 +5,5 @@ export {
     segmentAt,
     highlightsInRange,
 } from './segments';
+export { findMatches } from './matches';
+export type { FindMatchesOptions } from './matches';
