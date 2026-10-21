@@ -401,6 +401,38 @@ describe('default stylesheet', () => {
         );
     });
 
+    it.each([
+        { preset: 'om-style-underline', side: 'paddingBottom' },
+        { preset: 'om-style-box', side: 'paddingTop' },
+    ] as const)(
+        'stops growing the $preset nesting offset at the default --om-max-depth',
+        ({ preset, side }) => {
+            const hs = Array.from(
+                { length: DEFAULT_MAX_DEPTH + 2 },
+                (_, i) => ({
+                    id: String(i),
+                    start: 0,
+                    end: 1,
+                    className: preset,
+                }),
+            );
+            const root = givenRenderedRoot('a', hs);
+
+            const offsets = [...root.querySelectorAll('mark')].map((el) =>
+                parseFloat(getComputedStyle(el)[side]),
+            );
+
+            for (let i = 1; i < DEFAULT_MAX_DEPTH; i++)
+                expect(offsets[i]).toBeGreaterThan(offsets[i - 1]);
+            expect(offsets[DEFAULT_MAX_DEPTH]).toBe(
+                offsets[DEFAULT_MAX_DEPTH - 1],
+            );
+            expect(offsets[DEFAULT_MAX_DEPTH + 1]).toBe(
+                offsets[DEFAULT_MAX_DEPTH - 1],
+            );
+        },
+    );
+
     it('preserves whitespace on the root', () => {
         const root = givenRenderedRoot('a  b', []);
 

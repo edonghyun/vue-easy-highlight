@@ -72,6 +72,8 @@ describe('segmentElements with the layers strategy', () => {
             'data-om-ids': 'a b',
             'data-om-id': 'a',
             tabindex: '0',
+            role: 'button',
+            'aria-description': '2 highlights',
         });
         expect(inner.attrs).toEqual({ 'data-om-id': 'b' });
     });
@@ -133,6 +135,58 @@ describe('segmentElements with the layers strategy', () => {
         expect(keys).not.toContain('data-id');
         expect(keys).not.toContain('data-ids');
         expect(keys).not.toContain('data-depth');
+    });
+});
+
+describe('segmentElements for assistive technology', () => {
+    /** [0, 6): covered by A alone. */
+    const single = segmentOf([A, B], 0);
+
+    it.each(['layers', 'depth'] as const)(
+        'makes a focusable segment a button described by its highlight count with the %s strategy',
+        (strategy) => {
+            const [once] = segmentElements(single, { strategy });
+            const [twice] = segmentElements(overlap, { strategy });
+
+            expect(once.attrs).toMatchObject({
+                role: 'button',
+                'aria-description': '1 highlight',
+            });
+            expect(twice.attrs).toMatchObject({
+                role: 'button',
+                'aria-description': '2 highlights',
+            });
+        },
+    );
+
+    it('words the description with describe, given the covering highlights in library order', () => {
+        const describeHighlights = vi.fn(
+            (highlights: readonly Highlight[]) =>
+                `covered by ${highlights.map((h) => h.id).join(', ')}`,
+        );
+
+        const [outer] = segmentElements(segmentOf([B, A], 6), {
+            describe: describeHighlights,
+        });
+
+        expect(outer.attrs['aria-description']).toBe('covered by a, b');
+        expect(describeHighlights).toHaveBeenCalledWith([A, B]);
+    });
+
+    it('gives an unfocusable segment neither the button role nor a description', () => {
+        const [focusable] = segmentElements(overlap);
+        const [unfocusable] = segmentElements(overlap, { focusable: false });
+
+        expect(focusable.attrs.role).toBe('button');
+        expect(unfocusable.attrs).not.toHaveProperty('role');
+        expect(unfocusable.attrs).not.toHaveProperty('aria-description');
+    });
+
+    it("leaves the description out when describe returns ''", () => {
+        const [outer] = segmentElements(overlap, { describe: () => '' });
+
+        expect(outer.attrs.role).toBe('button');
+        expect(outer.attrs).not.toHaveProperty('aria-description');
     });
 });
 

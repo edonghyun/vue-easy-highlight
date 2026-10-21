@@ -19,6 +19,8 @@ export interface ContractProps {
     defaultColor?: string;
     /** Returns the CSS image value of `--om-brush` for a color. */
     brush?: (color: string) => string;
+    /** Words the accessible description of a focusable segment from the highlights covering it. */
+    describe?: (highlights: readonly Highlight[]) => string;
     minSelectionLength?: number;
     touchSelectionDelay?: number;
     /**

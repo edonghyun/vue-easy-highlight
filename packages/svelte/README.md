@@ -52,17 +52,18 @@ A class on the root, and handlers for clicks:
 
 ## Props
 
-| Prop                  | Type                        | Default    | Description                                                                                                                  |
-| --------------------- | --------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `text`                | `string`                    | required   | The source text. Positions are UTF-16 indices.                                                                               |
-| `highlights`          | `Highlight[]`               | `[]`       | `{ id, start, end, color?, className?, data? }`; `end` is exclusive                                                          |
-| `strategy`            | `'layers' \| 'depth'`       | `'layers'` | How overlaps are drawn                                                                                                       |
-| `focusable`           | `boolean`                   | `true`     | Put `tabindex="0"` on highlighted segments; Enter/Space calls `onclick`                                                      |
-| `defaultColor`        | `string`                    | `#ddd6ff`  | Color baked into the `--om-brush` image for highlights without `color`; for flat backgrounds set `--om-default-color` in CSS |
-| `brush`               | `(color: string) => string` | built-in   | Returns a CSS image value for `--om-brush` (used by `om-style-marker`)                                                       |
-| `minSelectionLength`  | `number`                    | `1`        | Shorter selections do not call `onselect`                                                                                    |
-| `touchSelectionDelay` | `number`                    | `500`      | Milliseconds of no selection change before `onselect` fires on touch; a change applies from the next selection change        |
-| `decoration`          | `Snippet<[Segment]>`        | none       | Decoration for each highlighted segment; see [Decorations](#decorations)                                                     |
+| Prop                  | Type                                           | Default    | Description                                                                                                                                             |
+| --------------------- | ---------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `text`                | `string`                                       | required   | The source text. Positions are UTF-16 indices.                                                                                                          |
+| `highlights`          | `Highlight[]`                                  | `[]`       | `{ id, start, end, color?, className?, data? }`; `end` is exclusive                                                                                     |
+| `strategy`            | `'layers' \| 'depth'`                          | `'layers'` | How overlaps are drawn                                                                                                                                  |
+| `focusable`           | `boolean`                                      | `true`     | Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space calls `onclick`                                                             |
+| `describe`            | `(highlights: readonly Highlight[]) => string` | count      | The accessible description of a focusable segment, from the highlights covering it: `'1 highlight'` / `` `${n} highlights` `` by default; `''` for none |
+| `defaultColor`        | `string`                                       | `#ddd6ff`  | Color baked into the `--om-brush` image for highlights without `color`; for flat backgrounds set `--om-default-color` in CSS                            |
+| `brush`               | `(color: string) => string`                    | built-in   | Returns a CSS image value for `--om-brush` (used by `om-style-marker`)                                                                                  |
+| `minSelectionLength`  | `number`                                       | `1`        | Shorter selections do not call `onselect`                                                                                                               |
+| `touchSelectionDelay` | `number`                                       | `500`      | Milliseconds of no selection change before `onselect` fires on touch; a change applies from the next selection change                                   |
+| `decoration`          | `Snippet<[Segment]>`                           | none       | Decoration for each highlighted segment; see [Decorations](#decorations)                                                                                |
 
 The component renders a single `<div class="om-root">`. `class` (a string) is added after `om-root`, and the other attributes you put on `<Highlighter>`, DOM event handlers such as `onpointerdown` included, land on that `div`. The root's own `data-om-strategy` (from `strategy`) always wins over one you pass. The props types are exported as `HighlighterProps` and `HighlighterOwnProps`.
 

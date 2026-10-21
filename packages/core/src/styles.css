@@ -100,8 +100,8 @@
 :where(.om-hl.om-style-underline) {
     /*
      * The underline sits on the bottom of the padding box, which each nesting
-     * level extends 4px further down: nested underlines stack below each
-     * other instead of overlapping.
+     * level extends 4px further down (up to --om-max-depth): nested
+     * underlines stack below each other instead of overlapping.
      */
     background-color: transparent;
     background-image: linear-gradient(
@@ -111,13 +111,20 @@
     background-size: 100% 3px;
     background-repeat: no-repeat;
     background-position: 0 100%;
-    padding-bottom: calc(0.12em + var(--om-level, 0) * 4px);
+    padding-bottom: calc(
+        0.12em + min(var(--om-level, 0), var(--om-max-depth, 6) - 1) * 4px
+    );
 }
 
 :where(.om-hl.om-style-box) {
-    /* each nesting level's box reaches 3px further above and below the text */
+    /*
+     * each nesting level's box reaches 3px further above and below the text,
+     * up to --om-max-depth
+     */
     background-color: transparent;
-    padding-block: calc(0.12em + var(--om-level, 0) * 3px);
+    padding-block: calc(
+        0.12em + min(var(--om-level, 0), var(--om-max-depth, 6) - 1) * 3px
+    );
     box-shadow: inset 0 0 0 1.5px
         var(--om-color, var(--om-default-color, #ddd6ff));
 }
@@ -125,4 +132,25 @@
 :where(.om-hl:focus-visible) {
     outline: 2px solid currentColor;
     outline-offset: 1px;
+}
+
+/*
+ * Forced colors (such as Windows High Contrast) would drop the backgrounds
+ * that show a highlight. Highlights take the system Mark colors instead, with
+ * an outline, so they and their edges stay visible in the user's palette.
+ */
+@media (forced-colors: active) {
+    :where(.om-hl) {
+        forced-color-adjust: none;
+        background: Mark;
+        color: MarkText;
+        box-shadow: none;
+        mix-blend-mode: normal;
+        outline: 1px solid MarkText;
+    }
+
+    :where(.om-hl:focus-visible) {
+        outline: 2px solid Highlight;
+        outline-offset: 1px;
+    }
 }

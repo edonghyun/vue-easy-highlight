@@ -11,6 +11,7 @@
  * adapter share one module instance.
  */
 import type {
+    Highlight,
     HoverDetail,
     PointDetail,
     Segment,
@@ -327,6 +328,115 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 });
             },
         );
+    });
+
+    describe(`${name} — accessibility`, () => {
+        /** Names the covering highlights instead of counting them. */
+        const namesOf = (highlights: readonly Highlight[]): string =>
+            highlights.map((h) => h.id).join(' and ');
+
+        it('gives a focusable segment the button role and a description of how many highlights cover it', async () => {
+            const { root } = await givenAdapter(partialOverlap);
+
+            const coveredOnce = segmentElement(root, 0);
+            const coveredTwice = segmentElement(root, 6);
+
+            await expect.element(coveredTwice).toHaveRole('button');
+            await expect
+                .element(coveredTwice)
+                .toHaveAccessibleName(TEXT.slice(6, 15));
+            await expect
+                .element(coveredTwice)
+                .toHaveAccessibleDescription('2 highlights');
+            await expect
+                .element(coveredOnce)
+                .toHaveAccessibleDescription('1 highlight');
+        });
+
+        it('uses describe to word the description', async () => {
+            const { root } = await givenAdapter({
+                ...partialOverlap,
+                describe: namesOf,
+            });
+
+            const coveredTwice = segmentElement(root, 6);
+
+            await expect
+                .element(coveredTwice)
+                .toHaveAccessibleDescription('a and b');
+        });
+
+        it('gives no role to an unfocusable segment', async () => {
+            const focusable = await givenAdapter(partialOverlap);
+            const unfocusable = await givenAdapter({
+                ...partialOverlap,
+                focusable: false,
+            });
+
+            // Live control: the same segment, focusable.
+            await expect
+                .element(segmentElement(focusable.root, 6))
+                .toHaveRole('button');
+            await expect
+                .element(segmentElement(focusable.root, 6))
+                .toHaveAccessibleDescription();
+            expect(unfocusable.root.querySelectorAll('[role]')).toHaveLength(0);
+            await expect
+                .element(segmentElement(unfocusable.root, 6))
+                .not.toHaveAccessibleDescription();
+        });
+
+        it('keeps the description out of the select text and offsets', async () => {
+            const decoration = (segment: Segment): string =>
+                `[${segment.highlights.length}]`;
+            const adapter = await givenAdapter({
+                ...partialOverlap,
+                decoration,
+            });
+            const coveredTwice = segmentElement(adapter.root, 6);
+            await expect
+                .element(coveredTwice)
+                .toHaveAccessibleDescription('2 highlights');
+            await expect
+                .element(coveredTwice)
+                .toHaveAccessibleName(TEXT.slice(6, 15));
+            await selectAndWait(adapter.root, 3, 20);
+
+            release();
+
+            await expect
+                .poll(() => eventsOf(adapter, 'select'))
+                .toEqual([selectEvent(3, 20, [a, b])]);
+            expect(getTextLength(adapter.root)).toBe(TEXT.length);
+            expect(getSelectionOffsets(adapter.root)).toEqual({
+                start: 3,
+                end: 20,
+            });
+        });
+
+        it('rewords the description when describe is replaced', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+
+            await adapter.update({ describe: namesOf });
+
+            await expect
+                .element(segmentElement(adapter.root, 6))
+                .toHaveAccessibleDescription('a and b');
+            expect(serializeRoot(adapter.root)).toEqual(
+                expectedTree({ ...partialOverlap, describe: namesOf }),
+            );
+        });
+
+        it('recounts the description when the covering highlights change', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+
+            await adapter.update({ highlights: [a, b, c] });
+
+            // `c` starts at 10: [10,15) is now covered by a, b and c.
+            await expect
+                .element(segmentElement(adapter.root, 10))
+                .toHaveAccessibleDescription('3 highlights');
+        });
     });
 
     describe(`${name} — color validation`, () => {

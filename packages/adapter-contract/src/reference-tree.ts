@@ -22,6 +22,7 @@ export function expectedTree(props: ContractProps): RootTree {
         focusable: props.focusable,
         defaultColor: props.defaultColor,
         brush: props.brush,
+        describe: props.describe,
     };
     const root = rootAttributes(options);
     return {

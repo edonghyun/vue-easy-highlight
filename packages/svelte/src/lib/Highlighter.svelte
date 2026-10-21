@@ -29,8 +29,14 @@
         strategy?: Strategy;
         /** How nested layers combine with the `layers` strategy. Default `'multiply'`. */
         overlap?: Overlap;
-        /** Put `tabindex="0"` on highlighted segments; Enter/Space calls `onclick`. Default `true`. */
+        /** Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space calls `onclick`. Default `true`. */
         focusable?: boolean;
+        /**
+         * Words the accessible description of a focusable segment from the
+         * highlights covering it. Default `'1 highlight'` /
+         * `` `${n} highlights` ``.
+         */
+        describe?: (highlights: readonly Highlight<T>[]) => string;
         /** Color of highlights without `color`: set on the root as `--om-default-color` and baked into their `--om-brush`. */
         defaultColor?: string;
         /** Returns a CSS image value for `--om-brush`. */
@@ -133,6 +139,7 @@
         strategy,
         overlap,
         focusable,
+        describe,
         defaultColor,
         brush,
         minSelectionLength,
@@ -151,10 +158,11 @@
     // segments hold the caller's objects, and when the caller keeps them in
     // `$state`, changes made in place are read here and re-render.
     const segments = $derived(computeSegments(text, highlights));
-    const options: RenderOptions = $derived({
+    const options: RenderOptions<T> = $derived({
         strategy,
         overlap,
         focusable,
+        describe,
         defaultColor,
         brush,
     });

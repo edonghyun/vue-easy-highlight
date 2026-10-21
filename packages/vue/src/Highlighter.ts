@@ -163,8 +163,18 @@ const highlighterProps = {
     strategy: { type: String as PropType<Strategy>, default: undefined },
     /** How nested layers combine with the `layers` strategy. Default `'multiply'`. */
     overlap: { type: String as PropType<Overlap>, default: undefined },
-    /** Put `tabindex="0"` on highlighted segments; Enter/Space emits `click`. Default `true`. */
+    /** Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space emits `click`. Default `true`. */
     focusable: { type: Boolean, default: undefined },
+    /**
+     * Words the accessible description of a focusable segment from the
+     * highlights covering it. Default `'1 highlight'` / `` `${n} highlights` ``.
+     */
+    describe: {
+        type: Function as PropType<
+            (highlights: readonly Highlight[]) => string
+        >,
+        default: undefined,
+    },
     /** Color of highlights without `color`: set on the root as `--om-default-color` and baked into their `--om-brush`. */
     defaultColor: { type: String, default: undefined },
     /** Returns a CSS image value for `--om-brush`. */
@@ -294,6 +304,7 @@ const component = defineComponent({
                 strategy: props.strategy,
                 overlap: props.overlap,
                 focusable: props.focusable,
+                describe: props.describe,
                 defaultColor: props.defaultColor,
                 brush: props.brush,
             };

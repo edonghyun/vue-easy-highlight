@@ -201,6 +201,12 @@ A left mouse press on a focusable highlight focuses it when the button is releas
 
 Every hover `enter` is followed by one `leave` for the same `segment` object. Besides the mouse moving away, a `leave` is also emitted when the adapter is destroyed (or the component unmounted) and when an update removes the hovered highlight from under the mouse. Such a programmatic `leave` has no pointer event behind it, so its `event` is `null`. An update that re-renders the hovered segment unchanged (same `start` and highlight ids) emits nothing.
 
+## Accessibility
+
+A focusable highlight (the default) is a button: activating it with a click, Enter or Space reports the highlights covering it. Screen readers announce its text, "button", and a description of how many highlights cover it ("2 highlights"). Pass `describe` to word the description yourself, for example with the names of the highlights; return `''` for none. The description is an `aria-description` attribute, rendered on the server too, so it never enters the text, a selection, a copy or the offsets. With `focusable: false`, segments get neither the role nor the description.
+
+In forced colors (such as Windows High Contrast), the shipped stylesheet paints highlights in the system `Mark` colors with an outline, so they stay visible.
+
 ## Migrating from `vue-easy-highlight`
 
 | `vue-easy-highlight` | overlapmark                                                                    |

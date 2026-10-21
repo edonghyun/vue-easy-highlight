@@ -59,8 +59,13 @@ export interface HighlighterOwnProps<T = unknown> {
     strategy?: Strategy;
     /** How nested layers combine with the `layers` strategy. Default `'multiply'`. */
     overlap?: Overlap;
-    /** Put `tabindex="0"` on highlighted segments; Enter/Space calls `onClick`. Default `true`. */
+    /** Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space calls `onClick`. Default `true`. */
     focusable?: boolean;
+    /**
+     * Words the accessible description of a focusable segment from the
+     * highlights covering it. Default `'1 highlight'` / `` `${n} highlights` ``.
+     */
+    describe?: (highlights: readonly Highlight<T>[]) => string;
     /** Color of highlights without `color`: set on the root as `--om-default-color` and baked into their `--om-brush`. */
     defaultColor?: string;
     /** Returns a CSS image value for `--om-brush`. */
@@ -154,7 +159,7 @@ function rendersNothing(node: ReactNode): boolean {
  */
 function segmentElement<T>(
     segment: Segment<T>,
-    options: RenderOptions,
+    options: RenderOptions<T>,
     renderDecoration: ((segment: Segment<T>) => ReactNode) | undefined,
 ): ReactElement {
     const specs = segmentElements(segment, options);
@@ -238,6 +243,7 @@ function HighlighterRender<T>(
         strategy,
         overlap,
         focusable,
+        describe,
         defaultColor,
         brush,
         minSelectionLength,
@@ -311,10 +317,11 @@ function HighlighterRender<T>(
     // emits still finds the root in the caller's ref.
     useImperativeHandle(ref, () => root.current!, []);
 
-    const options: RenderOptions = {
+    const options: RenderOptions<T> = {
         strategy,
         overlap,
         focusable,
+        describe,
         defaultColor,
         brush,
     };

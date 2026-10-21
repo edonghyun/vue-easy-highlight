@@ -19,7 +19,7 @@ import {
     restoreViewState,
 } from '@overlapmark/core/dom';
 
-export interface HighlighterOptions<T = unknown> extends RenderOptions {
+export interface HighlighterOptions<T = unknown> extends RenderOptions<T> {
     text: string;
     highlights?: readonly Highlight<T>[];
     minSelectionLength?: number;

@@ -1,6 +1,6 @@
 import { DEFAULT_COLOR, defaultBrush } from './brush';
 import { safeColor } from './color';
-import type { Segment } from './types';
+import type { Highlight, Segment } from './types';
 
 export { DEFAULT_COLOR, defaultBrush };
 
@@ -18,11 +18,23 @@ export type Strategy = 'layers' | 'depth';
  */
 export type Overlap = 'multiply' | 'darken' | 'none';
 
-export interface RenderOptions {
+export interface RenderOptions<T = unknown> {
     strategy?: Strategy;
     /** How nested layers combine with the `layers` strategy. Default `'multiply'`. */
     overlap?: Overlap;
+    /**
+     * Put `tabindex="0"` and `role="button"` on highlighted segments, with an
+     * accessible description from `describe`. Default `true`.
+     */
     focusable?: boolean;
+    /**
+     * Words the accessible description of a focusable segment from the
+     * highlights covering it, in library order. Default: `'1 highlight'` /
+     * `` `${n} highlights` ``. It is the segment's `aria-description`, so it
+     * is never part of the text, a selection, a copy or the offsets. Return
+     * `''` for no description.
+     */
+    describe?: (highlights: readonly Highlight<T>[]) => string;
     /**
      * Color of highlights without `color`: baked into their brush and set as
      * `--om-default-color` on the root.
@@ -38,14 +50,22 @@ export interface ElementSpec {
     style: Record<string, string>;
 }
 
+/** The default `describe`: how many highlights cover a segment. */
+function countHighlights(highlights: readonly Highlight[]): string {
+    return highlights.length === 1
+        ? '1 highlight'
+        : `${highlights.length} highlights`;
+}
+
 export function segmentElements<T>(
     segment: Segment<T>,
-    options: RenderOptions = {},
+    options: RenderOptions<T> = {},
 ): ElementSpec[] {
     const {
         strategy = 'layers',
         focusable = true,
         brush = defaultBrush,
+        describe = countHighlights,
     } = options;
     const defaultColor = safeColor(options.defaultColor) ?? DEFAULT_COLOR;
     const { highlights, depth, start } = segment;
@@ -66,7 +86,16 @@ export function segmentElements<T>(
         'data-om-depth': String(depth),
         'data-om-ids': highlights.map((h) => h.id).join(' '),
     };
-    if (focusable) segAttrs.tabindex = '0';
+    if (focusable) {
+        // Activating a segment reports the highlights covering it, so it is
+        // announced as a button: its text, then the description. An
+        // attribute rather than an aria-describedby target, which would
+        // need an id unique per instance and the same on server and client.
+        segAttrs.tabindex = '0';
+        segAttrs.role = 'button';
+        const description = describe(highlights);
+        if (description) segAttrs['aria-description'] = description;
+    }
 
     if (strategy === 'depth') {
         const classes: string[] = [];
@@ -125,7 +154,7 @@ export function segmentKey(segment: Segment): string {
  * `--om-default-color` when `defaultColor` is given and safe, and is empty
  * otherwise.
  */
-export function rootAttributes(options: RenderOptions = {}): {
+export function rootAttributes<T>(options: RenderOptions<T> = {}): {
     className: 'om-root';
     attrs: { 'data-om-strategy': Strategy; 'data-om-overlap': Overlap };
     style: Record<string, string>;

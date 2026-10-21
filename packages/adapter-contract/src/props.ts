@@ -16,6 +16,7 @@ export function propsOf(props: ContractProps): ContractProps {
     if (props.defaultColor !== undefined)
         picked.defaultColor = props.defaultColor;
     if (props.brush !== undefined) picked.brush = props.brush;
+    if (props.describe !== undefined) picked.describe = props.describe;
     if (props.minSelectionLength !== undefined)
         picked.minSelectionLength = props.minSelectionLength;
     if (props.touchSelectionDelay !== undefined)

@@ -38,17 +38,18 @@ hl.on('click', ({ highlights: covering }) =>
 
 Replaces the content of `el` with the rendered text and returns a `Highlighter`. It adds the `om-root` class to the classes `el` already has and sets `data-om-strategy` from `strategy`, replacing any value `el` had.
 
-| Option                | Type                                  | Default    | Description                                                                                                                  |
-| --------------------- | ------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `text`                | `string`                              | required   | The source text. Positions are UTF-16 indices.                                                                               |
-| `highlights`          | `Highlight[]`                         | `[]`       | `{ id, start, end, color?, className?, data? }`; `end` is exclusive                                                          |
-| `strategy`            | `'layers' \| 'depth'`                 | `'layers'` | How overlaps are drawn                                                                                                       |
-| `focusable`           | `boolean`                             | `true`     | Put `tabindex="0"` on highlighted segments; Enter/Space emits `click`                                                        |
-| `defaultColor`        | `string`                              | `#ddd6ff`  | Color baked into the `--om-brush` image for highlights without `color`; for flat backgrounds set `--om-default-color` in CSS |
-| `brush`               | `(color: string) => string`           | built-in   | Returns a CSS image value for `--om-brush` (used by `om-style-marker`)                                                       |
-| `minSelectionLength`  | `number`                              | `1`        | Shorter selections do not emit `select`                                                                                      |
-| `touchSelectionDelay` | `number`                              | `500`      | Milliseconds of no selection change before `select` fires on touch                                                           |
-| `decorate`            | `(segment) => Node \| string \| null` | none       | Decoration after each highlighted segment's text (see below); `null` or `''` for none                                        |
+| Option                | Type                                           | Default    | Description                                                                                                                                             |
+| --------------------- | ---------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `text`                | `string`                                       | required   | The source text. Positions are UTF-16 indices.                                                                                                          |
+| `highlights`          | `Highlight[]`                                  | `[]`       | `{ id, start, end, color?, className?, data? }`; `end` is exclusive                                                                                     |
+| `strategy`            | `'layers' \| 'depth'`                          | `'layers'` | How overlaps are drawn                                                                                                                                  |
+| `focusable`           | `boolean`                                      | `true`     | Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space emits `click`                                                               |
+| `describe`            | `(highlights: readonly Highlight[]) => string` | count      | The accessible description of a focusable segment, from the highlights covering it: `'1 highlight'` / `` `${n} highlights` `` by default; `''` for none |
+| `defaultColor`        | `string`                                       | `#ddd6ff`  | Color baked into the `--om-brush` image for highlights without `color`; for flat backgrounds set `--om-default-color` in CSS                            |
+| `brush`               | `(color: string) => string`                    | built-in   | Returns a CSS image value for `--om-brush` (used by `om-style-marker`)                                                                                  |
+| `minSelectionLength`  | `number`                                       | `1`        | Shorter selections do not emit `select`                                                                                                                 |
+| `touchSelectionDelay` | `number`                                       | `500`      | Milliseconds of no selection change before `select` fires on touch                                                                                      |
+| `decorate`            | `(segment) => Node \| string \| null`          | none       | Decoration after each highlighted segment's text (see below); `null` or `''` for none                                                                   |
 
 ### Returned object
 
@@ -90,21 +91,23 @@ Every hover `enter` is followed by one `leave` for the same `segment` object. Be
 
 ## DOM contract
 
-| Kind         | Name                                                                    | Meaning                                                                                           |
-| ------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Class        | `om-root`                                                               | The root element                                                                                  |
-| Class        | `om-seg`                                                                | Outermost element of a segment                                                                    |
-| Class        | `om-hl`                                                                 | A highlight element (a `<mark>`)                                                                  |
-| Class        | `om-style-marker`, `om-style-underline`, `om-style-box`                 | Presets, applied through `highlight.className`                                                    |
-| Attribute    | `data-om-strategy`                                                      | On the root: `layers` or `depth`                                                                  |
-| Attribute    | `data-om-start`                                                         | On `om-seg`: the segment's start index                                                            |
-| Attribute    | `data-om-depth`                                                         | Number of highlights covering the segment                                                         |
-| Attribute    | `data-om-ids`                                                           | Space-separated ids of the covering highlights                                                    |
-| Attribute    | `data-om-id`                                                            | On each layers-strategy `om-hl`: that highlight's id                                              |
-| Attribute    | `tabindex`                                                              | On a focusable `om-seg`: `0`, or `om-lifted` (unfocusable) while a left mouse press on it is down |
-| Attribute    | `data-om-skip`                                                          | On the decoration container (with `aria-hidden="true"`): ignored when measuring offsets           |
-| CSS variable | `--om-color`, `--om-brush`, `--om-level`, `--om-depth`                  | Set by the library per element                                                                    |
-| CSS variable | `--om-default-color`, `--om-depth-step`, `--om-max-depth`, `--om-alpha` | Theme variables you can set on `.om-root` or an ancestor                                          |
+| Kind         | Name                                                                    | Meaning                                                                                                                                     |
+| ------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Class        | `om-root`                                                               | The root element                                                                                                                            |
+| Class        | `om-seg`                                                                | Outermost element of a segment                                                                                                              |
+| Class        | `om-hl`                                                                 | A highlight element (a `<mark>`)                                                                                                            |
+| Class        | `om-style-marker`, `om-style-underline`, `om-style-box`                 | Presets, applied through `highlight.className`                                                                                              |
+| Attribute    | `data-om-strategy`                                                      | On the root: `layers` or `depth`                                                                                                            |
+| Attribute    | `data-om-start`                                                         | On `om-seg`: the segment's start index                                                                                                      |
+| Attribute    | `data-om-depth`                                                         | Number of highlights covering the segment                                                                                                   |
+| Attribute    | `data-om-ids`                                                           | Space-separated ids of the covering highlights                                                                                              |
+| Attribute    | `data-om-id`                                                            | On each layers-strategy `om-hl`: that highlight's id                                                                                        |
+| Attribute    | `tabindex`                                                              | On a focusable `om-seg`: `0`, or `om-lifted` (unfocusable) while a left mouse press on it is down                                           |
+| Attribute    | `role`                                                                  | `button` on a focusable `om-seg`                                                                                                            |
+| Attribute    | `aria-description`                                                      | On a focusable `om-seg`: what `describe` returns, read after its text by screen readers; never part of the text, a selection or the offsets |
+| Attribute    | `data-om-skip`                                                          | On the decoration container (with `aria-hidden="true"`): ignored when measuring offsets                                                     |
+| CSS variable | `--om-color`, `--om-brush`, `--om-level`, `--om-depth`                  | Set by the library per element                                                                                                              |
+| CSS variable | `--om-default-color`, `--om-depth-step`, `--om-max-depth`, `--om-alpha` | Theme variables you can set on `.om-root` or an ancestor                                                                                    |
 
 Setting `--om-color` on the root has no effect (it is reset on each `.om-hl`); use `--om-default-color`. All rules in `styles.css` have zero specificity (`:where()`), so your own class rules always win.
 

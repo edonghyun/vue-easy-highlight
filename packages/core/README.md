@@ -30,7 +30,7 @@ Positions are UTF-16 string indices; `start` is inclusive, `end` exclusive. Segm
 | `DEFAULT_COLOR`, `defaultBrush(color)`    | Default color `#ddd6ff` and the default marker brush                                                                                                                              |
 | Types                                     | `Highlight`, `Segment`, `Strategy`, `RenderOptions`, `ElementSpec`, `DecorationTarget`, `FindMatchesOptions`, `SelectDetail`, `PointDetail`, `HoverDetail`, `InteractionHandlers` |
 
-`RenderOptions`: `strategy` (`'layers' | 'depth'`), `focusable`, `defaultColor`, `brush`.
+`RenderOptions`: `strategy` (`'layers' | 'depth'`), `overlap`, `focusable`, `describe`, `defaultColor`, `brush`. A focusable highlighted segment gets `tabindex="0"`, `role="button"` and an `aria-description` of `describe(highlights)` (default `'1 highlight'` / `` `${n} highlights` ``).
 
 ## `@overlapmark/core/dom`
 
@@ -59,6 +59,7 @@ Browser-only helpers.
 | Attribute    | `data-om-depth`                                         | Number of highlights covering the segment                                                                                                                                                                    |
 | Attribute    | `data-om-ids`                                           | Space-separated ids of the covering highlights                                                                                                                                                               |
 | Attribute    | `data-om-id`                                            | On each layers-strategy `om-hl`: that highlight's id                                                                                                                                                         |
+| Attribute    | `role`, `aria-description`                              | On a focusable `om-seg`: `button`, and what `describe` returns; the description is an attribute, so it is never part of the text, a selection or the offsets                                                 |
 | Attribute    | `data-om-skip`                                          | Decoration container (`<span data-om-skip aria-hidden="true">`, after the innermost text of a highlighted segment); ignored when measuring offsets, `user-select: none` in `styles.css`; presentational only |
 | CSS variable | `--om-color`                                            | Per highlight, from `highlight.color`; reset on every `.om-hl`                                                                                                                                               |
 | CSS variable | `--om-brush`                                            | Per element, image used by `om-style-marker`                                                                                                                                                                 |
