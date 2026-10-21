@@ -12,21 +12,29 @@ export interface InteractionOptions<
 > extends InteractionHandlers<T> {
     getText: () => string;
     getSegments: () => readonly Segment<T>[];
-    /** Minimum selection length (code units) for `onSelect`. Default 1. */
+    /**
+     * Minimum selection length (code units) for `onSelect`. Default 1.
+     * Read each time it is needed, like every other field of `options`,
+     * so it may be changed (or defined as a getter) after attaching.
+     */
     minSelectionLength?: number;
-    /** Touch selections are confirmed after this many ms without change. Default 500. */
+    /** Touch selections are confirmed after this many ms without change. Default 500. Read live. */
     touchSelectionDelay?: number;
 }
 
 const SEG = '[data-om-start]';
 
-/** Attaches the interaction listeners to `root`; returns `detach`. */
+/**
+ * Attaches the interaction listeners to `root`; returns `detach`.
+ * `options` is read live: handlers and settings are looked up on every event,
+ * so callers can mutate it (or expose getters) instead of re-attaching.
+ */
 export function attachInteractions<T>(
     root: HTMLElement,
     options: InteractionOptions<T>,
 ): () => void {
-    const minLength = options.minSelectionLength ?? 1;
-    const touchDelay = options.touchSelectionDelay ?? 500;
+    const minLength = (): number => options.minSelectionLength ?? 1;
+    const touchDelay = (): number => options.touchSelectionDelay ?? 500;
 
     // ---- select ----------------------------------------------------------
     let pending = false;
@@ -57,7 +65,7 @@ export function attachInteractions<T>(
             return;
         }
         const { start, end } = offsets;
-        if (end - start < minLength) return;
+        if (end - start < minLength()) return;
         if (last && last.start === start && last.end === end) return;
         last = { start, end };
         options.onSelect?.({
@@ -80,7 +88,7 @@ export function attachInteractions<T>(
         pending = true;
         if (lastPointerType === 'touch') {
             clearTouchTimer();
-            touchTimer = setTimeout(confirm, touchDelay);
+            touchTimer = setTimeout(confirm, touchDelay());
         }
     };
 

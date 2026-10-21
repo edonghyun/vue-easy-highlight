@@ -40,7 +40,7 @@ Browser-only helpers.
 | `getOffsetFromPoint(root, clientX, clientY)` | Source-text index of the character under a viewport point, or `null` outside `root`                                                                                                                        |
 | `createRangeFromOffsets(root, start, end)`   | A DOM `Range` for source-text indices (clamped), or `null` if `start > end`                                                                                                                                |
 | `getTextLength(root)`                        | Length of the rendered source text                                                                                                                                                                         |
-| `attachInteractions(root, options)`          | Wire up `onSelect`/`onClick`/`onDblclick`/`onHover`; `options` also needs `getText()` and `getSegments()` and accepts `minSelectionLength` (1) and `touchSelectionDelay` (500). Returns a detach function. |
+| `attachInteractions(root, options)`          | Wire up `onSelect`/`onClick`/`onDblclick`/`onHover`; `options` also needs `getText()` and `getSegments()` and accepts `minSelectionLength` (1) and `touchSelectionDelay` (500). `options` is read live (mutate it or use getters instead of re-attaching). Returns a detach function. |
 
 ## DOM contract
 

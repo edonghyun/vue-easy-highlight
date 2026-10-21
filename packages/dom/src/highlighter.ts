@@ -92,19 +92,22 @@ export function createHighlighter<T>(
 
     render();
 
-    const attach = (): (() => void) =>
-        attachInteractions<T>(el, {
-            getText: () => opts.text,
-            getSegments: () => segments,
-            minSelectionLength: opts.minSelectionLength,
-            touchSelectionDelay: opts.touchSelectionDelay,
-            onSelect: (d) => emit('select', d),
-            onClick: (d) => emit('click', d),
-            onDblclick: (d) => emit('dblclick', d),
-            onHover: (d) => emit('hover', d),
-        });
-
-    let detach = attach();
+    // attachInteractions reads its options live, so these getters pick up
+    // update() changes without re-attaching (which would drop pending state).
+    const detach = attachInteractions<T>(el, {
+        getText: () => opts.text,
+        getSegments: () => segments,
+        get minSelectionLength() {
+            return opts.minSelectionLength;
+        },
+        get touchSelectionDelay() {
+            return opts.touchSelectionDelay;
+        },
+        onSelect: (d) => emit('select', d),
+        onClick: (d) => emit('click', d),
+        onDblclick: (d) => emit('dblclick', d),
+        onHover: (d) => emit('hover', d),
+    });
 
     return {
         update(next) {
@@ -119,16 +122,8 @@ export function createHighlighter<T>(
                           ?.getAttribute('data-om-start')
                     : null;
 
-            const prev = opts;
             opts = { ...opts, ...next };
             render();
-            if (
-                prev.minSelectionLength !== opts.minSelectionLength ||
-                prev.touchSelectionDelay !== opts.touchSelectionDelay
-            ) {
-                detach();
-                detach = attach();
-            }
 
             if (saved) {
                 const range = createRangeFromOffsets(

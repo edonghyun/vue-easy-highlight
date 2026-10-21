@@ -168,4 +168,23 @@ describe('createHighlighter: interaction options', () => {
         expect(fn).toHaveBeenCalledTimes(1);
         expect(fn.mock.calls[0][0]).toMatchObject({ start: 2, end: 4 });
     });
+
+    it('update({ touchSelectionDelay }) applies to a touch selection already in progress', async () => {
+        const { el, h } = make([a, b], { touchSelectionDelay: 5000 });
+        const fn = vi.fn();
+        h.on('select', fn);
+        el.dispatchEvent(
+            new PointerEvent('pointerdown', {
+                bubbles: true,
+                pointerType: 'touch',
+            }),
+        );
+        select(el, 8, 18);
+        h.update({ touchSelectionDelay: 40 });
+        await tick(10);
+        expect(fn).not.toHaveBeenCalled();
+        await tick(100);
+        expect(fn).toHaveBeenCalledTimes(1);
+        expect(fn.mock.calls[0][0]).toMatchObject({ start: 8, end: 18 });
+    });
 });

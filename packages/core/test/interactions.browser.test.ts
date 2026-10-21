@@ -48,6 +48,13 @@ function setup(
         onDblclick,
         onHover,
         ...options,
+        // Forwarded live, so a test can change them after attaching.
+        get minSelectionLength() {
+            return options.minSelectionLength;
+        },
+        get touchSelectionDelay() {
+            return options.touchSelectionDelay;
+        },
     });
     detachers.push(detach);
     return { root, onSelect, onClick, onDblclick, onHover, detach };
@@ -193,6 +200,29 @@ describe('attachInteractions: select', () => {
             end: 5,
             text: text.slice(2, 5),
         });
+    });
+
+    it('reads minSelectionLength and touchSelectionDelay live from options', async () => {
+        const options: Partial<InteractionOptions> = { minSelectionLength: 5 };
+        const { root, onSelect } = setup(options);
+        select(root, 2, 4);
+        await tick();
+        await release();
+        expect(onSelect).not.toHaveBeenCalled();
+
+        options.minSelectionLength = 1;
+        select(root, 2, 5);
+        await tick();
+        await release();
+        expect(onSelect).toHaveBeenCalledTimes(1);
+
+        options.touchSelectionDelay = 40;
+        pointer('pointerdown', root, { pointerType: 'touch' });
+        select(root, 8, 18);
+        await tick(10);
+        expect(onSelect).toHaveBeenCalledTimes(1);
+        await tick(80);
+        expect(onSelect).toHaveBeenCalledTimes(2);
     });
 
     it('emits select from a keyboard selection (keyup)', async () => {
