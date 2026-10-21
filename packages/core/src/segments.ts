@@ -1,4 +1,5 @@
 import type { Highlight, Segment } from './types';
+import { isInsidePair } from './unicode';
 import { warnOnce } from './warn';
 
 /**
@@ -14,14 +15,6 @@ export function compareHighlights(
     const lb = b.end - b.start;
     if (la !== lb) return lb - la;
     return indexOf(a) - indexOf(b);
-}
-
-function isHigh(code: number): boolean {
-    return code >= 0xd800 && code <= 0xdbff;
-}
-
-function isLow(code: number): boolean {
-    return code >= 0xdc00 && code <= 0xdfff;
 }
 
 interface Entry<T> {
@@ -61,20 +54,8 @@ function normalize<T>(
             );
             return;
         }
-        if (
-            start > 0 &&
-            isLow(text.charCodeAt(start)) &&
-            isHigh(text.charCodeAt(start - 1))
-        ) {
-            start -= 1;
-        }
-        if (
-            end < len &&
-            isLow(text.charCodeAt(end)) &&
-            isHigh(text.charCodeAt(end - 1))
-        ) {
-            end += 1;
-        }
+        if (isInsidePair(text, start)) start -= 1;
+        if (isInsidePair(text, end)) end += 1;
         entries.push({ source: h, start, end, index, rank: 0 });
     });
     return entries;

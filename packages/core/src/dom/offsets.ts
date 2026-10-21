@@ -9,6 +9,8 @@
  * + the offset inside the boundary's text node.
  */
 
+import { isHighSurrogate, isLowSurrogate } from '../unicode';
+
 export interface TextRange {
     start: number;
     end: number;
@@ -305,12 +307,4 @@ function codeUnitAt(root: Element, pos: number): number {
     return node.nodeType === Node.TEXT_NODE
         ? (node as Text).data.charCodeAt(offset)
         : NaN;
-}
-
-function isHighSurrogate(c: number): boolean {
-    return c >= 0xd800 && c <= 0xdbff;
-}
-
-function isLowSurrogate(c: number): boolean {
-    return c >= 0xdc00 && c <= 0xdfff;
 }
