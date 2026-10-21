@@ -51,6 +51,8 @@ The component renders a single `<div class="om-root">`. Classes and other attrib
 
 `highlights` may be plain arrays or reactive state. Changes made in place (`push`, `splice`, a new `end` on a highlight in a deep `ref`) re-render, and events always report your own highlight objects, never Vue's reactive proxies, so `detail.highlights[0] === myHighlight` holds. Passing a new array of the same highlights, as a re-rendering parent often does, leaves the DOM untouched: the selection and the hovered segment stay as they are.
 
+For large lists, hold the highlights in a `shallowRef` and replace the array (`list.value = [...list.value, added]`) instead of a deep `ref`: a deep `ref` wraps every highlight in a proxy that the component reads through on each render, and in-place changes are the only thing it buys.
+
 ## Events
 
 | Event                | Detail                                                                                                      |

@@ -18,6 +18,15 @@ export default defineConfig({
         projects: [
             {
                 extends: true,
+                // Server rendering with no window or document, as on a real server.
+                test: {
+                    name: 'node',
+                    environment: 'node',
+                    include: ['test/**/*.node.test.ts'],
+                },
+            },
+            {
+                extends: true,
                 test: {
                     name: 'browser',
                     include: ['test/**/*.browser.test.ts'],

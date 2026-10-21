@@ -3,7 +3,7 @@
 // update() is a plain prop change followed by Vue's flush; every emit reaches
 // the suite's record from the core callback that produced it, and the
 // contract's decoration text is what the decoration slot renders.
-import { defineAdapterContract } from '@overlapmark/adapter-contract';
+import { defineAdapterContract, propsOf } from '@overlapmark/adapter-contract';
 import type { ContractProps } from '@overlapmark/adapter-contract';
 import '@overlapmark/core/styles.css';
 import type { Segment } from '@overlapmark/core';
@@ -17,18 +17,13 @@ defineAdapterContract({
         const props = shallowReactive<ContractProps>({ ...initial });
         const app = createApp({
             render: () => {
-                const { decoration } = props;
+                // propsOf: fixtures carry extra fields (such as `name`) that
+                // would fall through as attributes.
+                const { decoration, ...rest } = propsOf(props);
                 return h(
                     Highlighter,
                     {
-                        // Named one by one: fixtures carry extra fields (such
-                        // as `name`) that would fall through as attributes.
-                        text: props.text,
-                        highlights: props.highlights,
-                        strategy: props.strategy,
-                        focusable: props.focusable,
-                        minSelectionLength: props.minSelectionLength,
-                        touchSelectionDelay: props.touchSelectionDelay,
+                        ...rest,
                         onSelect: (detail) =>
                             record({ type: 'select', detail }),
                         onClick: (detail) => record({ type: 'click', detail }),

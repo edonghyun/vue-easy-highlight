@@ -1,10 +1,12 @@
 import {
     computeSegments,
+    decorationTarget,
     rootAttributes,
     segmentElements,
     segmentKey,
 } from '@overlapmark/core';
 import type {
+    ElementSpec,
     Highlight,
     HoverDetail,
     PointDetail,
@@ -64,44 +66,58 @@ function segmentsOf(text: string, highlights: readonly Highlight[]): Segment[] {
     }));
 }
 
-/** The decoration container of the DOM contract, or `null` when the slot rendered nothing. */
-function decorationOf(content: VNode[]): VNode | null {
-    if (content.every((vnode) => vnode.type === Comment)) return null;
-    return h('span', { 'data-om-skip': '', 'aria-hidden': 'true' }, content);
+/**
+ * The props of the element `spec` describes. An empty class or style is left
+ * out rather than set to nothing: the server renders a present `class` or
+ * `style` key as an empty attribute, which the client never does.
+ */
+function propsOfSpec(spec: ElementSpec): Record<string, unknown> {
+    const props: Record<string, unknown> = { ...spec.attrs };
+    if (spec.className) props.class = spec.className;
+    if (Object.keys(spec.style).length > 0) props.style = spec.style;
+    return props;
 }
 
-/** The elements of one segment, outermost first, keyed by `segmentKey`. */
+/** The decoration container holding `content`, or `null` when the slot rendered nothing (only comments, as from `v-if`). */
+function decorationVNode(
+    container: ElementSpec,
+    content: VNode[],
+): VNode | null {
+    if (content.every((vnode) => vnode.type === Comment)) return null;
+    return h(container.tag, propsOfSpec(container), content);
+}
+
+/**
+ * The elements of one segment, built innermost first; the outermost is keyed
+ * by `segmentKey`. `decorate` renders the decoration slot.
+ */
 function segmentVNode(
     segment: Segment,
     options: RenderOptions,
-    decoration: VNode | null,
+    decorate: ((segment: Segment) => VNode[]) | undefined,
 ): VNode {
     const specs = segmentElements(segment, options);
-    let children: VNodeChild = decoration
-        ? [segment.text, decoration]
-        : segment.text;
-    for (let i = specs.length - 1; i > 0; i--) {
-        const spec = specs[i];
-        children = [
-            h(
-                spec.tag,
-                { class: spec.className, style: spec.style, ...spec.attrs },
-                children,
-            ),
-        ];
-    }
-    const outer = specs[0];
+    const target = decorationTarget(segment, specs);
+    const decoration =
+        target && decorate
+            ? decorationVNode(target.container, decorate(segment))
+            : null;
+    // The children of element `i`: the element inside it (or the text), then
+    // the decoration if `i` holds it.
+    const childrenAt = (i: number, inner: VNodeChild): VNodeChild[] =>
+        decoration && i === target?.index ? [inner, decoration] : [inner];
+    let inner: VNodeChild = segment.text;
+    for (let i = specs.length - 1; i > 0; i--)
+        inner = h(specs[i].tag, propsOfSpec(specs[i]), childrenAt(i, inner));
     return h(
-        outer.tag,
+        specs[0].tag,
         {
             // A segment whose covering ids change gets a new element, so a
             // hover target is never patched into a different segment.
             key: segmentKey(segment),
-            class: outer.className,
-            style: outer.style,
-            ...outer.attrs,
+            ...propsOfSpec(specs[0]),
         },
-        children,
+        childrenAt(0, inner),
     );
 }
 
@@ -213,9 +229,8 @@ export const Highlighter = defineComponent({
                     segmentVNode(
                         segment,
                         options,
-                        segment.depth > 0 && slots.decoration
-                            ? decorationOf(slots.decoration({ segment }))
-                            : null,
+                        slots.decoration &&
+                            ((segment) => slots.decoration({ segment })),
                     ),
                 ),
             );

@@ -13,6 +13,7 @@ import {
     clearSelectionAndWait,
     givenPointerOutsideRoots,
     partialOverlap,
+    propsOf,
     segmentElement,
     selectAndWait,
 } from '@overlapmark/adapter-contract';
@@ -115,7 +116,7 @@ describe('Highlighter: root element', () => {
 describe('Highlighter: decoration slot', () => {
     it('renders the slot content for each highlighted segment inside its decoration container', () => {
         const host = givenApp(() =>
-            h(Highlighter, partialOverlap, {
+            h(Highlighter, propsOf(partialOverlap), {
                 decoration: ({ segment }: { segment: Segment }) =>
                     h('b', { class: 'count' }, String(segment.depth)),
             }),
@@ -135,7 +136,7 @@ describe('Highlighter: decoration slot', () => {
 
     it('leaves out the container of a segment the slot renders nothing for', () => {
         const host = givenApp(() =>
-            h(Highlighter, partialOverlap, {
+            h(Highlighter, propsOf(partialOverlap), {
                 decoration: ({ segment }: { segment: Segment }) =>
                     segment.depth > 1 ? 'overlap' : null,
             }),
@@ -175,22 +176,17 @@ describe('Highlighter: highlights held in deep reactive state', () => {
 
     it('renders a highlight pushed into the reactive array in place', async () => {
         const highlights = ref<Highlight[]>([a]);
-        const emitted: Emitted = { clicks: [], hovers: [] };
         const host = givenApp(() =>
-            h(Highlighter, {
-                text: TEXT,
-                highlights: highlights.value,
-                ...recordingInto(emitted),
-            }),
+            h(Highlighter, { text: TEXT, highlights: highlights.value }),
         );
 
         highlights.value.push(c);
         await nextTick();
 
-        await clickCharacter(rootIn(host), 20);
-        expect(emitted.clicks).toHaveLength(1);
-        expect(emitted.clicks[0].highlights).toHaveLength(1);
-        expect(emitted.clicks[0].highlights[0]).toBe(c);
+        // `c` covers [10,24): with `a` over [0,15) it adds [10,15) a+c and [15,24) c.
+        const root = rootIn(host);
+        expect(segmentElement(root, 10).getAttribute('data-ids')).toBe('a,c');
+        expect(segmentElement(root, 15).getAttribute('data-ids')).toBe('c');
     });
 
     it('renders a highlight changed in place', async () => {
@@ -277,6 +273,9 @@ describe('Highlighter: equal highlights passed again in a new array', () => {
 // Review Focus 3: unmounting and mounting again, or KeepAlive deactivating
 // and activating, leaves exactly one set of listeners on the live root.
 describe('Highlighter: remounting', () => {
+    // Pins one controller on the new root. A controller left on the old root
+    // is out of its sight: nothing reaches that detached root (the contract's
+    // teardown cases cover stale segments).
     it('emits one click per click after v-if unmounts and mounts it again', async () => {
         const shown = ref(true);
         const emitted: Emitted = { clicks: [], hovers: [] };
@@ -284,7 +283,7 @@ describe('Highlighter: remounting', () => {
             h('section', [
                 shown.value
                     ? h(Highlighter, {
-                          ...partialOverlap,
+                          ...propsOf(partialOverlap),
                           ...recordingInto(emitted),
                       })
                     : null,
@@ -300,6 +299,34 @@ describe('Highlighter: remounting', () => {
         expect(emitted.clicks.map((d) => d.offset)).toEqual([10]);
     });
 
+    // Detaching after the root left the document would hand the caller a
+    // leave for a segment no longer on the page.
+    it('emits the unmount leave while its root is still in the document', async () => {
+        await givenPointerOutsideRoots();
+        const shown = ref(true);
+        const leaves: { connected: boolean }[] = [];
+        const host = givenApp(() =>
+            h('section', [
+                shown.value
+                    ? h(Highlighter, {
+                          ...propsOf(partialOverlap),
+                          onHover: (detail: HoverDetail) => {
+                              if (detail.type === 'leave')
+                                  leaves.push({ connected: root.isConnected });
+                          },
+                      })
+                    : null,
+            ]),
+        );
+        const root = rootIn(host);
+        await userEvent.hover(segmentElement(root, 6));
+
+        shown.value = false;
+        await nextTick();
+
+        expect(leaves).toEqual([{ connected: true }]);
+    });
+
     describe('inside KeepAlive', () => {
         /** A Highlighter KeepAlive caches while `shown` is false. */
         function givenKeptAlive(): {
@@ -313,7 +340,10 @@ describe('Highlighter: remounting', () => {
             const host = givenApp(() =>
                 h(KeepAlive, null, [
                     shown.value
-                        ? h(Highlighter, { ...partialOverlap, ...handlers })
+                        ? h(Highlighter, {
+                              ...propsOf(partialOverlap),
+                              ...handlers,
+                          })
                         : null,
                 ]),
             );
@@ -327,6 +357,8 @@ describe('Highlighter: remounting', () => {
             await nextTick();
             shown.value = true;
             await nextTick();
+
+            // Precondition: KeepAlive kept the instance, so this is no remount.
             expect(rootIn(host)).toBe(root);
 
             await clickCharacter(root, 10);
