@@ -1,6 +1,11 @@
 import fc from 'fast-check';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { computeSegments, segmentAt, type Highlight } from '../src/index';
+import {
+    computeSegments,
+    highlightsInRange,
+    segmentAt,
+    type Highlight,
+} from '../src/index';
 
 const textArb = fc
     .array(
@@ -28,13 +33,20 @@ const inputArb = textArb.chain((text) => {
 const LONE =
     /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
-function normalizedRanges(text: string, hs: Highlight[]): [number, number][] {
+interface Norm {
+    h: Highlight;
+    s: number;
+    e: number;
+    i: number;
+}
+
+function normalizedEntries(text: string, hs: Highlight[]): Norm[] {
     const n = text.length;
-    const out: [number, number][] = [];
-    for (const h of hs) {
+    const out: Norm[] = [];
+    hs.forEach((h, i) => {
         let s = Math.max(0, Math.min(h.start, n));
         let e = Math.max(0, Math.min(h.end, n));
-        if (s >= e) continue;
+        if (s >= e) return;
         const code = (i: number) => text.charCodeAt(i);
         if (
             s > 0 &&
@@ -52,10 +64,17 @@ function normalizedRanges(text: string, hs: Highlight[]): [number, number][] {
             code(e - 1) <= 0xdbff
         )
             e++;
-        out.push([s, e]);
-    }
+        out.push({ h, s, e, i });
+    });
     return out;
 }
+
+function normalizedRanges(text: string, hs: Highlight[]): [number, number][] {
+    return normalizedEntries(text, hs).map((x) => [x.s, x.e]);
+}
+
+const byRule = (x: Norm, y: Norm) =>
+    x.s - y.s || y.e - y.s - (x.e - x.s) || x.i - y.i;
 
 describe('computeSegments properties', () => {
     beforeAll(() => {
@@ -113,6 +132,44 @@ describe('computeSegments properties', () => {
                     computeSegments(text, highlights),
                 );
             }),
+        );
+    });
+
+    it('segment highlights follow the ordering rule on normalized ranges', () => {
+        fc.assert(
+            fc.property(inputArb, ({ text, highlights }) => {
+                const norm = normalizedEntries(text, highlights);
+                for (const seg of computeSegments(text, highlights)) {
+                    const expected = norm
+                        .filter((x) => x.s <= seg.start && seg.end <= x.e)
+                        .sort(byRule)
+                        .map((x) => x.h);
+                    expect(seg.highlights.length).toBe(expected.length);
+                    seg.highlights.forEach((h, k) =>
+                        expect(h).toBe(expected[k]),
+                    );
+                }
+            }),
+        );
+    });
+
+    it('highlightsInRange equals brute-force union in rule order', () => {
+        fc.assert(
+            fc.property(
+                inputArb,
+                fc.integer({ min: -2, max: 40 }),
+                fc.integer({ min: -2, max: 40 }),
+                ({ text, highlights }, a, b) => {
+                    const s = computeSegments(text, highlights);
+                    const expected = normalizedEntries(text, highlights)
+                        .filter((x) => x.s < b && a < x.e && a < b)
+                        .sort(byRule)
+                        .map((x) => x.h);
+                    const actual = highlightsInRange(s, a, b);
+                    expect(actual.length).toBe(expected.length);
+                    actual.forEach((h, k) => expect(h).toBe(expected[k]));
+                },
+            ),
         );
     });
 

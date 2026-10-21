@@ -112,6 +112,14 @@ describe('segmentAt / highlightsInRange / compareHighlights', () => {
         ]);
         expect(highlightsInRange(s, 15, 15)).toEqual([]);
     });
+    it('highlightsInRange order equals segment order for clamped ranges', () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const a = { id: 'a', start: -5, end: 2 };
+        const b = { id: 'b', start: 0, end: 3 };
+        const s = computeSegments('abc', [a, b]);
+        expect(s[0].highlights.map((h) => h.id)).toEqual(['b', 'a']);
+        expect(highlightsInRange(s, 0, 3).map((h) => h.id)).toEqual(['b', 'a']);
+    });
     it('compareHighlights: start, then longer first, then index', () => {
         const idx = (h: unknown) => (h === A ? 0 : 1);
         expect(compareHighlights(A, B, idx)).toBeLessThan(0);

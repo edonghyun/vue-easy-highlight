@@ -80,6 +80,9 @@ function normalize<T>(
     return entries;
 }
 
+/** Canonical rank of each entry of `segment.highlights`, recorded by computeSegments. */
+const segmentRanks = new WeakMap<Segment<never>, number[]>();
+
 export function computeSegments<T>(
     text: string,
     highlights: readonly Highlight<T>[],
@@ -130,13 +133,15 @@ export function computeSegments<T>(
     let cursor = 0;
 
     const emit = (end: number): void => {
-        segments.push({
+        const segment: Segment<T> = {
             start: cursor,
             end,
             text: text.slice(cursor, end),
             highlights: active.map((r) => byRank[r].source),
             depth: active.length,
-        });
+        };
+        segmentRanks.set(segment, active.slice());
+        segments.push(segment);
     };
 
     for (const ev of events) {
@@ -193,19 +198,18 @@ export function highlightsInRange<T>(
         if (segments[mid].end <= start) lo = mid + 1;
         else hi = mid;
     }
-    const firstSeen = new Map<Highlight<T>, number>();
+    // Order by the canonical rank computeSegments assigned (normalized ranges),
+    // not by the raw start/end the caller passed in.
+    const best = new Map<Highlight<T>, number>();
+    let fallback = Number.MAX_SAFE_INTEGER / 2;
     for (let i = lo; i < segments.length && segments[i].start < end; i++) {
-        for (const h of segments[i].highlights) {
-            if (!firstSeen.has(h)) firstSeen.set(h, firstSeen.size);
-        }
+        const ranks = segmentRanks.get(segments[i]);
+        segments[i].highlights.forEach((h, j) => {
+            // Hand-built segments carry no rank: keep their listed order after ranked ones.
+            const rank = ranks ? ranks[j] : fallback++;
+            const prev = best.get(h);
+            if (prev === undefined || rank < prev) best.set(h, rank);
+        });
     }
-    const result = [...firstSeen.keys()];
-    result.sort((a, b) =>
-        compareHighlights(
-            a,
-            b,
-            (h) => firstSeen.get(h as Highlight<T>) as number,
-        ),
-    );
-    return result;
+    return [...best.entries()].sort((a, b) => a[1] - b[1]).map(([h]) => h);
 }
