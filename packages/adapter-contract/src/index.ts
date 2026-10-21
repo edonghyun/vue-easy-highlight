@@ -622,6 +622,20 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 expect(hovers[1].highlights).toEqual([a, b]);
             });
 
+            // Adapters must detach core's listeners while the component can
+            // still emit, so this leave reaches the caller.
+            it('emits leave for the hovered segment when unmounted', async () => {
+                await givenPointerOutsideRoots();
+                const adapter = await givenAdapter(partialOverlap);
+                await userEvent.hover(segmentElement(adapter.root, 6));
+
+                await adapter.unmount();
+
+                const hovers = detailsOf(adapter, 'hover');
+                expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
+                expect(hovers[1].segment).toBe(hovers[0].segment);
+            });
+
             it('reports the entered segment, its highlights and the pointer event', async () => {
                 await givenPointerOutsideRoots();
                 const adapter = await givenAdapter(partialOverlap);

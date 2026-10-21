@@ -174,7 +174,10 @@ export function attachInteractions<T>(
             return;
         const segment = segmentOf(el);
         if (!segment) return;
+        // A held Space would still scroll the page, so repeats keep being
+        // prevented; only the first press of a held key is a click.
         e.preventDefault();
+        if (e.repeat) return;
         options.onClick?.({
             offset: segment.start,
             segment,
@@ -251,8 +254,10 @@ export function attachInteractions<T>(
         root.removeEventListener('keydown', onKeyDown);
         root.removeEventListener('pointerover', onPointerOver);
         root.removeEventListener('pointerout', onPointerOut);
-        hovered = null;
         pending = false;
         last = null;
+        // The pointer can no longer be tracked, so the hovered segment ends
+        // here. No pointer event caused it: report an undispatched one.
+        leave(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
     };
 }

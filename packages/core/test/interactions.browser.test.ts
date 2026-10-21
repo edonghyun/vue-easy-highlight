@@ -379,6 +379,22 @@ describe('attachInteractions: click', () => {
         ]);
     });
 
+    it.each([{ key: 'Enter' }, { key: ' ' }])(
+        'emits one click while "$key" is held down on a focused segment',
+        ({ key }) => {
+            const { root, events } = givenInteractiveRoot();
+            const el = segmentElement(root, 6);
+
+            const press = keydown(el, key);
+            keydown(el, key, { repeat: true });
+            keydown(el, key, { repeat: true });
+
+            const clicks = detailsOf({ events }, 'click');
+            expect(clicks).toHaveLength(1);
+            expect(clicks[0].event).toBe(press);
+        },
+    );
+
     it('keeps preventing the default action of a held Space', () => {
         const { root } = givenInteractiveRoot();
         const el = segmentElement(root, 6);
@@ -453,6 +469,25 @@ describe('attachInteractions: hover', () => {
         pointer('pointerout', inner, { relatedTarget: null });
 
         expect(hoverTrail(events)).toEqual(['enter:6', 'leave:6']);
+    });
+
+    it('emits leave for the hovered segment on detach', async () => {
+        await givenPointerOutsideRoots();
+        const root = givenRoot();
+        const recorder = givenRecorder(root);
+        pointer('pointerover', segmentElement(root, 6));
+
+        recorder.detach();
+
+        const hovers = detailsOf(recorder, 'hover');
+        expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
+        expect(hovers[1]).toEqual({
+            type: 'leave',
+            segment: hovers[0].segment,
+            highlights: [a, b],
+            event: expect.any(PointerEvent),
+        });
+        expect(hovers[1].segment).toBe(hovers[0].segment);
     });
 
     it('emits no further leave on detach once the pointer has left', async () => {

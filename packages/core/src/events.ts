@@ -17,7 +17,12 @@ export interface PointDetail<T = unknown> {
     event: MouseEvent | KeyboardEvent;
 }
 
-/** Payload of `onHover`: the mouse entered or left a highlighted segment. */
+/**
+ * Payload of `onHover`: the mouse entered or left a highlighted segment.
+ * A `leave` carries the same `segment` object as its `enter`. Detaching while
+ * a segment is hovered emits its `leave`, with a `pointerleave` event that was
+ * never dispatched (`isTrusted` is false, no coordinates).
+ */
 export interface HoverDetail<T = unknown> {
     type: 'enter' | 'leave';
     segment: Segment<T>;
