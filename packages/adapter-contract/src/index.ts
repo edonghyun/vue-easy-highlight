@@ -23,6 +23,7 @@ import {
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import {
+    REPLACED_TEXT,
     TEXT,
     a,
     b,
@@ -710,6 +711,58 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             );
         });
 
+        it('renders a replaced text', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+
+            await adapter.update({ text: REPLACED_TEXT });
+
+            expect(serializeRoot(adapter.root)).toEqual(
+                expectedTree({ ...partialOverlap, text: REPLACED_TEXT }),
+            );
+        });
+
+        it('reports the updated highlights on a click after update', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            await adapter.update({ highlights: [c] });
+            const { el, position } = charPosition(adapter.root, 12);
+
+            await userEvent.click(el, { position });
+
+            const clicks = detailsOf(adapter, 'click');
+            expect(clicks).toEqual([
+                {
+                    offset: 12,
+                    segment: expect.objectContaining({ start: 10, end: 24 }),
+                    highlights: [c],
+                    event: expect.any(MouseEvent),
+                },
+            ]);
+            expect(clicks[0].highlights[0]).toBe(c);
+        });
+
+        it('emits select text from the updated text', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            await adapter.update({ text: REPLACED_TEXT });
+            await selectAndWait(adapter.root, 8, 17);
+
+            release();
+
+            await expect
+                .poll(() => eventsOf(adapter, 'select'))
+                .toEqual([
+                    {
+                        type: 'select',
+                        detail: {
+                            start: 8,
+                            end: 17,
+                            text: 'wonderful',
+                            rect: expect.any(DOMRect),
+                            highlights: [a, b],
+                        },
+                    },
+                ]);
+        });
+
         it('keeps the selection across an update', async () => {
             const adapter = await givenAdapter(partialOverlap);
             setSelection(createRangeFromOffsets(adapter.root, 8, 18)!);
@@ -846,6 +899,28 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 'leave:6',
                 'enter:6',
             ]);
+        });
+
+        it('emits leave, with no pointer event, when an update changes the highlight ids covering the hovered segment', async () => {
+            const { adapter } = await givenHoveredOverlap();
+            // Same range as `b`, so the hovered segment still starts at 6.
+            const b2 = { id: 'b2', start: 6, end: 21 };
+            const handled = mutationsHandled(adapter.root);
+
+            await adapter.update({ highlights: [a, b2] });
+            await handled;
+
+            const hovers = detailsOf(adapter, 'hover');
+            const leaves = hovers.filter((d) => d.type === 'leave');
+            expect(leaves).toEqual([
+                {
+                    type: 'leave',
+                    segment: hovers[0].segment,
+                    highlights: [a, b],
+                    event: null,
+                },
+            ]);
+            expect(leaves[0].segment).toBe(hovers[0].segment);
         });
 
         it('emits nothing when an update re-renders the hovered segment unchanged', async () => {

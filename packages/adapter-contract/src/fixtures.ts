@@ -66,6 +66,12 @@ export const fixtures: readonly Fixture[] = [
 export const c: Highlight = { id: 'c', start: 10, end: 24 };
 
 /**
+ * A text to replace `TEXT` with on a mounted adapter; 23 code units, so `a`
+ * and `b` still fit. Its 8–17 reads "wonderful", where `TEXT` has "nderful w".
+ */
+export const REPLACED_TEXT = 'Goodbye wonderful world';
+
+/**
  * Every UTF-16 index of `text` that starts a code point, plus `text.length`.
  * Derived from string iteration, independently of how core finds surrogates.
  */
