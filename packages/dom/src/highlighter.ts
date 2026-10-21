@@ -38,8 +38,8 @@ export interface HighlighterOptions<T = unknown> extends RenderOptions {
      * left out of selections and copies (with the shipped stylesheet), and is
      * hidden from assistive technology. Decorations are presentational: do
      * not put interactive content (buttons, links, focusable elements) in
-     * them. Return `null` for no decoration. Called on every render, so
-     * return a new Node each time.
+     * them. Return `null` or `''` for no decoration: the segment then gets no
+     * container. Called on every render, so return a new Node each time.
      */
     decorate?: (segment: Segment<T>) => Node | string | null;
 }
@@ -119,7 +119,8 @@ export function createHighlighter<T>(
             const target = decorationTarget(seg, specs);
             const decoration =
                 target && opts.decorate ? opts.decorate(seg) : null;
-            if (target && decoration != null) {
+            // Nothing to show gets no container, as in the framework adapters.
+            if (target && decoration != null && decoration !== '') {
                 const container = elementOf(target.container);
                 container.append(decoration);
                 elements[target.index].appendChild(container);

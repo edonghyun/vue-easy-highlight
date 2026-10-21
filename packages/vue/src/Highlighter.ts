@@ -23,6 +23,7 @@ import {
 import type { ViewState } from '@overlapmark/core/dom';
 import {
     Comment,
+    Text,
     computed,
     defineComponent,
     h,
@@ -47,7 +48,8 @@ export interface HighlighterSlots {
      * counts toward offsets, is left out of selections and copies (with the
      * shipped stylesheet), and is hidden from assistive technology. Keep it
      * presentational: no buttons, links or other focusable content. Render
-     * nothing (e.g. `v-if`) to leave a segment undecorated.
+     * nothing (`v-if`, or `null`, `undefined`, `false`, `''` or `[]` from a
+     * render function) to leave a segment without a container.
      */
     decoration: { segment: Segment };
 }
@@ -79,12 +81,22 @@ function propsOfSpec(spec: ElementSpec): Record<string, unknown> {
     return props;
 }
 
-/** The decoration container holding `content`, or `null` when the slot rendered nothing (only comments, as from `v-if`). */
+/**
+ * Whether `vnode` renders nothing: a comment (what `v-if`, `null`, `undefined`
+ * and `false` become) or an empty text.
+ */
+function rendersNothing(vnode: VNode): boolean {
+    return (
+        vnode.type === Comment || (vnode.type === Text && vnode.children === '')
+    );
+}
+
+/** The decoration container holding `content`, or `null` when the slot rendered nothing. */
 function decorationVNode(
     container: ElementSpec,
     content: VNode[],
 ): VNode | null {
-    if (content.every((vnode) => vnode.type === Comment)) return null;
+    if (content.every(rendersNothing)) return null;
     return h(container.tag, propsOfSpec(container), content);
 }
 

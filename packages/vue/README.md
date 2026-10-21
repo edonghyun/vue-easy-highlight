@@ -79,7 +79,7 @@ The `decoration` scoped slot (`{ segment }`) is the full-control styling tier: r
 </Highlighter>
 ```
 
-The slot content goes in `<span data-om-skip aria-hidden="true">`, the last child of the segment's innermost element (right after its text). It never shifts the offsets `select` and `click` report, the shipped stylesheet keeps it out of selections and copies, and it is hidden from assistive technology, so it must not contain buttons, links or other focusable content. A segment the slot renders nothing for (as with `v-if` above) gets no container. Plain segments are not decorated.
+The slot content goes in `<span data-om-skip aria-hidden="true">`, the last child of the segment's innermost element (right after its text). It never shifts the offsets `select` and `click` report, the shipped stylesheet keeps it out of selections and copies, and it is hidden from assistive technology, so it must not contain buttons, links or other focusable content. A segment the slot renders nothing for gets no container: only comments (`v-if` as above, or `null`, `undefined` or `false` from a render function), empty text or an empty array. Plain segments are not decorated.
 
 ## Server-side rendering
 

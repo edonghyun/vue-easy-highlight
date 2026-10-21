@@ -42,7 +42,8 @@ export interface RenderIntoOptions extends RenderOptions {
  * Renders `text` with `highlights` into `root` from the core render model,
  * replacing its children and setting the root class and attributes. With
  * `decoration`, each highlighted segment's innermost element ends with
- * `<span data-om-skip aria-hidden="true">{decoration}</span>`.
+ * `<span data-om-skip aria-hidden="true">{decoration}</span>`, unless the
+ * decoration is `''`.
  */
 export function renderInto(
     root: HTMLElement,
@@ -64,9 +65,12 @@ export function renderInto(
         }
         parent.appendChild(document.createTextNode(seg.text));
         const target = decorationTarget(seg, specs);
-        if (target && options.decoration) {
+        const decoration =
+            target && options.decoration ? options.decoration(seg) : '';
+        // '' is no decoration: the segment gets no container.
+        if (target && decoration !== '') {
             const deco = elementOf(target.container);
-            deco.textContent = options.decoration(seg);
+            deco.textContent = decoration;
             elements[target.index].appendChild(deco);
         }
     }

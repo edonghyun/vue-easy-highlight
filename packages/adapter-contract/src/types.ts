@@ -23,7 +23,10 @@ export interface ContractProps {
      * Decoration text for each highlighted segment (style tier 3). The
      * factory maps it onto the adapter's decoration API; the adapter renders
      * it as `<span data-om-skip aria-hidden="true">text</span>` right after
-     * the text of the segment's innermost element. Plain segments get none.
+     * the text of the segment's innermost element. Plain segments, and
+     * segments it returns `''` for, get none. The suite itself never returns
+     * `''`: the Svelte adapter renders an empty container for a decoration
+     * snippet that renders nothing.
      */
     decoration?: (segment: Segment) => string;
 }

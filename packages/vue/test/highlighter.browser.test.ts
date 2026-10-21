@@ -27,8 +27,17 @@ import type {
 import { getSelectionOffsets } from '@overlapmark/core/dom';
 import { describe, expect, it, onTestFinished } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import { KeepAlive, createApp, h, nextTick, ref, shallowRef } from 'vue';
-import type { VNode } from 'vue';
+import {
+    KeepAlive,
+    createApp,
+    createCommentVNode,
+    createTextVNode,
+    h,
+    nextTick,
+    ref,
+    shallowRef,
+} from 'vue';
+import type { VNode, VNodeChild } from 'vue';
 import { Highlighter } from '../src';
 
 /** What a test's Highlighter emitted, by event. */
@@ -201,25 +210,39 @@ describe('Highlighter: decoration slot', () => {
         );
     });
 
-    it('leaves out the container of a segment the slot renders nothing for', () => {
-        const host = givenApp(() =>
-            h(Highlighter, propsOf(partialOverlap), {
-                decoration: ({ segment }: { segment: Segment }) =>
-                    segment.depth > 1 ? 'overlap' : null,
-            }),
-        );
+    const nothing: { label: string; content: VNodeChild }[] = [
+        { label: 'null', content: null },
+        { label: 'undefined', content: undefined },
+        { label: 'false', content: false },
+        { label: 'an empty string', content: '' },
+        { label: 'an empty array', content: [] },
+        {
+            label: 'only a v-if comment and empty text',
+            content: [createCommentVNode('v-if', true), createTextVNode('')],
+        },
+    ];
+    it.each(nothing)(
+        'leaves out the container of a segment the slot renders $label for',
+        ({ content }) => {
+            const host = givenApp(() =>
+                h(Highlighter, propsOf(partialOverlap), {
+                    decoration: ({ segment }: { segment: Segment }) =>
+                        segment.depth > 1 ? 'overlap' : content,
+                }),
+            );
 
-        const decorations = [
-            ...rootIn(host).querySelectorAll('[data-om-skip]'),
-        ];
+            const decorations = [
+                ...rootIn(host).querySelectorAll('[data-om-skip]'),
+            ];
 
-        // Live positive control: the overlap segment [6,15) is decorated.
-        expect(decorations).toHaveLength(1);
-        expect(decorations[0].textContent).toBe('overlap');
-        expect(decorations[0].closest('[data-om-start]')).toBe(
-            segmentElement(rootIn(host), 6),
-        );
-    });
+            // Live positive control: the overlap segment [6,15) is decorated.
+            expect(decorations).toHaveLength(1);
+            expect(decorations[0].textContent).toBe('overlap');
+            expect(decorations[0].closest('[data-om-start]')).toBe(
+                segmentElement(rootIn(host), 6),
+            );
+        },
+    );
 });
 
 describe('Highlighter: highlights held in deep reactive state', () => {

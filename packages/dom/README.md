@@ -30,7 +30,7 @@ Replaces the content of `el` with the rendered text and returns a `Highlighter`.
 | `brush`               | `(color: string) => string`           | built-in   | Returns a CSS image value for `--om-brush` (used by `om-style-marker`)                                                       |
 | `minSelectionLength`  | `number`                              | `1`        | Shorter selections do not emit `select`                                                                                      |
 | `touchSelectionDelay` | `number`                              | `500`      | Milliseconds of no selection change before `select` fires on touch                                                           |
-| `decorate`            | `(segment) => Node \| string \| null` | none       | Decoration after each highlighted segment's text (see below); `null` for none                                                |
+| `decorate`            | `(segment) => Node \| string \| null` | none       | Decoration after each highlighted segment's text (see below); `null` or `''` for none                                        |
 
 ### Returned object
 
@@ -48,7 +48,7 @@ Replaces the content of `el` with the rendered text and returns a `Highlighter`.
 
 ### Decorations
 
-`decorate` is the full-control styling tier: return presentational markup, such as a count or an icon, for a highlighted segment. The result goes in `<span data-om-skip aria-hidden="true">`, the last child of the segment's innermost element (right after its text). It never shifts the offsets `select` and `click` report, the shipped stylesheet keeps it out of selections and copies (`user-select: none`), and it is hidden from assistive technology. Because it is `aria-hidden`, it must not contain interactive content such as buttons, links or other focusable elements. A click on a decoration is reported as a `click` on its segment, with `offset` at the segment's start. Plain segments are not decorated. `decorate` runs on every render; return a new `Node` each time.
+`decorate` is the full-control styling tier: return presentational markup, such as a count or an icon, for a highlighted segment. The result goes in `<span data-om-skip aria-hidden="true">`, the last child of the segment's innermost element (right after its text). It never shifts the offsets `select` and `click` report, the shipped stylesheet keeps it out of selections and copies (`user-select: none`), and it is hidden from assistive technology. Because it is `aria-hidden`, it must not contain interactive content such as buttons, links or other focusable elements. A click on a decoration is reported as a `click` on its segment, with `offset` at the segment's start. A segment `decorate` returns `null` or `''` for gets no container, and plain segments are not decorated. `decorate` runs on every render; return a new `Node` each time.
 
 ```ts
 createHighlighter(el, {

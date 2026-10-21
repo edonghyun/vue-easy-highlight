@@ -285,6 +285,8 @@ describe('Highlighter: renderDecoration', () => {
 
     const nothing: { label: string; node: ReactNode }[] = [
         { label: 'null', node: null },
+        { label: 'undefined', node: undefined },
+        { label: 'false', node: false },
         { label: 'an empty string', node: '' },
         { label: 'an empty array', node: [] },
     ];

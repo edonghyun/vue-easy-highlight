@@ -12,7 +12,8 @@ import type { ElementTree, RootTree, TreeNode } from './serialize';
  * The tree every adapter must render for `props`, built from the core render
  * model (`computeSegments` + `segmentElements` + `rootAttributes`) without
  * touching the DOM. With `props.decoration`, the innermost element of each
- * highlighted segment holds its decoration after the text.
+ * highlighted segment holds its decoration after the text, unless the
+ * decoration is `''`.
  */
 export function expectedTree(props: ContractProps): RootTree {
     const options: RenderOptions = {
@@ -28,8 +29,13 @@ export function expectedTree(props: ContractProps): RootTree {
         children: computeSegments(props.text, [...props.highlights]).map(
             (segment) => {
                 const innermost: TreeNode[] = [segment.text];
-                if (props.decoration && segment.depth > 0)
-                    innermost.push(decorationTree(props.decoration(segment)));
+                const decoration =
+                    props.decoration && segment.depth > 0
+                        ? props.decoration(segment)
+                        : '';
+                // '' is no decoration: the segment gets no container.
+                if (decoration !== '')
+                    innermost.push(decorationTree(decoration));
                 const [outermost] = segmentElements(
                     segment,
                     options,
@@ -58,6 +64,6 @@ function decorationTree(text: string): ElementTree {
         classes: [],
         attrs: { 'data-om-skip': '', 'aria-hidden': 'true' },
         style: {},
-        children: text === '' ? [] : [text],
+        children: [text],
     };
 }

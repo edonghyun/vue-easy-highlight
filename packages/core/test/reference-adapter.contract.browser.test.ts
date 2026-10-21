@@ -1,7 +1,12 @@
 // Runs the shared adapter contract against a reference adapter assembled only
 // from core primitives, so the suite itself is proven on the code every real
 // adapter builds on.
-import { defineAdapterContract } from '@overlapmark/adapter-contract';
+import {
+    defineAdapterContract,
+    expectedTree,
+    partialOverlap,
+    serializeRoot,
+} from '@overlapmark/adapter-contract';
 import type { ContractProps } from '@overlapmark/adapter-contract';
 import '../src/styles.css';
 import { computeSegments } from '../src';
@@ -11,7 +16,8 @@ import {
     captureViewState,
     restoreViewState,
 } from '../src/dom';
-import { renderInto } from './helpers/mount';
+import { describe, expect, it } from 'vitest';
+import { givenInDocument, renderInto } from './helpers/mount';
 
 defineAdapterContract({
     name: 'reference',
@@ -60,4 +66,26 @@ defineAdapterContract({
             },
         };
     },
+});
+
+// Outside the shared suite: the Svelte adapter cannot leave out the container
+// for a decoration snippet that renders nothing, so the suite never passes ''.
+describe('reference adapter: a decoration of empty text', () => {
+    it("renders no decoration container for a segment whose decoration is '', as the oracle expects", () => {
+        const props: ContractProps = {
+            ...partialOverlap,
+            decoration: (segment) => (segment.depth > 1 ? 'overlap' : ''),
+        };
+        const root = givenInDocument(document.createElement('div'));
+
+        renderInto(root, props.text, props.highlights, props);
+
+        expect(serializeRoot(root)).toEqual(expectedTree(props));
+        // Live positive control: the overlap segment [6,15) is decorated.
+        expect(
+            [...root.querySelectorAll('[data-om-skip]')].map((el) =>
+                el.closest('[data-om-start]')?.getAttribute('data-om-start'),
+            ),
+        ).toEqual(['6']);
+    });
 });

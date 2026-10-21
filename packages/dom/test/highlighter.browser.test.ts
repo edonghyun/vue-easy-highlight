@@ -131,19 +131,26 @@ describe('createHighlighter: decorate', () => {
         ]);
     });
 
-    it('renders no decoration container for a segment decorate returns null for', () => {
-        const { el } = givenHighlighter({
-            decorate: (segment) => (segment.depth > 1 ? 'overlap' : null),
-        });
+    it.each([
+        { label: 'null', nothing: null },
+        { label: 'an empty string', nothing: '' },
+    ])(
+        'renders no decoration container for a segment decorate returns $label for',
+        ({ nothing }) => {
+            const { el } = givenHighlighter({
+                decorate: (segment) =>
+                    segment.depth > 1 ? 'overlap' : nothing,
+            });
 
-        const containers = [...el.querySelectorAll('[data-om-skip]')];
+            const containers = [...el.querySelectorAll('[data-om-skip]')];
 
-        // Live positive control: the overlapping segment is decorated.
-        expect(containers.map((c) => c.textContent)).toEqual(['overlap']);
-        expect(
-            segmentElement(el, 0).querySelector('[data-om-skip]'),
-        ).toBeNull();
-    });
+            // Live positive control: the overlapping segment is decorated.
+            expect(containers.map((c) => c.textContent)).toEqual(['overlap']);
+            expect(
+                segmentElement(el, 0).querySelector('[data-om-skip]'),
+            ).toBeNull();
+        },
+    );
 });
 
 describe('createHighlighter: getSegments()', () => {

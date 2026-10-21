@@ -177,7 +177,7 @@ Three levels, from least to most control:
     });
     ```
 
-    A decoration goes in `<span data-om-skip aria-hidden="true">`, the last child of the segment's innermost element. It is presentational: it never shifts the offsets `select` and `click` report, the shipped stylesheet gives it `user-select: none` so it stays out of selections and copies, and `aria-hidden` hides it from assistive technology, so it must not contain buttons, links or other focusable content. Plain (unhighlighted) segments are not decorated.
+    A decoration goes in `<span data-om-skip aria-hidden="true">`, the last child of the segment's innermost element. It is presentational: it never shifts the offsets `select` and `click` report, the shipped stylesheet gives it `user-select: none` so it stays out of selections and copies, and `aria-hidden` hides it from assistive technology, so it must not contain buttons, links or other focusable content. Plain (unhighlighted) segments are not decorated, and a segment whose decoration renders nothing gets no container: `decorate` returning `null` or `''`, a Vue slot rendering only comments (such as `v-if`), empty text or an empty array, or `renderDecoration` returning `null`, `undefined`, a boolean, `''` or an empty array. Svelte is the exception: every highlighted segment gets a container (see [Known limitations](#known-limitations)).
 
 **Unstyled usage.** Independently of the tiers above, you can skip `@overlapmark/core/styles.css` entirely and style the DOM contract yourself. The library never injects CSS.
 
@@ -212,7 +212,7 @@ In Vue, render `Highlighter` from [`@overlapmark/vue`](packages/vue) in place of
 - **Programmatic hover `leave`.** A `leave` caused by unmounting, destroying or an update, not by the mouse, carries `event: null`.
 - **Svelte differences.**
     - When the component is removed while a segment is hovered, the `leave` still reaches `onhover`, but Svelte has already taken the root `div` out of the document by then.
-    - A `decoration` snippet that renders nothing for a segment leaves an empty decoration container (no text, takes no space); the other adapters render no container in that case.
+    - Every highlighted segment gets a decoration container when a `decoration` snippet is given: what a snippet renders is only known once it rendered, so a segment it renders nothing for keeps an empty container (no text, takes no space). The other adapters render no container for a decoration that renders nothing (see [Styling](#styling), tier 3).
     - Highlights held in deep `$state` arrive in events as Svelte's state proxies (the same values `highlights[i]` gives you), not your original objects. Use `$state.raw` when you need `=== myHighlight`.
     - Svelte's hydration does not check the server markup against the client render, so a mismatch is neither reported nor repaired. Pass the same props on the server and the client.
 
