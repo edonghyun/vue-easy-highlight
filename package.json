@@ -8,6 +8,7 @@
     },
     "scripts": {
         "build": "pnpm -r build",
+        "release": "pnpm -r --filter \"./packages/*\" build && changeset publish",
         "test": "pnpm -r test && vitest run -c acceptance/vitest.config.ts && vitest run -c scripts/vitest.config.ts",
         "test:perf": "pnpm -r test:perf",
         "lint": "eslint .",

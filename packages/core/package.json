@@ -6,11 +6,11 @@
     "author": "Donghyun Lee",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/edonghyun/vue-easy-highlight.git",
+        "url": "git+https://github.com/edonghyun/overlapmark.git",
         "directory": "packages/core"
     },
-    "homepage": "https://github.com/edonghyun/vue-easy-highlight#readme",
-    "bugs": "https://github.com/edonghyun/vue-easy-highlight/issues",
+    "homepage": "https://github.com/edonghyun/overlapmark#readme",
+    "bugs": "https://github.com/edonghyun/overlapmark/issues",
     "keywords": [
         "highlight",
         "overlapping-highlights",
@@ -23,8 +23,16 @@
     ],
     "files": [
         "dist",
+        "CHANGELOG.md",
         "LICENSE"
     ],
+    "engines": {
+        "node": ">=18"
+    },
+    "publishConfig": {
+        "access": "public",
+        "provenance": true
+    },
     "main": "./dist/index.cjs",
     "module": "./dist/index.js",
     "types": "./dist/index.d.ts",

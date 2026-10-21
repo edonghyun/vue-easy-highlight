@@ -1,0 +1,50 @@
+name: Release
+
+# Opens or updates the "Version Packages" pull request on pushes to main, and
+# publishes to npm when that pull request is merged. Off until the repository
+# variable RELEASE_ENABLED is 'true'; see RELEASING.md for what to set up first.
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+permissions:
+    contents: write
+    pull-requests: write
+    id-token: write
+
+concurrency:
+    group: release
+    cancel-in-progress: false
+
+jobs:
+    release:
+        if: vars.RELEASE_ENABLED == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        env:
+            # Only needed when trusted publishing is not set up on npm.
+            NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        steps:
+            - uses: actions/checkout@v7
+            # Node 24 ships an npm that supports trusted publishing (OIDC).
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 24.11.0
+            - run: corepack enable
+            - run: pnpm install --frozen-lockfile
+            # With trusted publishing, npm authenticates through OIDC and no
+            # token is configured. An NPM_TOKEN secret, when present, is used
+            # instead.
+            - if: env.NPM_TOKEN != ''
+              run: |
+                  echo "NODE_AUTH_TOKEN=$NPM_TOKEN" >> "$GITHUB_ENV"
+                  echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' >> ~/.npmrc
+            - uses: changesets/action@v1
+              with:
+                  publish: pnpm release
+                  title: 'chore: version packages'
+                  commit: 'chore: version packages'
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  NPM_CONFIG_PROVENANCE: true

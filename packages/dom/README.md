@@ -38,7 +38,7 @@ hl.on('click', ({ highlights: covering }) =>
 
 ## `createHighlighter(el, options)`
 
-Replaces the content of `el` with the rendered text and returns a `Highlighter`. It adds the `om-root` class to the classes `el` already has and sets `data-om-strategy` and `data-om-overlap` (and `--om-default-color` from `defaultColor`), replacing any value `el` had; `destroy()` removes them again. `HighlighterOptions` and `Highlighter` are exported as types.
+Replaces the content of `el` with the rendered text and returns a `Highlighter`. It adds the `om-root` class to the classes `el` already has and sets `data-om-strategy` and `data-om-overlap` (and `--om-default-color` when `defaultColor` is given), replacing any value `el` had; `destroy()` removes them again. `HighlighterOptions` and `Highlighter` are exported as types.
 
 | Option                | Type                                              | Default      | Description                                                                                                                                             |
 | --------------------- | ------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
