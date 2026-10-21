@@ -269,6 +269,32 @@ describe('Highlighter: highlights held in deep reactive state', () => {
     });
 });
 
+// A change made in place to reactive highlights reaches the component at
+// once, but Vue patches the DOM in a flush on a later microtask; the user
+// still sees the old segments until then.
+describe('Highlighter: between a change in place and its flush', () => {
+    it('reports the segments on screen for a click', () => {
+        const highlights = ref<Highlight[]>([a, b]);
+        const emitted: Emitted = { clicks: [], hovers: [] };
+        const host = givenApp(() =>
+            h(Highlighter, {
+                text: TEXT,
+                highlights: highlights.value,
+                ...recordingInto(emitted),
+            }),
+        );
+        const shown = segmentElement(rootIn(host), 6);
+        highlights.value.splice(0, 2, c);
+
+        shown.click();
+
+        expect(emitted.clicks).toHaveLength(1);
+        expect(emitted.clicks[0].highlights).toEqual([a, b]);
+        // Precondition: the flush had not run yet.
+        expect(segmentElement(rootIn(host), 6)).toBe(shown);
+    });
+});
+
 // Review Focus 1: a parent that re-renders builds a new highlights array of
 // the same objects; that must not disturb the user.
 describe('Highlighter: equal highlights passed again in a new array', () => {
