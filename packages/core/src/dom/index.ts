@@ -5,3 +5,5 @@ export {
     createRangeFromOffsets,
     getTextLength,
 } from './offsets';
+export { attachInteractions } from './interactions';
+export type { InteractionOptions } from './interactions';
