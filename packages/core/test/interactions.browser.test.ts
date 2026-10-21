@@ -216,22 +216,27 @@ describe('attachInteractions: select on release', () => {
 });
 
 describe('attachInteractions: select on keyup', () => {
-    it.each(['shiftKey', 'ctrlKey', 'metaKey', 'altKey'])(
-        'waits for %s to be released before confirming',
-        async (modifier) => {
+    it.each([
+        { modifier: 'shiftKey', key: 'Shift' },
+        { modifier: 'ctrlKey', key: 'Control' },
+        { modifier: 'metaKey', key: 'Meta' },
+        { modifier: 'altKey', key: 'Alt' },
+    ])(
+        'waits for $modifier to be released before confirming',
+        async ({ modifier, key }) => {
             const { root, events } = givenInteractiveRoot();
             await selectAndWait(root, 2, 6);
 
             settle(() => keyUp('ArrowRight', { [modifier]: true }));
 
             expect(selectsOf(events)).toEqual([]);
-            // Live positive control: the keyup of the modifier itself.
-            settle(() => keyUp('Shift'));
+            // Live positive control: the keyup of that modifier itself.
+            settle(() => keyUp(key));
             expect(selectsOf(events)).toEqual([selectEvent(2, 6, [a])]);
         },
     );
 
-    it('emits the text inside the root for select-all once the modifier is released', async () => {
+    it('emits the text inside the root for select-all', async () => {
         const { events } = givenInteractiveRoot({ after: ' and beyond' });
 
         await userEvent.keyboard('{ControlOrMeta>}a{/ControlOrMeta}');
@@ -395,6 +400,26 @@ describe('attachInteractions: click', () => {
         },
     );
 
+    it.each([{ key: 'Enter' }, { key: ' ' }])(
+        'emits click again for a fresh "$key" press after the held key was released',
+        ({ key }) => {
+            const { root, events } = givenInteractiveRoot();
+            const el = segmentElement(root, 6);
+            const first = keydown(el, key);
+            keydown(el, key, { repeat: true });
+            el.dispatchEvent(
+                new KeyboardEvent('keyup', { key, bubbles: true }),
+            );
+
+            const second = keydown(el, key);
+
+            const clicks = detailsOf({ events }, 'click');
+            expect(clicks).toHaveLength(2);
+            expect(clicks[0].event).toBe(first);
+            expect(clicks[1].event).toBe(second);
+        },
+    );
+
     it('keeps preventing the default action of a held Space', () => {
         const { root } = givenInteractiveRoot();
         const el = segmentElement(root, 6);
@@ -471,7 +496,7 @@ describe('attachInteractions: hover', () => {
         expect(hoverTrail(events)).toEqual(['enter:6', 'leave:6']);
     });
 
-    it('emits leave for the hovered segment on detach', async () => {
+    it('emits leave for the hovered segment on detach, with no pointer event', async () => {
         await givenPointerOutsideRoots();
         const root = givenRoot();
         const recorder = givenRecorder(root);
@@ -485,7 +510,7 @@ describe('attachInteractions: hover', () => {
             type: 'leave',
             segment: hovers[0].segment,
             highlights: [a, b],
-            event: expect.any(PointerEvent),
+            event: null,
         });
         expect(hovers[1].segment).toBe(hovers[0].segment);
     });

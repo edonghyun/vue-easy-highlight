@@ -197,7 +197,7 @@ export function attachInteractions<T>(
         return el && segment && segment.depth > 0 ? { el, segment } : null;
     };
 
-    const leave = (e: PointerEvent): void => {
+    const leave = (e: PointerEvent | null): void => {
         if (!hovered) return;
         const { segment } = hovered;
         hovered = null;
@@ -257,7 +257,7 @@ export function attachInteractions<T>(
         pending = false;
         last = null;
         // The pointer can no longer be tracked, so the hovered segment ends
-        // here. No pointer event caused it: report an undispatched one.
-        leave(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+        // here. No pointer event caused it, hence `event: null`.
+        leave(null);
     };
 }

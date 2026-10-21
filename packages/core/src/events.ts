@@ -19,16 +19,25 @@ export interface PointDetail<T = unknown> {
 
 /**
  * Payload of `onHover`: the mouse entered or left a highlighted segment.
- * A `leave` carries the same `segment` object as its `enter`. Detaching while
- * a segment is hovered emits its `leave`, with a `pointerleave` event that was
- * never dispatched (`isTrusted` is false, no coordinates).
+ * A `leave` carries the same `segment` object as its `enter`.
+ *
+ * A `leave` with `event: null` was not caused by the pointer: the hovered
+ * segment ended because the listeners were detached (adapter destroyed or
+ * unmounted) or because an adapter re-rendered the segment's element away.
  */
-export interface HoverDetail<T = unknown> {
-    type: 'enter' | 'leave';
-    segment: Segment<T>;
-    highlights: Highlight<T>[];
-    event: PointerEvent;
-}
+export type HoverDetail<T = unknown> =
+    | {
+          type: 'enter';
+          segment: Segment<T>;
+          highlights: Highlight<T>[];
+          event: PointerEvent;
+      }
+    | {
+          type: 'leave';
+          segment: Segment<T>;
+          highlights: Highlight<T>[];
+          event: PointerEvent | null;
+      };
 
 export interface InteractionHandlers<T = unknown> {
     onSelect?: (d: SelectDetail<T>) => void;
