@@ -90,20 +90,21 @@ Every hover `enter` is followed by one `leave` for the same `segment` object. Be
 
 ## DOM contract
 
-| Kind         | Name                                                                    | Meaning                                                                                 |
-| ------------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Class        | `om-root`                                                               | The root element                                                                        |
-| Class        | `om-seg`                                                                | Outermost element of a segment                                                          |
-| Class        | `om-hl`                                                                 | A highlight element (a `<mark>`)                                                        |
-| Class        | `om-style-marker`, `om-style-underline`, `om-style-box`                 | Presets, applied through `highlight.className`                                          |
-| Attribute    | `data-om-strategy`                                                      | On the root: `layers` or `depth`                                                        |
-| Attribute    | `data-om-start`                                                         | On `om-seg`: the segment's start index                                                  |
-| Attribute    | `data-depth`                                                            | Number of highlights covering the segment                                               |
-| Attribute    | `data-ids`                                                              | Comma-separated ids of the covering highlights                                          |
-| Attribute    | `data-id`                                                               | On each layers-strategy `om-hl`: that highlight's id                                    |
-| Attribute    | `data-om-skip`                                                          | On the decoration container (with `aria-hidden="true"`): ignored when measuring offsets |
-| CSS variable | `--om-color`, `--om-brush`, `--om-level`, `--om-depth`                  | Set by the library per element                                                          |
-| CSS variable | `--om-default-color`, `--om-depth-step`, `--om-max-depth`, `--om-alpha` | Theme variables you can set on `.om-root` or an ancestor                                |
+| Kind         | Name                                                                    | Meaning                                                                                      |
+| ------------ | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Class        | `om-root`                                                               | The root element                                                                             |
+| Class        | `om-seg`                                                                | Outermost element of a segment                                                               |
+| Class        | `om-hl`                                                                 | A highlight element (a `<mark>`)                                                             |
+| Class        | `om-style-marker`, `om-style-underline`, `om-style-box`                 | Presets, applied through `highlight.className`                                               |
+| Attribute    | `data-om-strategy`                                                      | On the root: `layers` or `depth`                                                             |
+| Attribute    | `data-om-start`                                                         | On `om-seg`: the segment's start index                                                       |
+| Attribute    | `data-depth`                                                            | Number of highlights covering the segment                                                    |
+| Attribute    | `data-ids`                                                              | Comma-separated ids of the covering highlights                                               |
+| Attribute    | `data-id`                                                               | On each layers-strategy `om-hl`: that highlight's id                                         |
+| Attribute    | `tabindex`                                                              | On a focusable `om-seg`: `0`, or `om-lifted` (unfocusable) while a mouse press on it is down |
+| Attribute    | `data-om-skip`                                                          | On the decoration container (with `aria-hidden="true"`): ignored when measuring offsets      |
+| CSS variable | `--om-color`, `--om-brush`, `--om-level`, `--om-depth`                  | Set by the library per element                                                               |
+| CSS variable | `--om-default-color`, `--om-depth-step`, `--om-max-depth`, `--om-alpha` | Theme variables you can set on `.om-root` or an ancestor                                     |
 
 Setting `--om-color` on the root has no effect (it is reset on each `.om-hl`); use `--om-default-color`. All rules in `styles.css` have zero specificity (`:where()`), so your own class rules always win.
 
