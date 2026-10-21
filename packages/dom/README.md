@@ -98,9 +98,9 @@ Every hover `enter` is followed by one `leave` for the same `segment` object. Be
 | Class        | `om-style-marker`, `om-style-underline`, `om-style-box`                 | Presets, applied through `highlight.className`                                                    |
 | Attribute    | `data-om-strategy`                                                      | On the root: `layers` or `depth`                                                                  |
 | Attribute    | `data-om-start`                                                         | On `om-seg`: the segment's start index                                                            |
-| Attribute    | `data-depth`                                                            | Number of highlights covering the segment                                                         |
-| Attribute    | `data-ids`                                                              | Comma-separated ids of the covering highlights                                                    |
-| Attribute    | `data-id`                                                               | On each layers-strategy `om-hl`: that highlight's id                                              |
+| Attribute    | `data-om-depth`                                                         | Number of highlights covering the segment                                                         |
+| Attribute    | `data-om-ids`                                                           | Space-separated ids of the covering highlights                                                    |
+| Attribute    | `data-om-id`                                                            | On each layers-strategy `om-hl`: that highlight's id                                              |
 | Attribute    | `tabindex`                                                              | On a focusable `om-seg`: `0`, or `om-lifted` (unfocusable) while a left mouse press on it is down |
 | Attribute    | `data-om-skip`                                                          | On the decoration container (with `aria-hidden="true"`): ignored when measuring offsets           |
 | CSS variable | `--om-color`, `--om-brush`, `--om-level`, `--om-depth`                  | Set by the library per element                                                                    |

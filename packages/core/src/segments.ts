@@ -37,6 +37,11 @@ function normalize<T>(
             warnOnce(`Duplicate highlight id "${h.id}"`);
         }
         ids.add(h.id);
+        if (/\s/.test(h.id)) {
+            warnOnce(
+                `highlight id "${h.id}" contains whitespace; ids are space-separated in data-om-ids`,
+            );
+        }
         if (!Number.isInteger(h.start) || !Number.isInteger(h.end)) {
             warnOnce(`Highlight "${h.id}" has a non-integer range; dropped`);
             return;

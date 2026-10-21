@@ -158,7 +158,7 @@ export function segmentAt(
                 highlighted: node.closest('.om-hl') !== null,
                 depth: node
                     .closest('[data-om-start]')!
-                    .getAttribute('data-depth'),
+                    .getAttribute('data-om-depth'),
             };
         },
         offset,

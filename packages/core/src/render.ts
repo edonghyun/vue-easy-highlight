@@ -44,8 +44,8 @@ export function segmentElements<T>(
 
     const segAttrs: Record<string, string> = {
         'data-om-start': String(start),
-        'data-depth': String(depth),
-        'data-ids': highlights.map((h) => h.id).join(','),
+        'data-om-depth': String(depth),
+        'data-om-ids': highlights.map((h) => h.id).join(' '),
     };
     if (focusable) segAttrs.tabindex = '0';
 
@@ -79,8 +79,8 @@ export function segmentElements<T>(
             className: i === 0 ? `om-seg ${cls}` : cls,
             attrs:
                 i === 0
-                    ? { ...segAttrs, 'data-id': h.id }
-                    : { 'data-id': h.id },
+                    ? { ...segAttrs, 'data-om-id': h.id }
+                    : { 'data-om-id': h.id },
             style,
         };
     });
@@ -93,7 +93,7 @@ export function segmentElements<T>(
  * covering the segment change. An element is then reused only for the same
  * highlights, and a stale hover target is never patched into a different
  * segment. Ids are joined with U+0000, which ids do not contain in practice,
- * so an id holding a comma cannot pass for two ids.
+ * so an id holding a space cannot pass for two ids.
  */
 export function segmentKey(segment: Segment): string {
     const ids = segment.highlights.map((h) => h.id).join('\u0000');

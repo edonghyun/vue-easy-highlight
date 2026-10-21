@@ -13,13 +13,13 @@ const [a] = highlights;
 test.describe('Applying new highlights', () => {
     test('shows them without a reload @core', async ({ page }) => {
         await givenHarness(page);
-        const coveredByB = rootOf(page).locator('[data-ids*="b"]');
+        const coveredByB = rootOf(page).locator('[data-om-ids~="b"]');
         await expect(coveredByB).not.toHaveCount(0);
 
         await applyHighlights(page, [a]);
 
         await expect(coveredByB).toHaveCount(0);
-        await expect(rootOf(page).locator('[data-ids="a"]')).toHaveCount(1);
+        await expect(rootOf(page).locator('[data-om-ids="a"]')).toHaveCount(1);
     });
 
     test('keeps the user selection', async ({ page }) => {
@@ -31,7 +31,7 @@ test.describe('Applying new highlights', () => {
 
         await applyHighlights(page, [a, { id: 'd', start: 44, end: 48 }]);
 
-        await expect(rootOf(page).locator('[data-ids="d"]')).toHaveCount(1);
+        await expect(rootOf(page).locator('[data-om-ids="d"]')).toHaveCount(1);
         expect(await selected()).toBe(text.slice(41, 50));
     });
 

@@ -323,8 +323,10 @@ describe('Highlighter: caller highlights', () => {
 
         // `c` covers [10,24): with `a` over [0,15) it adds [10,15) a+c and [15,24) c.
         const root = rootIn(host);
-        expect(segmentElement(root, 10).getAttribute('data-ids')).toBe('a,c');
-        expect(segmentElement(root, 15).getAttribute('data-ids')).toBe('c');
+        expect(segmentElement(root, 10).getAttribute('data-om-ids')).toBe(
+            'a c',
+        );
+        expect(segmentElement(root, 15).getAttribute('data-om-ids')).toBe('c');
         expect(reported.clicks[0].highlights).toHaveLength(1);
         expect(reported.clicks[0].highlights[0]).toBe(highlights[1]);
     });

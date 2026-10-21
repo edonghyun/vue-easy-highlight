@@ -70,9 +70,9 @@ describe('default stylesheet', () => {
             strategy: 'depth',
         });
 
-        const l = [...root.querySelectorAll<HTMLElement>('[data-depth]')].map(
-            (el) => luminance(bg(el)),
-        );
+        const l = [
+            ...root.querySelectorAll<HTMLElement>('[data-om-depth]'),
+        ].map((el) => luminance(bg(el)));
 
         expect(l).toHaveLength(3);
         expect(l[0]).toBeGreaterThan(l[1]);
@@ -88,8 +88,8 @@ describe('default stylesheet', () => {
         const root = givenRenderedRoot('abcdefgh', hs, { strategy: 'depth' });
 
         const byDepth = new Map<string, string>();
-        root.querySelectorAll<HTMLElement>('[data-depth]').forEach((el) =>
-            byDepth.set(el.dataset.depth!, bg(el)),
+        root.querySelectorAll<HTMLElement>('[data-om-depth]').forEach((el) =>
+            byDepth.set(el.dataset.omDepth!, bg(el)),
         );
         const at = (depth: number) => byDepth.get(String(depth));
 
@@ -121,11 +121,13 @@ describe('default stylesheet', () => {
             { id: 'c', start: 2, end: 4 },
         ]);
 
-        const inner = nested.querySelector('mark[data-id="b"]')!;
+        const inner = nested.querySelector('mark[data-om-id="b"]')!;
 
-        expect(bg(inner)).toBe(bg(alone.querySelector('mark[data-id="c"]')!));
+        expect(bg(inner)).toBe(
+            bg(alone.querySelector('mark[data-om-id="c"]')!),
+        );
         expect(bg(inner)).not.toBe(
-            bg(nested.querySelector('mark[data-id="a"]')!),
+            bg(nested.querySelector('mark[data-om-id="a"]')!),
         );
     });
 

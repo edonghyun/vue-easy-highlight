@@ -59,12 +59,12 @@ describe('segmentElements with the layers strategy', () => {
 
         expect(outer.attrs).toEqual({
             'data-om-start': '6',
-            'data-depth': '2',
-            'data-ids': 'a,b',
-            'data-id': 'a',
+            'data-om-depth': '2',
+            'data-om-ids': 'a b',
+            'data-om-id': 'a',
             tabindex: '0',
         });
-        expect(inner.attrs).toEqual({ 'data-id': 'b' });
+        expect(inner.attrs).toEqual({ 'data-om-id': 'b' });
     });
 
     it('gives each mark its own level, color and brush', () => {
@@ -98,22 +98,42 @@ describe('segmentElements with the layers strategy', () => {
         ]);
     });
 
-    it('lists data-ids in highlight order, not input order (§4.3)', () => {
+    it('lists data-om-ids in highlight order, not input order (§4.3)', () => {
         const segment = segmentOf([B, A], 6);
 
         const [outer] = segmentElements(segment);
 
-        expect(outer.attrs['data-ids']).toBe('a,b');
+        expect(outer.attrs['data-om-ids']).toBe('a b');
+    });
+
+    it('marks a segment with data-om-ids joined by spaces', () => {
+        const [outer] = segmentElements(overlap);
+
+        expect(outer.attrs['data-om-ids']).toBe('a b');
+    });
+
+    it('emits none of the unprefixed attributes', () => {
+        const specs = [
+            ...segmentElements(overlap),
+            ...segmentElements(overlap, { strategy: 'depth' }),
+        ];
+
+        const keys = specs.flatMap((s) => Object.keys(s.attrs));
+
+        expect(keys).toContain('data-om-start');
+        expect(keys).not.toContain('data-id');
+        expect(keys).not.toContain('data-ids');
+        expect(keys).not.toContain('data-depth');
     });
 });
 
 describe('segmentElements with the depth strategy', () => {
-    it('renders a single mark carrying --om-depth and no data-id', () => {
+    it('renders a single mark carrying --om-depth and no data-om-id', () => {
         const elements = segmentElements(overlap, { strategy: 'depth' });
 
         expect(elements).toHaveLength(1);
         expect(elements[0].style['--om-depth']).toBe('2');
-        expect(elements[0].attrs['data-id']).toBeUndefined();
+        expect(elements[0].attrs['data-om-id']).toBeUndefined();
     });
 
     it('merges the highlight classes into the mark', () => {

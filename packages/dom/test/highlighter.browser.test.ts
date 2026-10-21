@@ -96,7 +96,7 @@ describe('createHighlighter: rendering', () => {
     it('paints highlights translucently with the shipped stylesheet', () => {
         const { el } = givenHighlighter();
 
-        const mark = el.querySelector('mark[data-id="b"]')!;
+        const mark = el.querySelector('mark[data-om-id="b"]')!;
 
         // Without the stylesheet Chromium paints <mark> opaque yellow.
         const alpha = alphaOf(getComputedStyle(mark).backgroundColor);

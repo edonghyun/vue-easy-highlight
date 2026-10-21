@@ -245,11 +245,25 @@ export function defineAdapterContract(factory: AdapterFactory): void {
         it('makes every highlighted segment focusable by default', async () => {
             const { root } = await givenAdapter(partialOverlap);
 
-            const highlighted = [...root.querySelectorAll('[data-depth]')];
+            const highlighted = [...root.querySelectorAll('[data-om-depth]')];
 
             expect(highlighted).toHaveLength(3);
             for (const el of highlighted)
                 expect(el.getAttribute('tabindex')).toBe('0');
+        });
+
+        it('matches a segment with [data-om-ids~=id] for each covering highlight', async () => {
+            const { root } = await givenAdapter(partialOverlap);
+
+            const coveredByA = root.querySelectorAll('[data-om-ids~="a"]');
+            const coveredByB = root.querySelectorAll('[data-om-ids~="b"]');
+            const coveredByBoth = root.querySelectorAll(
+                '[data-om-ids~="a"][data-om-ids~="b"]',
+            );
+
+            expect(coveredByA).toHaveLength(2);
+            expect(coveredByB).toHaveLength(2);
+            expect(coveredByBoth).toHaveLength(1);
         });
 
         it('renders no tabindex when focusable is false', async () => {
@@ -258,7 +272,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 focusable: false,
             });
 
-            expect(root.querySelectorAll('[data-depth]')).toHaveLength(3);
+            expect(root.querySelectorAll('[data-om-depth]')).toHaveLength(3);
             expect(root.querySelectorAll('[tabindex]')).toHaveLength(0);
         });
 
@@ -1119,7 +1133,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await adapter.update({ highlights: [c] });
 
             expect(
-                segmentElement(adapter.root, 0).hasAttribute('data-depth'),
+                segmentElement(adapter.root, 0).hasAttribute('data-om-depth'),
             ).toBe(false);
             expect(adapter.root.contains(document.activeElement)).toBe(false);
         });
@@ -1147,7 +1161,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await adapter.update({ focusable: false });
 
             expect(
-                segmentElement(adapter.root, 6).hasAttribute('data-depth'),
+                segmentElement(adapter.root, 6).hasAttribute('data-om-depth'),
             ).toBe(true);
             expect(adapter.root.contains(document.activeElement)).toBe(false);
         });
@@ -1183,7 +1197,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await adapter.update({ highlights: [a], focusable: false });
 
             expect(
-                segmentElement(adapter.root, 0).hasAttribute('data-depth'),
+                segmentElement(adapter.root, 0).hasAttribute('data-om-depth'),
             ).toBe(true);
             expect(adapter.root.contains(document.activeElement)).toBe(false);
         });

@@ -78,7 +78,7 @@ describe('getSelectionOffsets', () => {
     it('maps a selectNodeContents range on a mark to the mark segment', () => {
         const root = givenRenderedRoot(text, hl);
         const range = document.createRange();
-        range.selectNodeContents(root.querySelector('[data-id="b"]')!);
+        range.selectNodeContents(root.querySelector('[data-om-id="b"]')!);
 
         setSelection(range);
 

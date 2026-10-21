@@ -189,6 +189,21 @@ describe('computeSegments with invalid or stale ranges', () => {
 });
 
 describe('computeSegments dev warnings', () => {
+    it('warns once for an id that contains whitespace', async () => {
+        const warn = silenceWarnings();
+        const core = await givenFreshCore();
+        const spaced = { id: 'two words', start: 0, end: 2 };
+
+        core.computeSegments('abc', [spaced]);
+        core.computeSegments('abc', [spaced]);
+        core.computeSegments('abc', [{ id: 'fine', start: 0, end: 2 }]);
+
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(
+            '[overlapmark] highlight id "two words" contains whitespace; ids are space-separated in data-om-ids',
+        );
+    });
+
     it('reports a clamped range', async () => {
         const warn = silenceWarnings();
         const core = await givenFreshCore();

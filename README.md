@@ -162,7 +162,7 @@ Three levels, from least to most control:
     ```ts
     { id: 'note', start: 0, end: 12, color: '#ffd6d6', className: 'om-style-underline' }
     ```
-    You can also write your own CSS against the DOM contract (`.om-hl`, `[data-depth]`, `[data-ids]`, `--om-level`); see the package README. Every library selector is wrapped in `:where()` (zero specificity), so a plain class rule such as `.memo { background-color: pink }` or `.memo { --om-color: pink }` wins regardless of stylesheet order.
+    You can also write your own CSS against the DOM contract (`.om-hl`, `[data-om-depth]`, `[data-om-ids]`, `--om-level`); see the package README. Every library selector is wrapped in `:where()` (zero specificity), so a plain class rule such as `.memo { background-color: pink }` or `.memo { --om-color: pink }` wins regardless of stylesheet order.
 3. **Decorations.** Add your own presentational markup after the text of each highlighted segment, such as an overlap count or an icon:
     - `@overlapmark/dom`: the `decorate: (segment) => Node | string | null` option
     - Vue: the `decoration` scoped slot (`{ segment }`)

@@ -138,7 +138,9 @@ describe('restoreViewState: focus', () => {
 
         reRender(root, { highlights: [c] });
 
-        expect(segmentElement(root, 0).hasAttribute('data-depth')).toBe(false);
+        expect(segmentElement(root, 0).hasAttribute('data-om-depth')).toBe(
+            false,
+        );
         expect(root.contains(document.activeElement)).toBe(false);
     });
 
@@ -148,7 +150,9 @@ describe('restoreViewState: focus', () => {
 
         reRender(root, { highlights: [a], focusable: false });
 
-        expect(segmentElement(root, 0).hasAttribute('data-depth')).toBe(true);
+        expect(segmentElement(root, 0).hasAttribute('data-om-depth')).toBe(
+            true,
+        );
         expect(root.contains(document.activeElement)).toBe(false);
     });
 

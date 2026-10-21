@@ -24,7 +24,7 @@ test.describe('A server-rendered page', () => {
         await page.goto('/harness.html');
 
         await expect(rootOf(page)).toHaveText(text);
-        await expect(rootOf(page).locator('[data-ids="a,b,c"]')).toHaveText(
+        await expect(rootOf(page).locator('[data-om-ids="a b c"]')).toHaveText(
             text.slice(18, 26),
         );
         await context.close();

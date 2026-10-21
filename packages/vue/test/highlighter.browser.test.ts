@@ -199,7 +199,9 @@ describe('Highlighter: focusable', () => {
             }),
         );
 
-        const highlighted = [...rootIn(host).querySelectorAll('[data-depth]')];
+        const highlighted = [
+            ...rootIn(host).querySelectorAll('[data-om-depth]'),
+        ];
 
         expect(highlighted).toHaveLength(3);
         for (const el of highlighted)
@@ -293,8 +295,10 @@ describe('Highlighter: highlights held in deep reactive state', () => {
 
         // `c` covers [10,24): with `a` over [0,15) it adds [10,15) a+c and [15,24) c.
         const root = rootIn(host);
-        expect(segmentElement(root, 10).getAttribute('data-ids')).toBe('a,c');
-        expect(segmentElement(root, 15).getAttribute('data-ids')).toBe('c');
+        expect(segmentElement(root, 10).getAttribute('data-om-ids')).toBe(
+            'a c',
+        );
+        expect(segmentElement(root, 15).getAttribute('data-om-ids')).toBe('c');
     });
 
     it('renders a highlight changed in place', async () => {

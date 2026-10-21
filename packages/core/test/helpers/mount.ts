@@ -16,7 +16,7 @@ export interface MountOptions extends RenderOptions {
     before?: string;
     /** Text node inserted as the root's next sibling (outside the root). */
     after?: string;
-    /** Appends `<span data-om-skip aria-hidden="true">{text}</span>` inside the first element with `data-id={id}`. */
+    /** Appends `<span data-om-skip aria-hidden="true">{text}</span>` inside the first element with `data-om-id={id}`. */
     decorate?: { id: string; text: string };
 }
 
@@ -103,7 +103,7 @@ export function givenRenderedRoot(
     const root = document.createElement('div');
     renderInto(root, text, highlights, renderOptions);
     if (decorate !== undefined) {
-        const target = root.querySelector(`[data-id="${decorate.id}"]`);
+        const target = root.querySelector(`[data-om-id="${decorate.id}"]`);
         if (!target)
             throw new Error(
                 `givenRenderedRoot: decorate needs a highlight with id "${decorate.id}"`,

@@ -544,7 +544,7 @@ describe('Highlighter: an update rendered as a transition', () => {
         );
 
         // Precondition: the transition patched the DOM (a new a+b segment).
-        expect(segmentElement(root, 6).getAttribute('data-ids')).toBe('a,b');
+        expect(segmentElement(root, 6).getAttribute('data-om-ids')).toBe('a b');
         expect(getSelectionOffsets(root)).toEqual({ start: 8, end: 18 });
     });
 });

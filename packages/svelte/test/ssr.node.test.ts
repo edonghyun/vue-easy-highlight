@@ -40,10 +40,10 @@ describe('Highlighter rendered on a server without a DOM', () => {
 
         // [0,6) a · [6,15) a+b (two layers) · [15,21) b · [21,30) plain
         expect(html.match(/<mark /g)).toHaveLength(4);
-        expect(html.match(/data-ids="[^"]*"/g)).toEqual([
-            'data-ids="a"',
-            'data-ids="a,b"',
-            'data-ids="b"',
+        expect(html.match(/data-om-ids="[^"]*"/g)).toEqual([
+            'data-om-ids="a"',
+            'data-om-ids="a b"',
+            'data-om-ids="b"',
         ]);
         expect(html.match(/<span data-om-skip[^>]*>(.*?)<\/span>/g)).toEqual(
             ['[a]', '[a+b]', '[b]'].map(
