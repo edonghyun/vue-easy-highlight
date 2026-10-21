@@ -39,10 +39,11 @@ import {
     pointer,
     release,
     segmentElement,
+    givenFakeTimeouts,
     selectAndWait,
+    setSelection,
     setSelectionAndWait,
     settle,
-    useFakeTimeouts,
 } from './gestures';
 import { expectedTree } from './reference-tree';
 import { serializeRoot } from './serialize';
@@ -66,27 +67,30 @@ type DetailOf<K extends AdapterEvent['type']> = K extends 'select'
       ? HoverDetail
       : PointDetail;
 
+/** Anything that records adapter events: a mounted adapter, or a bare recorder. */
+type EventSource = Pick<MountedAdapter, 'events'>;
+
 /**
  * The recorded events of one type, in order. Assertions look at one type at a
  * time: real pointer gestures also cross segments and emit hover on the way.
  */
-function eventsOf(
-    adapter: MountedAdapter,
+export function eventsOf(
+    source: EventSource,
     type: AdapterEvent['type'],
 ): AdapterEvent[] {
-    return adapter.events.filter((e) => e.type === type);
+    return source.events.filter((e) => e.type === type);
 }
 
-/** The details of `eventsOf(adapter, type)`. */
-function detailsOf<K extends AdapterEvent['type']>(
-    adapter: MountedAdapter,
+/** The details of `eventsOf(source, type)`. */
+export function detailsOf<K extends AdapterEvent['type']>(
+    source: EventSource,
     type: K,
 ): DetailOf<K>[] {
-    return eventsOf(adapter, type).map((e) => e.detail as DetailOf<K>);
+    return eventsOf(source, type).map((e) => e.detail as DetailOf<K>);
 }
 
 /** The `select` event expected for [start, end) of `TEXT`. */
-function selectEvent(
+export function selectEvent(
     start: number,
     end: number,
     highlights: ContractProps['highlights'],
@@ -101,12 +105,6 @@ function selectEvent(
             highlights: [...highlights],
         },
     };
-}
-
-function setSelection(range: Range): void {
-    const selection = window.getSelection()!;
-    selection.removeAllRanges();
-    selection.addRange(range);
 }
 
 const strategies: { strategy: Strategy }[] = [
@@ -438,14 +436,18 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             it('does not emit click for the click that ends a drag selection', async () => {
                 const adapter = await givenAdapter(partialOverlap);
                 const el = segmentElement(adapter.root, 6);
+                const dragEnd = new MouseEvent('click', { bubbles: true });
+                const control = new MouseEvent('click', { bubbles: true });
                 setSelection(createRangeFromOffsets(adapter.root, 8, 18)!);
 
-                el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                el.dispatchEvent(dragEnd);
 
                 // Live positive control: the same click with the selection collapsed.
                 window.getSelection()!.removeAllRanges();
-                el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                expect(detailsOf(adapter, 'click')).toHaveLength(1);
+                el.dispatchEvent(control);
+                const clicks = detailsOf(adapter, 'click');
+                expect(clicks).toHaveLength(1);
+                expect(clicks[0].event).toBe(control);
             });
 
             it('emits select but not click when a real drag ends inside a highlight', async () => {
@@ -593,6 +595,33 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 ).toEqual(['enter:6', 'leave:6', 'enter:15', 'leave:15']);
             });
 
+            it('emits leave when the mouse moves out of the root', async () => {
+                const outside = await givenPointerOutsideRoots();
+                const adapter = await givenAdapter(partialOverlap);
+                await userEvent.hover(segmentElement(adapter.root, 6));
+
+                await userEvent.hover(outside);
+
+                expect(
+                    detailsOf(adapter, 'hover').map(
+                        (d) => `${d.type}:${d.segment.start}`,
+                    ),
+                ).toEqual(['enter:6', 'leave:6']);
+            });
+
+            it('reports on leave the segment object it reported on enter', async () => {
+                const outside = await givenPointerOutsideRoots();
+                const adapter = await givenAdapter(partialOverlap);
+                await userEvent.hover(segmentElement(adapter.root, 6));
+
+                await userEvent.hover(outside);
+
+                const hovers = detailsOf(adapter, 'hover');
+                expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
+                expect(hovers[1].segment).toBe(hovers[0].segment);
+                expect(hovers[1].highlights).toEqual([a, b]);
+            });
+
             it('reports the entered segment, its highlights and the pointer event', async () => {
                 await givenPointerOutsideRoots();
                 const adapter = await givenAdapter(partialOverlap);
@@ -687,7 +716,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 touchSelectionDelay: 5000,
             });
             await adapter.update({ touchSelectionDelay: 40 });
-            useFakeTimeouts();
+            givenFakeTimeouts();
             pointer('pointerdown', adapter.root, { pointerType: 'touch' });
 
             await selectAndWait(adapter.root, 8, 18);
@@ -704,6 +733,14 @@ export function defineAdapterContract(factory: AdapterFactory): void {
     describe(`${name} — teardown`, () => {
         // Each gesture targets a segment element rendered before unmount: an
         // adapter that left its listeners on the old root would report it.
+        //
+        // Blind spots no adapter-level test can see, covered by core's own
+        // attachInteractions tests instead:
+        // - document-level listeners (selectionchange, pointerdown/up, keyup)
+        //   left behind after the root is detached: with the root gone, no
+        //   selection can land in it, so a leaked listener has nothing to emit;
+        // - a framework that silences a component's emits once it is unmounted:
+        //   a leaked listener would fire but its event would never be recorded.
         it.each([
             {
                 gesture: 'click',

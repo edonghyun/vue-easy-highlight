@@ -15,15 +15,24 @@ export function nextSelectionChange(): Promise<void> {
 }
 
 /**
+ * Replaces the document selection with `range` synchronously. Code that reads
+ * the selection right away sees it; `selectionchange` listeners have not run
+ * yet (use `setSelectionAndWait` for those).
+ */
+export function setSelection(range: Range): void {
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
+/**
  * Replaces the document selection with `range` and resolves once the
  * `selectionchange` it causes has been delivered, so every listener has seen
  * the new selection.
  */
 export async function setSelectionAndWait(range: Range): Promise<void> {
     const changed = nextSelectionChange();
-    const selection = window.getSelection()!;
-    selection.removeAllRanges();
-    selection.addRange(range);
+    setSelection(range);
     await changed;
 }
 
@@ -99,7 +108,7 @@ export function settle(gesture: () => void): void {
  * settle delay. Real events (`selectionchange`) still arrive; do not combine
  * with `expect.poll` or `userEvent`, which rely on real timers.
  */
-export function useFakeTimeouts(): void {
+export function givenFakeTimeouts(): void {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     onTestFinished(() => {
         vi.useRealTimers();
@@ -138,12 +147,14 @@ export function charPosition(
 /**
  * Moves the real mouse onto a fresh element outside every root, so a pointer
  * left over from an earlier test cannot sit on a highlight. Call it before
- * mounting: the element stays above the roots mounted after it.
+ * mounting: the element stays above the roots mounted after it. Returns the
+ * element, so a test can move the mouse back out of a root onto it.
  */
-export async function givenPointerOutsideRoots(): Promise<void> {
+export async function givenPointerOutsideRoots(): Promise<HTMLElement> {
     const neutral = document.createElement('p');
     neutral.textContent = 'outside every root';
     document.body.prepend(neutral);
     onTestFinished(() => neutral.remove());
     await userEvent.hover(neutral);
+    return neutral;
 }

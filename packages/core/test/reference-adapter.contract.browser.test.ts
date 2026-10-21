@@ -49,8 +49,9 @@ defineAdapterContract({
         return {
             root,
             events,
-            // Re-renders from scratch, restoring the selection and the focused
-            // segment by offset (spec §6).
+            // Re-renders from scratch, restoring the selection by offset (spec
+            // §6) and the focused segment by its start offset. Focus restore is
+            // not in the spec; the contract's updates group requires it.
             async update(next) {
                 const selection = window.getSelection();
                 const saved = getSelectionOffsets(root, selection);

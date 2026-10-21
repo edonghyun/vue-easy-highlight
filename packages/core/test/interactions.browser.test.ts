@@ -1,120 +1,137 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+// attachInteractions behaviors that sit outside the adapter contract suite
+// (packages/adapter-contract): de-duplication, the modifier and touch rules,
+// offset clamping, key repeat, nested marks, detach, options changed after
+// attaching. Nothing here waits a fixed time: positives await the real event
+// or poll for it, absences run the gesture's confirmation through `settle()`
+// and pair it with a live positive control, and the touch delay runs on fake
+// timers.
+import {
+    TEXT,
+    a,
+    b,
+    charPosition,
+    clearSelectionAndWait,
+    detailsOf,
+    eventsOf,
+    givenFakeTimeouts,
+    givenPointerOutsideRoots,
+    keyUp,
+    partialOverlap,
+    pointer,
+    release,
+    segmentElement,
+    selectAndWait,
+    selectEvent,
+    settle,
+} from '@overlapmark/adapter-contract';
+import type { AdapterEvent } from '@overlapmark/adapter-contract';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import '../src/styles.css';
 import { computeSegments } from '../src';
-import type { Highlight, HoverDetail, PointDetail, SelectDetail } from '../src';
 import { attachInteractions, createRangeFromOffsets } from '../src/dom';
-import type { InteractionOptions } from '../src/dom';
-import { mount, select } from './helpers/mount';
+import { renderInto } from './helpers/mount';
 
-const text = 'Hello wonderful world 😀 하이라이트';
-const a: Highlight = { id: 'a', start: 0, end: 15 };
-const b: Highlight = { id: 'b', start: 6, end: 21 };
-const hl = [a, b];
-
-const detachers: (() => void)[] = [];
-
-afterEach(() => {
-    while (detachers.length) detachers.pop()!();
-    window.getSelection()?.removeAllRanges();
-    document.body.textContent = '';
-});
-
-interface Setup {
-    root: HTMLElement;
-    onSelect: ReturnType<typeof vi.fn<(d: SelectDetail) => void>>;
-    onClick: ReturnType<typeof vi.fn<(d: PointDetail) => void>>;
-    onDblclick: ReturnType<typeof vi.fn<(d: PointDetail) => void>>;
-    onHover: ReturnType<typeof vi.fn<(d: HoverDetail) => void>>;
-    detach: () => void;
+/** The settings `attachInteractions` reads live; tests may change them after attaching. */
+interface Settings {
+    minSelectionLength?: number;
+    touchSelectionDelay?: number;
 }
 
-function setup(
-    options: Partial<InteractionOptions> = {},
-    src: string = text,
-    highlights: Highlight[] = hl,
-): Setup {
-    const root = mount(src, highlights);
-    const segments = computeSegments(src, highlights);
-    const onSelect = vi.fn<(d: SelectDetail) => void>();
-    const onClick = vi.fn<(d: PointDetail) => void>();
-    const onDblclick = vi.fn<(d: PointDetail) => void>();
-    const onHover = vi.fn<(d: HoverDetail) => void>();
+interface Recorder {
+    /** Every event the handlers received, in order. */
+    readonly events: AdapterEvent[];
+    detach(): void;
+}
+
+/**
+ * Renders `partialOverlap` into a root at the end of the body, optionally
+ * followed by a text node outside it. Clearing the selection (and waiting for
+ * its `selectionchange`) and removing the nodes are registered here.
+ */
+function givenRoot(options: { after?: string } = {}): HTMLElement {
+    const root = document.createElement('div');
+    renderInto(root, TEXT, partialOverlap.highlights);
+    document.body.append(root);
+    const after =
+        options.after === undefined
+            ? null
+            : document.body.appendChild(document.createTextNode(options.after));
+    onTestFinished(async () => {
+        await clearSelectionAndWait();
+        root.remove();
+        after?.remove();
+    });
+    return root;
+}
+
+/**
+ * Attaches interactions to `root` with every handler recording into `events`.
+ * `settings` is forwarded live, so a test can change it after attaching.
+ * Detached when the test finishes, unless the test already did.
+ */
+function givenRecorder(root: HTMLElement, settings: Settings = {}): Recorder {
+    const segments = computeSegments(TEXT, [...partialOverlap.highlights]);
+    const events: AdapterEvent[] = [];
     const detach = attachInteractions(root, {
-        getText: () => src,
+        getText: () => TEXT,
         getSegments: () => segments,
-        onSelect,
-        onClick,
-        onDblclick,
-        onHover,
-        ...options,
-        // Forwarded live, so a test can change them after attaching.
         get minSelectionLength() {
-            return options.minSelectionLength;
+            return settings.minSelectionLength;
         },
         get touchSelectionDelay() {
-            return options.touchSelectionDelay;
+            return settings.touchSelectionDelay;
         },
+        onSelect: (detail) => events.push({ type: 'select', detail }),
+        onClick: (detail) => events.push({ type: 'click', detail }),
+        onDblclick: (detail) => events.push({ type: 'dblclick', detail }),
+        onHover: (detail) => events.push({ type: 'hover', detail }),
     });
-    detachers.push(detach);
-    return { root, onSelect, onClick, onDblclick, onHover, detach };
+    onTestFinished(detach);
+    return { events, detach };
 }
 
-/** Lets the asynchronous `selectionchange` event (and friends) be delivered. */
-const tick = (ms = 20) => new Promise((r) => setTimeout(r, ms));
+/** A root rendering `partialOverlap` with a recorder attached. */
+function givenInteractiveRoot(
+    options: { settings?: Settings; after?: string } = {},
+): { root: HTMLElement; events: AdapterEvent[] } {
+    const root = givenRoot({ after: options.after });
+    const { events } = givenRecorder(root, options.settings);
+    return { root, events };
+}
 
-function pointer(
-    type: string,
-    target: EventTarget,
-    init: PointerEventInit = {},
-): void {
-    target.dispatchEvent(
-        new PointerEvent(type, {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-            pointerType: 'mouse',
-            ...init,
-        }),
+function selectsOf(events: AdapterEvent[]): AdapterEvent[] {
+    return eventsOf({ events }, 'select');
+}
+
+/** The recorded hover events as `type:segmentStart`. */
+function hoverTrail(events: AdapterEvent[]): string[] {
+    return detailsOf({ events }, 'hover').map(
+        (d) => `${d.type}:${d.segment.start}`,
     );
 }
 
-/** Ends a (simulated) drag: pointerup on the document, then lets confirmation run. */
-async function release(): Promise<void> {
-    pointer('pointerup', document);
-    await tick();
+function keydown(
+    target: Element,
+    key: string,
+    init: KeyboardEventInit = {},
+): KeyboardEvent {
+    const event = new KeyboardEvent('keydown', {
+        key,
+        bubbles: true,
+        cancelable: true,
+        ...init,
+    });
+    target.dispatchEvent(event);
+    return event;
 }
 
-/** Position of the center of character `i`, relative to the segment element containing it. */
-function charPosition(
-    root: HTMLElement,
-    i: number,
-): { el: Element; position: { x: number; y: number } } {
-    const range = createRangeFromOffsets(root, i, i + 1)!;
-    const rect = range.getBoundingClientRect();
-    const node = range.startContainer;
-    const el = (node instanceof Element ? node : node.parentElement!).closest(
-        '[data-om-start]',
-    )!;
-    const box = el.getBoundingClientRect();
-    return {
-        el,
-        position: {
-            x: rect.left + rect.width / 2 - box.left,
-            y: rect.top + rect.height / 2 - box.top,
-        },
-    };
-}
-
-function segEl(root: HTMLElement, start: number): HTMLElement {
-    return root.querySelector<HTMLElement>(`[data-om-start="${start}"]`)!;
-}
-
-describe('attachInteractions: select', () => {
+describe('attachInteractions: select on release', () => {
     it('emits select after a real mouse drag', async () => {
-        const { root, onSelect } = setup();
+        const { root, events } = givenInteractiveRoot();
         const from = charPosition(root, 1);
         const to = charPosition(root, 18);
+
         await userEvent.dragAndDrop(
             page.elementLocator(from.el),
             page.elementLocator(to.el),
@@ -126,198 +143,410 @@ describe('attachInteractions: select', () => {
                 targetPosition: to.position,
             },
         );
-        await expect.poll(() => onSelect.mock.calls.length).toBe(1);
-        const d = onSelect.mock.calls[0][0];
-        expect(d.text).toBe(text.slice(d.start, d.end));
+
+        await expect.poll(() => selectsOf(events)).toHaveLength(1);
+        const [d] = detailsOf({ events }, 'select');
+        expect(d.text).toBe(TEXT.slice(d.start, d.end));
         expect(d.start).toBe(1);
         expect(d.end).toBeGreaterThanOrEqual(18);
     });
 
-    it('does not re-emit the same selection on pointerup followed by keyup', async () => {
-        const { root, onSelect } = setup();
-        select(root, 8, 18);
-        await tick();
-        await release();
-        document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift' }));
-        await tick();
-        expect(onSelect).toHaveBeenCalledTimes(1);
+    it('emits select for the word a double click selects', async () => {
+        const { root, events } = givenInteractiveRoot();
+        const { el, position } = charPosition(root, 10);
 
-        // Re-selecting the same range without a selection change in between is not re-emitted...
-        select(root, 8, 18);
-        await tick();
-        await release();
-        expect(onSelect).toHaveBeenCalledTimes(1);
+        await userEvent.dblClick(el, { position });
 
-        // ...but clearing the selection resets the "previous" value.
-        window.getSelection()!.removeAllRanges();
-        await tick();
-        select(root, 8, 18);
-        await tick();
-        await release();
-        expect(onSelect).toHaveBeenCalledTimes(2);
-
-        // A different range is emitted.
-        select(root, 2, 5);
-        await tick();
-        await release();
-        expect(onSelect).toHaveBeenCalledTimes(3);
-        expect(onSelect.mock.calls[2][0]).toMatchObject({ start: 2, end: 5 });
+        await expect
+            .poll(() => selectsOf(events))
+            .toEqual([selectEvent(6, 15, [a, b])]);
     });
 
-    it('reads minSelectionLength and touchSelectionDelay live from options', async () => {
-        const options: Partial<InteractionOptions> = { minSelectionLength: 5 };
-        const { root, onSelect } = setup(options);
-        select(root, 2, 4);
-        await tick();
-        await release();
-        expect(onSelect).not.toHaveBeenCalled();
+    it('does not emit a released selection again on the following keyup', async () => {
+        const { root, events } = givenInteractiveRoot();
+        await selectAndWait(root, 8, 18);
+        release();
+        await expect.poll(() => selectsOf(events)).toHaveLength(1);
 
-        options.minSelectionLength = 1;
-        select(root, 2, 5);
-        await tick();
-        await release();
-        expect(onSelect).toHaveBeenCalledTimes(1);
+        settle(() => keyUp('Shift'));
 
-        options.touchSelectionDelay = 40;
-        pointer('pointerdown', root, { pointerType: 'touch' });
-        select(root, 8, 18);
-        await tick(10);
-        expect(onSelect).toHaveBeenCalledTimes(1);
-        await tick(80);
-        expect(onSelect).toHaveBeenCalledTimes(2);
+        expect(selectsOf(events)).toEqual([selectEvent(8, 18, [a, b])]);
+        // Live positive control: the same keyup after selecting a different range.
+        await selectAndWait(root, 2, 5);
+        settle(() => keyUp('Shift'));
+        expect(selectsOf(events)).toEqual([
+            selectEvent(8, 18, [a, b]),
+            selectEvent(2, 5, [a]),
+        ]);
     });
 
-    it('does not confirm on keyup while a modifier is still held', async () => {
-        const { root, onSelect } = setup();
-        select(root, 2, 6);
-        await tick();
-        for (const mod of ['shiftKey', 'ctrlKey', 'metaKey', 'altKey']) {
-            document.dispatchEvent(
-                new KeyboardEvent('keyup', { key: 'ArrowRight', [mod]: true }),
-            );
-        }
-        await tick();
-        expect(onSelect).not.toHaveBeenCalled();
-        document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift' }));
-        await expect.poll(() => onSelect.mock.calls.length).toBe(1);
-        expect(onSelect.mock.calls[0][0]).toMatchObject({ start: 2, end: 6 });
+    it('does not emit the same range selected again without a change in between', async () => {
+        const { root, events } = givenInteractiveRoot();
+        await selectAndWait(root, 8, 18);
+        release();
+        await expect.poll(() => selectsOf(events)).toHaveLength(1);
+
+        await selectAndWait(root, 8, 18);
+        settle(release);
+
+        expect(selectsOf(events)).toEqual([selectEvent(8, 18, [a, b])]);
+        // Live positive control: the same release after selecting a different range.
+        await selectAndWait(root, 2, 5);
+        settle(release);
+        expect(selectsOf(events)).toEqual([
+            selectEvent(8, 18, [a, b]),
+            selectEvent(2, 5, [a]),
+        ]);
     });
 
-    it('emits select for touch after touchSelectionDelay without pointerup', async () => {
-        const { root, onSelect } = setup({ touchSelectionDelay: 50 });
-        pointer('pointerdown', root, { pointerType: 'touch' });
-        select(root, 8, 18);
-        await tick(10);
-        expect(onSelect).not.toHaveBeenCalled();
-        await tick(120);
-        expect(onSelect).toHaveBeenCalledTimes(1);
-        expect(onSelect.mock.calls[0][0]).toMatchObject({ start: 8, end: 18 });
+    it('emits the same range again once the selection was cleared in between', async () => {
+        const { root, events } = givenInteractiveRoot();
+        await selectAndWait(root, 8, 18);
+        release();
+        await expect.poll(() => selectsOf(events)).toHaveLength(1);
+        await clearSelectionAndWait();
 
-        // A further handle adjustment restarts the wait and emits the new range.
-        select(root, 8, 20);
-        await tick(120);
-        expect(onSelect).toHaveBeenCalledTimes(2);
-        expect(onSelect.mock.calls[1][0]).toMatchObject({ start: 8, end: 20 });
+        await selectAndWait(root, 8, 18);
+        release();
+
+        await expect
+            .poll(() => selectsOf(events))
+            .toEqual([selectEvent(8, 18, [a, b]), selectEvent(8, 18, [a, b])]);
     });
 });
 
-describe('attachInteractions: click and dblclick', () => {
-    it('clamps the offset to the segment and falls back to segment.start', () => {
-        const { root, onClick } = setup();
-        const el = segEl(root, 6);
-        // Point far outside the root: getOffsetFromPoint fails → segment.start.
-        el.dispatchEvent(
+describe('attachInteractions: select on keyup', () => {
+    it.each(['shiftKey', 'ctrlKey', 'metaKey', 'altKey'])(
+        'waits for %s to be released before confirming',
+        async (modifier) => {
+            const { root, events } = givenInteractiveRoot();
+            await selectAndWait(root, 2, 6);
+
+            settle(() => keyUp('ArrowRight', { [modifier]: true }));
+
+            expect(selectsOf(events)).toEqual([]);
+            // Live positive control: the keyup of the modifier itself.
+            settle(() => keyUp('Shift'));
+            expect(selectsOf(events)).toEqual([selectEvent(2, 6, [a])]);
+        },
+    );
+
+    it('emits the text inside the root for select-all once the modifier is released', async () => {
+        const { events } = givenInteractiveRoot({ after: ' and beyond' });
+
+        await userEvent.keyboard('{ControlOrMeta>}a{/ControlOrMeta}');
+
+        expect(window.getSelection()!.toString()).toContain('and beyond');
+        await expect
+            .poll(() => selectsOf(events))
+            .toEqual([selectEvent(0, TEXT.length, [a, b])]);
+    });
+
+    it('emits the part inside the root when Shift+Arrow extends the selection past its end', async () => {
+        const { root, events } = givenInteractiveRoot({ after: 'beyond' });
+        // Headless Chromium only extends an existing (non-collapsed) selection
+        // with Shift+Arrow in non-editable content, so start from one character.
+        await selectAndWait(root, 27, 28);
+
+        await userEvent.keyboard(
+            '{Shift>}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{/Shift}',
+        );
+
+        expect(window.getSelection()!.focusNode).toBe(root.nextSibling);
+        await expect
+            .poll(() => selectsOf(events))
+            .toEqual([selectEvent(27, TEXT.length, [])]);
+    });
+});
+
+describe('attachInteractions: select on touch', () => {
+    it('emits a touch selection once touchSelectionDelay passes, without pointerup', async () => {
+        const { root, events } = givenInteractiveRoot({
+            settings: { touchSelectionDelay: 50 },
+        });
+        givenFakeTimeouts();
+        pointer('pointerdown', root, { pointerType: 'touch' });
+
+        await selectAndWait(root, 8, 18);
+
+        vi.advanceTimersByTime(49);
+        expect(selectsOf(events)).toEqual([]);
+        vi.advanceTimersByTime(1);
+        expect(selectsOf(events)).toEqual([selectEvent(8, 18, [a, b])]);
+    });
+
+    it('restarts the wait when the touch selection changes before it is confirmed', async () => {
+        const { root, events } = givenInteractiveRoot({
+            settings: { touchSelectionDelay: 50 },
+        });
+        givenFakeTimeouts();
+        pointer('pointerdown', root, { pointerType: 'touch' });
+        await selectAndWait(root, 8, 18);
+        vi.advanceTimersByTime(30);
+
+        await selectAndWait(root, 8, 20);
+
+        // Without the restart the first wait would end 20 ms from here.
+        vi.advanceTimersByTime(49);
+        expect(selectsOf(events)).toEqual([]);
+        vi.advanceTimersByTime(1);
+        expect(selectsOf(events)).toEqual([selectEvent(8, 20, [a, b])]);
+    });
+
+    it('emits the adjusted range after a touch selection was confirmed', async () => {
+        const { root, events } = givenInteractiveRoot({
+            settings: { touchSelectionDelay: 50 },
+        });
+        givenFakeTimeouts();
+        pointer('pointerdown', root, { pointerType: 'touch' });
+        await selectAndWait(root, 8, 18);
+        vi.advanceTimersByTime(50);
+
+        await selectAndWait(root, 8, 20);
+        vi.advanceTimersByTime(50);
+
+        expect(selectsOf(events)).toEqual([
+            selectEvent(8, 18, [a, b]),
+            selectEvent(8, 20, [a, b]),
+        ]);
+    });
+});
+
+describe('attachInteractions: settings changed after attaching', () => {
+    it('applies a changed minSelectionLength to the next selection', async () => {
+        const settings: Settings = { minSelectionLength: 5 };
+        const { root, events } = givenInteractiveRoot({ settings });
+        await selectAndWait(root, 2, 4);
+        settle(release);
+        expect(selectsOf(events)).toEqual([]);
+
+        settings.minSelectionLength = 1;
+        await selectAndWait(root, 2, 5);
+        release();
+
+        await expect
+            .poll(() => selectsOf(events))
+            .toEqual([selectEvent(2, 5, [a])]);
+    });
+
+    it('applies a changed touchSelectionDelay to the next touch selection', async () => {
+        const settings: Settings = { touchSelectionDelay: 5000 };
+        const { root, events } = givenInteractiveRoot({ settings });
+        givenFakeTimeouts();
+
+        settings.touchSelectionDelay = 40;
+        pointer('pointerdown', root, { pointerType: 'touch' });
+        await selectAndWait(root, 8, 18);
+
+        vi.advanceTimersByTime(39);
+        expect(selectsOf(events)).toEqual([]);
+        vi.advanceTimersByTime(1);
+        expect(selectsOf(events)).toEqual([selectEvent(8, 18, [a, b])]);
+    });
+});
+
+describe('attachInteractions: click', () => {
+    it('reports segment.start when the point is outside the root', () => {
+        const { root, events } = givenInteractiveRoot();
+
+        segmentElement(root, 6).dispatchEvent(
             new MouseEvent('click', {
                 bubbles: true,
                 clientX: -100,
                 clientY: -100,
             }),
         );
-        expect(onClick).toHaveBeenCalledTimes(1);
-        expect(onClick.mock.calls[0][0].offset).toBe(6);
 
-        // Point on a character of another segment: clamped into [6, 14].
+        expect(detailsOf({ events }, 'click').map((d) => d.offset)).toEqual([
+            6,
+        ]);
+    });
+
+    it('clamps the offset into the clicked segment when the point is on another one', () => {
+        const { root, events } = givenInteractiveRoot();
         const r = createRangeFromOffsets(root, 2, 3)!.getBoundingClientRect();
-        el.dispatchEvent(
+
+        segmentElement(root, 6).dispatchEvent(
             new MouseEvent('click', {
                 bubbles: true,
                 clientX: r.left + r.width / 2,
                 clientY: r.top + r.height / 2,
             }),
         );
-        expect(onClick.mock.calls[1][0].offset).toBe(6);
+
+        expect(detailsOf({ events }, 'click').map((d) => d.offset)).toEqual([
+            6,
+        ]);
+    });
+
+    it('keeps preventing the default action of a held Space', () => {
+        const { root } = givenInteractiveRoot();
+        const el = segmentElement(root, 6);
+        keydown(el, ' ');
+
+        const repeat = keydown(el, ' ', { repeat: true });
+
+        expect(repeat.defaultPrevented).toBe(true);
     });
 });
 
 describe('attachInteractions: hover', () => {
-    it('hover emits enter/leave per segment and nothing between nested marks', async () => {
-        const { root, onHover } = setup();
-        const seen = () =>
-            onHover.mock.calls.map(([d]) => `${d.type}:${d.segment.start}`);
-
-        // Park the mouse on plain text first: the pointer left over from an
-        // earlier test may sit where this root's highlights now render.
-        await userEvent.hover(segEl(root, 21));
-        await tick();
-        // Moving between the nested marks of one segment emits nothing.
-        onHover.mockClear();
-        const outer = segEl(root, 6);
+    it('emits nothing while the pointer moves between the nested marks of one segment', async () => {
+        await givenPointerOutsideRoots();
+        const { root, events } = givenInteractiveRoot();
+        const outer = segmentElement(root, 6);
         const inner = outer.querySelector('mark')!;
         expect(inner.hasAttribute('data-om-start')).toBe(false);
-        pointer('pointerover', outer, { relatedTarget: segEl(root, 0) });
+
+        pointer('pointerover', outer, {
+            relatedTarget: segmentElement(root, 0),
+        });
         pointer('pointerout', outer, { relatedTarget: inner });
         pointer('pointerover', inner, { relatedTarget: outer });
         pointer('pointerout', inner, { relatedTarget: outer });
         pointer('pointerover', outer, { relatedTarget: inner });
-        expect(seen()).toEqual(['enter:6']);
 
-        // Non-mouse pointers are ignored.
-        pointer('pointerout', outer, {
-            relatedTarget: segEl(root, 15),
-            pointerType: 'touch',
-        });
-        pointer('pointerover', segEl(root, 15), {
-            relatedTarget: outer,
-            pointerType: 'pen',
-        });
-        expect(seen()).toEqual(['enter:6']);
+        expect(hoverTrail(events)).toEqual(['enter:6']);
+    });
 
-        // Leaving the root.
+    it.each(['touch', 'pen'])(
+        'ignores a %s pointer moving between segments',
+        async (pointerType) => {
+            await givenPointerOutsideRoots();
+            const { root, events } = givenInteractiveRoot();
+            const from = segmentElement(root, 6);
+            const to = segmentElement(root, 15);
+            pointer('pointerover', from);
+
+            pointer('pointerout', from, { relatedTarget: to, pointerType });
+            pointer('pointerover', to, { relatedTarget: from, pointerType });
+
+            expect(hoverTrail(events)).toEqual(['enter:6']);
+            // Live positive control: the same moves by the mouse.
+            pointer('pointerout', from, { relatedTarget: to });
+            pointer('pointerover', to, { relatedTarget: from });
+            expect(hoverTrail(events)).toEqual([
+                'enter:6',
+                'leave:6',
+                'enter:15',
+            ]);
+        },
+    );
+
+    it('emits leave when the pointer moves out of the root', async () => {
+        await givenPointerOutsideRoots();
+        const { root, events } = givenInteractiveRoot();
+        const inner = segmentElement(root, 6).querySelector('mark')!;
+        pointer('pointerover', inner);
+
         pointer('pointerout', inner, { relatedTarget: document.body });
-        expect(seen()).toEqual(['enter:6', 'leave:6']);
+
+        expect(hoverTrail(events)).toEqual(['enter:6', 'leave:6']);
+    });
+
+    it('emits leave when the pointer leaves the window', async () => {
+        await givenPointerOutsideRoots();
+        const { root, events } = givenInteractiveRoot();
+        const inner = segmentElement(root, 6).querySelector('mark')!;
+        pointer('pointerover', inner);
+
+        pointer('pointerout', inner, { relatedTarget: null });
+
+        expect(hoverTrail(events)).toEqual(['enter:6', 'leave:6']);
+    });
+
+    it('emits no further leave on detach once the pointer has left', async () => {
+        await givenPointerOutsideRoots();
+        const root = givenRoot();
+        const recorder = givenRecorder(root);
+        const el = segmentElement(root, 6);
+        pointer('pointerover', el);
+        pointer('pointerout', el, { relatedTarget: document.body });
+
+        recorder.detach();
+
+        expect(hoverTrail(recorder.events)).toEqual(['enter:6', 'leave:6']);
     });
 });
 
-describe('attachInteractions: detach', () => {
-    it('detach removes all listeners', async () => {
-        const s = setup({ touchSelectionDelay: 30 });
-        // Arm a pending touch-confirmation timer, then detach before it fires.
-        pointer('pointerdown', s.root, { pointerType: 'touch' });
-        select(s.root, 1, 4);
-        await tick(5);
-        s.detach();
-        await tick(80);
+describe('attachInteractions: after detach', () => {
+    it('drops a pending touch confirmation', async () => {
+        const root = givenRoot();
+        const live = givenRecorder(root, { touchSelectionDelay: 30 });
+        const detached = givenRecorder(root, { touchSelectionDelay: 30 });
+        givenFakeTimeouts();
+        pointer('pointerdown', root, { pointerType: 'touch' });
+        await selectAndWait(root, 1, 4);
 
-        pointer('pointerdown', s.root, { pointerType: 'mouse' });
-        select(s.root, 8, 18);
-        await tick();
-        await release();
-        document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift' }));
-        window.getSelection()!.removeAllRanges();
-        await tick();
+        detached.detach();
+        vi.advanceTimersByTime(30);
 
-        const { el, position } = charPosition(s.root, 10);
-        await userEvent.click(el, { position });
-        await userEvent.dblClick(el, { position });
-        window.getSelection()!.removeAllRanges();
-        segEl(s.root, 6).focus();
-        await userEvent.keyboard('{Enter}');
-        await userEvent.hover(segEl(s.root, 15));
-        await userEvent.hover(segEl(s.root, 21));
+        expect(detached.events).toEqual([]);
+        // Live positive control: the instance still attached to the same root.
+        expect(selectsOf(live.events)).toEqual([selectEvent(1, 4, [a])]);
+    });
 
-        expect(s.onSelect).not.toHaveBeenCalled();
-        expect(s.onClick).not.toHaveBeenCalled();
-        expect(s.onDblclick).not.toHaveBeenCalled();
-        expect(s.onHover).not.toHaveBeenCalled();
+    // A second recorder on the same root receives every gesture; it proves the
+    // gesture reached the root, so the detached recorder's silence means
+    // something.
+    it.each([
+        {
+            gesture: 'a released mouse selection',
+            type: 'select' as const,
+            act: async (root: HTMLElement) => {
+                await selectAndWait(root, 8, 18);
+                settle(release);
+            },
+        },
+        {
+            gesture: 'a keyboard selection on keyup',
+            type: 'select' as const,
+            act: async (root: HTMLElement) => {
+                await selectAndWait(root, 8, 18);
+                settle(() => keyUp('Shift'));
+            },
+        },
+        {
+            gesture: 'a click',
+            type: 'click' as const,
+            act: async (root: HTMLElement) => {
+                const { el, position } = charPosition(root, 10);
+                await userEvent.click(el, { position });
+            },
+        },
+        {
+            gesture: 'a double click',
+            type: 'dblclick' as const,
+            act: async (root: HTMLElement) => {
+                const { el, position } = charPosition(root, 10);
+                await userEvent.dblClick(el, { position });
+            },
+        },
+        {
+            gesture: 'Enter on a focused segment',
+            type: 'click' as const,
+            act: async (root: HTMLElement) => {
+                segmentElement(root, 6).focus();
+                await userEvent.keyboard('{Enter}');
+            },
+        },
+        {
+            gesture: 'a mouse hover',
+            type: 'hover' as const,
+            act: async (root: HTMLElement) => {
+                await userEvent.hover(segmentElement(root, 15));
+            },
+        },
+    ])('records nothing for $gesture', async ({ type, act }) => {
+        await givenPointerOutsideRoots();
+        const root = givenRoot();
+        const live = givenRecorder(root);
+        const detached = givenRecorder(root);
+        detached.detach();
+
+        await act(root);
+
+        expect(detached.events).toEqual([]);
+        expect(eventsOf(live, type)).toHaveLength(1);
     });
 });
