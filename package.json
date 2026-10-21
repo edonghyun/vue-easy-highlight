@@ -14,8 +14,8 @@
         "typecheck": "pnpm -r typecheck",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
-        "acceptance:pack": "node acceptance/scripts/pack.ts",
-        "check:packages": "node acceptance/scripts/check-packages.ts"
+        "acceptance:pack": "node --experimental-strip-types acceptance/scripts/pack.ts",
+        "check:packages": "node --experimental-strip-types acceptance/scripts/check-packages.ts"
     },
     "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
