@@ -8,13 +8,15 @@ Overlapping highlights, done right: the more highlights overlap, the darker the 
 
 ## Packages
 
-| Package                              | Description                                                                    | Status      |
-| ------------------------------------ | ------------------------------------------------------------------------------ | ----------- |
-| [`@overlapmark/core`](packages/core) | Segment computation, `findMatches`, render contract, DOM helpers, `styles.css` | available   |
-| [`@overlapmark/dom`](packages/dom)   | Vanilla JS adapter: `createHighlighter`                                        | available   |
-| `@overlapmark/vue`                   | Vue adapter                                                                    | coming soon |
-| `@overlapmark/react`                 | React adapter                                                                  | coming soon |
-| `@overlapmark/svelte`                | Svelte adapter                                                                 | coming soon |
+| Package                                  | Description                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| [`@overlapmark/core`](packages/core)     | Segment computation, `findMatches`, render contract, DOM helpers, `styles.css` |
+| [`@overlapmark/dom`](packages/dom)       | Vanilla JS adapter: `createHighlighter`                                        |
+| [`@overlapmark/vue`](packages/vue)       | Vue 3 component: `Highlighter`                                                 |
+| [`@overlapmark/react`](packages/react)   | React component: `Highlighter`                                                 |
+| [`@overlapmark/svelte`](packages/svelte) | Svelte 5 component: `Highlighter`                                              |
+
+Every adapter renders the same DOM from `@overlapmark/core` and reports the same events with the same detail objects. None of them injects CSS: import `@overlapmark/core/styles.css` yourself (or skip it and style the DOM contract).
 
 ## Quick start (vanilla JS)
 
@@ -66,6 +68,82 @@ hl.update({ highlights });
 
 A runnable playground lives in [`examples/vanilla`](examples/vanilla): `pnpm --filter vanilla-example dev`.
 
+## Quick start (Vue)
+
+```sh
+npm install @overlapmark/vue @overlapmark/core
+```
+
+```vue
+<script setup lang="ts">
+import '@overlapmark/core/styles.css';
+import { ref } from 'vue';
+import type { Highlight, SelectDetail } from '@overlapmark/core';
+import { Highlighter } from '@overlapmark/vue';
+
+const text = 'Overlapping highlights get darker where they overlap.';
+const highlights = ref<Highlight[]>([{ id: 'a', start: 0, end: 20 }]);
+const add = ({ start, end }: SelectDetail) =>
+    highlights.value.push({ id: crypto.randomUUID(), start, end });
+</script>
+
+<template>
+    <Highlighter :text="text" :highlights="highlights" @select="add" />
+</template>
+```
+
+Events are `@select`, `@click`, `@dblclick` and `@hover`, with the same detail objects as in vanilla JS; decorations go in the `decoration` scoped slot. See [`@overlapmark/vue`](packages/vue).
+
+## Quick start (React)
+
+```sh
+npm install @overlapmark/react @overlapmark/core
+```
+
+```tsx
+import '@overlapmark/core/styles.css';
+import { useState } from 'react';
+import type { Highlight, SelectDetail } from '@overlapmark/core';
+import { Highlighter } from '@overlapmark/react';
+
+export function Article({ text }: { text: string }) {
+    const [highlights, setHighlights] = useState<Highlight[]>([]);
+    const add = ({ start, end }: SelectDetail) =>
+        setHighlights((list) => [
+            ...list,
+            { id: crypto.randomUUID(), start, end },
+        ]);
+    return <Highlighter text={text} highlights={highlights} onSelect={add} />;
+}
+```
+
+Handlers are `onSelect`, `onClick`, `onDblClick` and `onHover`; they receive core's detail objects, not React events. Decorations come from the `renderDecoration` prop. See [`@overlapmark/react`](packages/react).
+
+## Quick start (Svelte)
+
+```sh
+npm install @overlapmark/svelte @overlapmark/core
+```
+
+```svelte
+<script lang="ts">
+    import '@overlapmark/core/styles.css';
+    import type { Highlight, SelectDetail } from '@overlapmark/core';
+    import { Highlighter } from '@overlapmark/svelte';
+
+    const text = 'Overlapping highlights get darker where they overlap.';
+    let highlights = $state<Highlight[]>([{ id: 'a', start: 0, end: 20 }]);
+    const add = ({ start, end }: SelectDetail) =>
+        highlights.push({ id: crypto.randomUUID(), start, end });
+</script>
+
+<Highlighter {text} {highlights} onselect={add} />
+```
+
+Callback props are `onselect`, `onclick`, `ondblclick` and `onhover`; they receive core's detail objects, not DOM events. Decorations come from the `decoration` snippet. See [`@overlapmark/svelte`](packages/svelte).
+
+In every adapter, classes and other attributes you give the component land on its root `div`, after the `om-root` class; `om-root` and `data-om-strategy` (from `strategy`) always stay the component's own.
+
 ## Styling
 
 Three levels, from least to most control:
@@ -85,7 +163,21 @@ Three levels, from least to most control:
     { id: 'note', start: 0, end: 12, color: '#ffd6d6', className: 'om-style-underline' }
     ```
     You can also write your own CSS against the DOM contract (`.om-hl`, `[data-depth]`, `[data-ids]`, `--om-level`); see the package README. Every library selector is wrapped in `:where()` (zero specificity), so a plain class rule such as `.memo { background-color: pink }` or `.memo { --om-color: pink }` wins regardless of stylesheet order.
-3. **Full control.** Add your own presentational markup after each highlighted segment, such as a count or an icon. In `@overlapmark/dom` pass `decorate: (segment) => Node | string | null`; the framework adapters will offer the same through a slot (Vue), a render prop (React) and a snippet (Svelte). Decorations sit in `<span data-om-skip aria-hidden="true">`: they never shift offsets, the stylesheet keeps them out of selections and copies, and they are hidden from assistive technology, so they must not contain interactive content.
+3. **Decorations.** Add your own presentational markup after the text of each highlighted segment, such as an overlap count or an icon:
+    - `@overlapmark/dom`: the `decorate: (segment) => Node | string | null` option
+    - Vue: the `decoration` scoped slot (`{ segment }`)
+    - React: the `renderDecoration: (segment) => ReactNode` prop
+    - Svelte: the `decoration` snippet (`segment`)
+
+    ```ts
+    createHighlighter(el, {
+        text,
+        highlights,
+        decorate: (segment) => (segment.depth > 1 ? `×${segment.depth}` : null),
+    });
+    ```
+
+    A decoration goes in `<span data-om-skip aria-hidden="true">`, the last child of the segment's innermost element. It is presentational: it never shifts the offsets `select` and `click` report, the shipped stylesheet gives it `user-select: none` so it stays out of selections and copies, and `aria-hidden` hides it from assistive technology, so it must not contain buttons, links or other focusable content. Plain (unhighlighted) segments are not decorated.
 
 **Unstyled usage.** Independently of the tiers above, you can skip `@overlapmark/core/styles.css` entirely and style the DOM contract yourself. The library never injects CSS.
 
@@ -99,9 +191,11 @@ Overlap strategies (`strategy` option): `layers` (default) stacks one element pe
 | `click` / `dblclick` | Click or tap with no active selection; Enter/Space on a focused highlight (`click`) | `{ offset, segment, highlights, event }`                   |
 | `hover`              | Mouse enters or leaves a highlighted segment (desktop only)                         | `{ type: 'enter' \| 'leave', segment, highlights, event }` |
 
+The names follow each framework: `on('select', fn)` in `@overlapmark/dom`, `@select` in Vue, `onSelect` in React (`onDblClick` for `dblclick`), `onselect` in Svelte. The detail types (`SelectDetail`, `PointDetail`, `HoverDetail`) come from `@overlapmark/core`.
+
 `select` fires one macrotask after `pointerup`/`keyup` (on touch, after `touchSelectionDelay` ms, default 500, without a selection change). On the keyboard, `keyup` confirms only once no modifier (Shift/Ctrl/Alt/Meta) is held, so a Shift+Arrow run emits a single `select` when Shift is released.
 
-Every hover `enter` is followed by one `leave` for the same `segment` object. Besides the mouse moving away, a `leave` is also emitted when the adapter is destroyed (or unmounted) and when an update removes the hovered highlight from under the mouse; such a `leave` has `event: null`. An update that re-renders the hovered segment unchanged (same `start` and highlight ids) emits nothing.
+Every hover `enter` is followed by one `leave` for the same `segment` object. Besides the mouse moving away, a `leave` is also emitted when the adapter is destroyed (or the component unmounted) and when an update removes the hovered highlight from under the mouse. Such a programmatic `leave` has no pointer event behind it, so its `event` is `null`. An update that re-renders the hovered segment unchanged (same `start` and highlight ids) emits nothing.
 
 ## Migrating from `vue-easy-highlight`
 
@@ -110,7 +204,17 @@ Every hover `enter` is followed by one `leave` for the same `segment` object. Be
 | `textsToHighlight`   | compute ranges with `findMatches(text, queries)` and pass them as `highlights` |
 | `higlightColor`      | `color` on each highlight, or `--om-default-color` for the default             |
 
-The Vue adapter (`@overlapmark/vue`) is coming soon; until then use `@overlapmark/dom`.
+In Vue, render `Highlighter` from [`@overlapmark/vue`](packages/vue) in place of the old component, with `text` and `highlights` props.
+
+## Known limitations
+
+- **Untested peer lower bounds.** `@overlapmark/react` declares React 18 or later and `@overlapmark/vue` Vue 3.3 or later, but the test suites run on React 19 and Vue 3.5 only; React 18 and Vue 3.3–3.4 are not tested yet.
+- **Programmatic hover `leave`.** A `leave` caused by unmounting, destroying or an update, not by the mouse, carries `event: null`.
+- **Svelte differences.**
+    - When the component is removed while a segment is hovered, the `leave` still reaches `onhover`, but Svelte has already taken the root `div` out of the document by then.
+    - A `decoration` snippet that renders nothing for a segment leaves an empty decoration container (no text, takes no space); the other adapters render no container in that case.
+    - Highlights held in deep `$state` arrive in events as Svelte's state proxies (the same values `highlights[i]` gives you), not your original objects. Use `$state.raw` when you need `=== myHighlight`.
+    - Svelte's hydration does not check the server markup against the client render, so a mismatch is neither reported nor repaired. Pass the same props on the server and the client.
 
 ## License
 

@@ -6,7 +6,7 @@ Vue 3 component for overlapmark: render overlapping text highlights and listen t
 npm install @overlapmark/vue @overlapmark/core
 ```
 
-Requires Vue 3.3 or later.
+Requires Vue 3.3 or later. The tests run on Vue 3.5; 3.3 and 3.4 are not tested yet.
 
 ```vue
 <script setup lang="ts">
@@ -47,7 +47,7 @@ function add({ start, end }: SelectDetail) {
 | `minSelectionLength`  | `number`                    | `1`        | Shorter selections do not emit `select`                                                                                      |
 | `touchSelectionDelay` | `number`                    | `500`      | Milliseconds of no selection change before `select` fires on touch; a change applies from the next selection change          |
 
-The component renders a single `<div class="om-root">`. Classes and other attributes you put on `<Highlighter>` land on that `div`.
+The component renders a single `<div class="om-root">`. Classes and other attributes you put on `<Highlighter>` land on that `div`, classes after `om-root`. The root's own `om-root` class and `data-om-strategy` (from `strategy`) always win: a `data-om-strategy` you pass is replaced.
 
 `highlights` may be plain arrays or reactive state. Changes made in place (`push`, `splice`, a new `end` on a highlight in a deep `ref`) re-render, and events always report your own highlight objects, never Vue's reactive proxies, so `detail.highlights[0] === myHighlight` holds. Passing a new array of the same highlights, as a re-rendering parent often does, leaves the DOM untouched: the selection and the hovered segment stay as they are.
 

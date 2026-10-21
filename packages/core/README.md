@@ -1,6 +1,6 @@
 # @overlapmark/core
 
-Framework-agnostic core of overlapmark: segment computation, text search, the render contract, DOM offset helpers and the default stylesheet. Most apps want [`@overlapmark/dom`](../dom) (or a framework adapter, coming soon) instead of using this directly.
+Framework-agnostic core of overlapmark: segment computation, text search, the render contract, DOM offset helpers and the default stylesheet. Most apps want [`@overlapmark/dom`](../dom) or a framework adapter ([`@overlapmark/vue`](../vue), [`@overlapmark/react`](../react), [`@overlapmark/svelte`](../svelte)) instead of using this directly.
 
 ```sh
 npm install @overlapmark/core
@@ -16,18 +16,19 @@ Positions are UTF-16 string indices; `start` is inclusive, `end` exclusive. Segm
 
 ## `@overlapmark/core`
 
-| Export                                    | Description                                                                                                                                                   |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `computeSegments(text, highlights)`       | Flatten overlapping highlights into `Segment[]` (`{ start, end, text, highlights, depth }`). Invalid or stale ranges are handled deterministically.           |
-| `compareHighlights(a, b, indexOf)`        | The ordering used everywhere: `start` ascending, longer first, then input order (`indexOf(h)` returns a highlight's input index)                              |
-| `segmentAt(segments, offset)`             | The segment containing an offset                                                                                                                              |
-| `highlightsInRange(segments, start, end)` | Highlights overlapping a range                                                                                                                                |
-| `findMatches(text, query, options?)`      | Literal search; `query` is a string or array. Options: `caseSensitive` (false), `overlapping` (true), `wholeWord` (false). Returns `{ start, end }[]`.        |
-| `segmentElements(segment, options?)`      | Element specs (`tag`, `className`, `attrs`, `style`) describing how a segment is rendered; used by adapters                                                   |
-| `segmentKey(segment)`                     | Key for a segment's element in a framework diff: unique within one render, changes when `start`, `end` or the covering highlight ids change                   |
-| `rootAttributes(options?)`                | Class and attributes for the root element                                                                                                                     |
-| `DEFAULT_COLOR`, `defaultBrush(color)`    | Default color `#ddd6ff` and the default marker brush                                                                                                          |
-| Types                                     | `Highlight`, `Segment`, `Strategy`, `RenderOptions`, `ElementSpec`, `FindMatchesOptions`, `SelectDetail`, `PointDetail`, `HoverDetail`, `InteractionHandlers` |
+| Export                                    | Description                                                                                                                                                                       |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `computeSegments(text, highlights)`       | Flatten overlapping highlights into `Segment[]` (`{ start, end, text, highlights, depth }`). Invalid or stale ranges are handled deterministically.                               |
+| `compareHighlights(a, b, indexOf)`        | The ordering used everywhere: `start` ascending, longer first, then input order (`indexOf(h)` returns a highlight's input index)                                                  |
+| `segmentAt(segments, offset)`             | The segment containing an offset                                                                                                                                                  |
+| `highlightsInRange(segments, start, end)` | Highlights overlapping a range                                                                                                                                                    |
+| `findMatches(text, query, options?)`      | Literal search; `query` is a string or array. Options: `caseSensitive` (false), `overlapping` (true), `wholeWord` (false). Returns `{ start, end }[]`.                            |
+| `segmentElements(segment, options?)`      | Element specs (`tag`, `className`, `attrs`, `style`) describing how a segment is rendered; used by adapters                                                                       |
+| `segmentKey(segment)`                     | Key for a segment's element in a framework diff: unique within one render, changes when `start`, `end` or the covering highlight ids change                                       |
+| `rootAttributes(options?)`                | Class and attributes for the root element                                                                                                                                         |
+| `decorationTarget(segment, elements)`     | Where a segment's decoration goes: `{ index, container }` (the innermost of `elements`, and the `data-om-skip` container spec), or `null` for a plain segment; used by adapters   |
+| `DEFAULT_COLOR`, `defaultBrush(color)`    | Default color `#ddd6ff` and the default marker brush                                                                                                                              |
+| Types                                     | `Highlight`, `Segment`, `Strategy`, `RenderOptions`, `ElementSpec`, `DecorationTarget`, `FindMatchesOptions`, `SelectDetail`, `PointDetail`, `HoverDetail`, `InteractionHandlers` |
 
 `RenderOptions`: `strategy` (`'layers' | 'depth'`), `focusable`, `defaultColor`, `brush`.
 

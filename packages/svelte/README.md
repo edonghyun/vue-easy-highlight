@@ -45,7 +45,7 @@ Requires Svelte 5. The package ships `Highlighter.svelte` as source, compiled by
 | `touchSelectionDelay` | `number`                    | `500`      | Milliseconds of no selection change before `onselect` fires on touch; a change applies from the next selection change        |
 | `decoration`          | `Snippet<[Segment]>`        | none       | Decoration for each highlighted segment; see [Decorations](#decorations)                                                     |
 
-The component renders a single `<div class="om-root">`. `class` (a string) is added after `om-root`, and the other attributes you put on `<Highlighter>`, DOM event handlers such as `onpointerdown` included, land on that `div`. The props types are exported as `HighlighterProps` and `HighlighterOwnProps`.
+The component renders a single `<div class="om-root">`. `class` (a string) is added after `om-root`, and the other attributes you put on `<Highlighter>`, DOM event handlers such as `onpointerdown` included, land on that `div`. The root's own `data-om-strategy` (from `strategy`) always wins over one you pass. The props types are exported as `HighlighterProps` and `HighlighterOwnProps`.
 
 `highlights` may be a plain array or Svelte state, and the component never wraps it in state of its own. Changes made in place to a `$state` array (`push`, `splice`, a new `end` on a highlight) re-render. Events report the highlight objects as you read them from what you passed: your own objects for a plain or `$state.raw` array, and, for a deep `$state` array, the same state proxies `highlights[i]` gives you, so `detail.highlights[0] === highlights[0]` holds either way. Svelte wraps each object you put in deep `$state` in a proxy, so if you need the original objects back (`=== myHighlight`), hold the list in `$state.raw` and replace the array (`highlights = [...highlights, added]`). Passing a new array of the same highlights, as a re-rendering parent often does, leaves the DOM untouched: the selection and the hovered segment stay as they are.
 
@@ -79,6 +79,6 @@ The snippet renders in `<span data-om-skip aria-hidden="true">`, the last child 
 
 ## Server-side rendering
 
-The component renders the same markup on the server (`render` from `svelte/server`) as on the client and hydrates without mismatches; events work once it is hydrated. Import `@overlapmark/core/styles.css` yourself; the component injects no CSS.
+The component renders the same markup on the server (`render` from `svelte/server`) as on the client and hydrates on it; events work once it is hydrated. Svelte's hydration does not detect content mismatches: it neither reports nor repairs server markup that differs from the client render. Pass the same props on the server and the client. Import `@overlapmark/core/styles.css` yourself; the component injects no CSS.
 
 See [`@overlapmark/dom`](../dom#dom-contract) for the DOM contract: the classes, attributes and CSS variables you can style.

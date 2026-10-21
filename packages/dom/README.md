@@ -18,7 +18,7 @@ const hl = createHighlighter(document.getElementById('text')!, {
 
 ## `createHighlighter(el, options)`
 
-Replaces the content of `el` with the rendered text and returns a `Highlighter`.
+Replaces the content of `el` with the rendered text and returns a `Highlighter`. It adds the `om-root` class to the classes `el` already has and sets `data-om-strategy` from `strategy`, replacing any value `el` had.
 
 | Option                | Type                                  | Default    | Description                                                                                                                  |
 | --------------------- | ------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -89,4 +89,4 @@ Every hover `enter` is followed by one `leave` for the same `segment` object. Be
 
 Setting `--om-color` on the root has no effect (it is reset on each `.om-hl`); use `--om-default-color`. All rules in `styles.css` have zero specificity (`:where()`), so your own class rules always win.
 
-Vue, React and Svelte adapters are coming soon.
+For Vue, React and Svelte, use [`@overlapmark/vue`](../vue), [`@overlapmark/react`](../react) and [`@overlapmark/svelte`](../svelte): they render this same DOM.
