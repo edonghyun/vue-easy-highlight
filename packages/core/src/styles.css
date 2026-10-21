@@ -1,0 +1,76 @@
+/*
+ * overlapmark styles
+ *
+ * Every selector is wrapped in :where() so it has zero specificity: any user
+ * rule (e.g. a class from highlight.className) wins regardless of order.
+ * Theme variables have no declared value here, only var() fallbacks, so they
+ * can be set on .om-root or on any ancestor:
+ *   --om-default-color (#ddd6ff), --om-depth-step (12%),
+ *   --om-max-depth (6), --om-alpha (55%)
+ */
+:where(.om-root) {
+    white-space: pre-wrap;
+}
+
+:where(.om-hl) {
+    /* custom properties inherit; reset so an uncolored mark does not pick up its parent's color */
+    --om-color: initial;
+    background: none;
+    color: inherit;
+    padding: 0.12em 0;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    border-radius: 0.2em;
+    cursor: pointer;
+}
+
+:where([data-om-strategy='layers'] .om-hl) {
+    background-color: color-mix(
+        in srgb,
+        var(--om-color, var(--om-default-color, #ddd6ff)) var(--om-alpha, 55%),
+        transparent
+    );
+}
+
+:where([data-om-strategy='depth'] .om-hl) {
+    background-color: color-mix(
+        in oklab,
+        var(--om-color, var(--om-default-color, #ddd6ff)),
+        black
+            calc(
+                var(--om-depth-step, 12%) *
+                    (min(var(--om-depth), var(--om-max-depth, 6)) - 1)
+            )
+    );
+}
+
+:where(.om-hl.om-style-marker) {
+    background-color: transparent;
+    background-image: var(--om-brush);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+:where(.om-hl.om-style-underline) {
+    /* nested highlights drop their underline by --om-level so they do not overlap */
+    background-color: transparent;
+    background-image: linear-gradient(
+        var(--om-color, var(--om-default-color, #ddd6ff)),
+        var(--om-color, var(--om-default-color, #ddd6ff))
+    );
+    background-size: 100% 3px;
+    background-repeat: no-repeat;
+    background-position: 0 calc(100% - var(--om-level, 0) * 4px);
+    padding-bottom: calc(0.12em + var(--om-level, 0) * 4px);
+}
+
+:where(.om-hl.om-style-box) {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1.5px
+        var(--om-color, var(--om-default-color, #ddd6ff));
+}
+
+:where(.om-hl:focus-visible) {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+}

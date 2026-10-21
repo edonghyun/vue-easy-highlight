@@ -1,52 +1,32 @@
 {
-  "name": "vue-easy-highlight",
-  "version": "0.0.2",
-  "source": "src/index.js",
-  "main": "src/index.js",
-  "scripts": {
-    "serve": "vue-cli-service serve demo/src/main.js",
-    "build": "vue-cli-service build demo/src/main.js",
-    "lint": "vue-cli-service lint"
-  },
-  "dependencies": {
-    "core-js": "^3.8.3",
-    "sass": "^1.55.0",
-    "sass-loader": "^13.0.2",
-    "vue": "^3.2.13"
-  },
-  "keywords": [
-    "vue",
-    "highlight"
-  ],
-  "author": "Donghyun Lee",
-  "license": "MIT",
-  "devDependencies": {
-    "@babel/core": "^7.12.16",
-    "@babel/eslint-parser": "^7.12.16",
-    "@vue/cli-plugin-babel": "~5.0.0",
-    "@vue/cli-plugin-eslint": "~5.0.0",
-    "@vue/cli-service": "~5.0.0",
-    "eslint": "^7.32.0",
-    "eslint-plugin-vue": "^8.0.3"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
+    "name": "overlapmark-monorepo",
+    "private": true,
+    "type": "module",
+    "packageManager": "pnpm@10.26.2",
+    "engines": {
+        "node": ">=22.12"
     },
-    "extends": [
-      "plugin:vue/vue3-essential",
-      "eslint:recommended"
-    ],
-    "parserOptions": {
-      "parser": "@babel/eslint-parser"
+    "scripts": {
+        "build": "pnpm -r build",
+        "test": "pnpm -r test",
+        "test:perf": "pnpm -r test:perf",
+        "lint": "eslint .",
+        "typecheck": "pnpm -r typecheck",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
     },
-    "rules": {}
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not dead",
-    "not ie 11"
-  ]
+    "devDependencies": {
+        "@changesets/cli": "^3",
+        "@eslint/js": "^10",
+        "@types/node": "^22.20.5",
+        "@vitest/browser-playwright": "^5.0.5",
+        "eslint": "^10",
+        "fast-check": "^4.10.2",
+        "playwright": "^1.64.1",
+        "prettier": "^3.9",
+        "tsup": "^9.0.0",
+        "typescript": "~6.0.3",
+        "typescript-eslint": "^8.72",
+        "vitest": "^5.0.5"
+    }
 }

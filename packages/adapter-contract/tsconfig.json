@@ -1,0 +1,13 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        // Core's sources are type-checked through the paths below, and
+        // src/warn.ts reads process.env.NODE_ENV.
+        "types": ["node"],
+        "paths": {
+            "@overlapmark/core": ["../core/src/index.ts"],
+            "@overlapmark/core/dom": ["../core/src/dom/index.ts"]
+        }
+    },
+    "include": ["src"]
+}
