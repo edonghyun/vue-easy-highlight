@@ -1,6 +1,6 @@
 {
     "name": "@overlapmark/react",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "description": "React component for overlapping text highlights",
     "license": "MIT",
     "author": "Donghyun Lee",
