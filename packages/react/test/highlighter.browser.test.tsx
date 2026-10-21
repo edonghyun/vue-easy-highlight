@@ -157,6 +157,57 @@ describe('Highlighter: root element', () => {
         expect(received[0]?.classList.contains('om-root')).toBe(true);
     });
 
+    // React 19: a callback ref may return a cleanup, which React then calls
+    // in place of calling the ref with null.
+    it('runs the cleanup a callback ref returns on unmount, instead of calling the ref with null', () => {
+        const received: (HTMLDivElement | null)[] = [];
+        const cleanedUp: HTMLDivElement[] = [];
+        const { host, rerender } = givenRendered(
+            <Highlighter
+                {...propsOf(partialOverlap)}
+                ref={(el) => {
+                    received.push(el);
+                    return () => {
+                        cleanedUp.push(el!);
+                    };
+                }}
+            />,
+        );
+        const root = rootIn(host);
+
+        rerender(<section />);
+
+        expect(received).toEqual([root]);
+        expect(cleanedUp).toEqual([root]);
+    });
+
+    it('hands the root div over to a ref given in place of the first', () => {
+        const first = createRef<HTMLDivElement>();
+        const second = createRef<HTMLDivElement>();
+        const { host, rerender } = givenRendered(
+            <Highlighter {...propsOf(partialOverlap)} ref={first} />,
+        );
+        const root = rootIn(host);
+
+        rerender(<Highlighter {...propsOf(partialOverlap)} ref={second} />);
+
+        expect(first.current).toBeNull();
+        expect(second.current).toBe(root);
+        expect(rootIn(host)).toBe(root);
+    });
+
+    it('clears an object ref on unmount', () => {
+        const ref = createRef<HTMLDivElement>();
+        const { host, rerender } = givenRendered(
+            <Highlighter {...propsOf(partialOverlap)} ref={ref} />,
+        );
+        expect(ref.current).toBe(rootIn(host));
+
+        rerender(<section />);
+
+        expect(ref.current).toBeNull();
+    });
+
     it('calls a DOM handler given as a div prop with the DOM event', async () => {
         const pointerDowns: Event[] = [];
         const { host } = givenRendered(

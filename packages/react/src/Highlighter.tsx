@@ -25,8 +25,8 @@ import {
     Component,
     createElement,
     forwardRef,
-    useCallback,
     useEffect,
+    useImperativeHandle,
     useLayoutEffect,
     useMemo,
     useRef,
@@ -144,12 +144,6 @@ function rendersNothing(node: ReactNode): boolean {
     );
 }
 
-/** Points `ref` at `el`, whichever kind of ref the caller gave. */
-function assignRef<E>(ref: ForwardedRef<E>, el: E | null): void {
-    if (typeof ref === 'function') ref(el);
-    else if (ref) ref.current = el;
-}
-
 /**
  * The elements of one segment, built innermost first; the outermost is keyed
  * by `segmentKey`, so a segment whose covering ids change gets a new element
@@ -254,13 +248,10 @@ function HighlighterRender<T>(
     } = props;
 
     const root = useRef<HTMLDivElement>(null);
-    const setRoot = useCallback(
-        (el: HTMLDivElement | null) => {
-            root.current = el;
-            assignRef(ref, el);
-        },
-        [ref],
-    );
+    // React hands the root to the caller's ref, whichever kind it is: an
+    // object, a callback, or (React 19) a callback returning a cleanup, and
+    // moves it over when the caller passes another ref.
+    useImperativeHandle(ref, () => root.current!, []);
     const segments = useMemo(
         () => computeSegments(text, highlights),
         [text, highlights],
@@ -324,7 +315,7 @@ function HighlighterRender<T>(
             <div
                 {...divProps}
                 {...reactAttrs(rootSpec.attrs)}
-                ref={setRoot}
+                ref={root}
                 className={
                     className
                         ? `${rootSpec.className} ${className}`
