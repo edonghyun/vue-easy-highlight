@@ -136,6 +136,21 @@ export function getTextLength(root: Element): number {
 }
 
 /**
+ * The outermost element of the segment covering original-text position `pos`,
+ * or `null` when `pos` lies outside the text. Segments are contiguous, so it
+ * is the last segment starting at or before `pos`.
+ */
+export function segmentElementAt(root: Element, pos: number): Element | null {
+    if (pos < 0 || pos >= getTextLength(root)) return null;
+    let covering: Element | null = null;
+    for (const s of segments(root)) {
+        if (s.start > pos) break;
+        covering = s.el;
+    }
+    return covering;
+}
+
+/**
  * The selection's extent in original-text indices, clipped to `root`.
  * Returns `null` when there is no selection, it is collapsed, it does not
  * overlap `root`, or the clipped range is empty.

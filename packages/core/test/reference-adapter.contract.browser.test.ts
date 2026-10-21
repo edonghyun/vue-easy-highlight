@@ -8,8 +8,8 @@ import { computeSegments } from '../src';
 import type { Segment } from '../src';
 import {
     attachInteractions,
-    createRangeFromOffsets,
-    getSelectionOffsets,
+    captureViewState,
+    restoreViewState,
 } from '../src/dom';
 import { renderInto } from './helpers/mount';
 
@@ -44,34 +44,17 @@ defineAdapterContract({
 
         return {
             root,
-            // Re-renders from scratch, restoring the selection by offset (spec
-            // §6) and the focused segment by its start offset. Focus restore is
-            // not in the spec; the contract's updates group requires it.
+            // Re-renders from scratch; core's view state keeps the selection
+            // and focus the contract requires.
             async update(next) {
-                const selection = window.getSelection();
-                const saved = getSelectionOffsets(root, selection);
-                const active = document.activeElement;
-                const focused =
-                    active && root.contains(active)
-                        ? active
-                              .closest('[data-om-start]')
-                              ?.getAttribute('data-om-start')
-                        : null;
+                const view = captureViewState(root);
+                const textChanged =
+                    next.text !== undefined && next.text !== props.text;
 
                 props = { ...props, ...next };
                 render();
 
-                const range =
-                    saved &&
-                    createRangeFromOffsets(root, saved.start, saved.end);
-                if (range && selection) {
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                }
-                if (focused != null)
-                    root.querySelector<HTMLElement>(
-                        `[data-om-start="${focused}"][tabindex]`,
-                    )?.focus();
+                restoreViewState(root, view, { textChanged });
             },
             async unmount() {
                 detach();

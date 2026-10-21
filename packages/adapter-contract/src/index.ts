@@ -764,33 +764,6 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 ]);
         });
 
-        it('keeps the selection across an update', async () => {
-            const adapter = await givenAdapter(partialOverlap);
-            setSelection(createRangeFromOffsets(adapter.root, 8, 18)!);
-
-            await adapter.update({ highlights: [a, b, c] });
-
-            expect(getSelectionOffsets(adapter.root)).toEqual({
-                start: 8,
-                end: 18,
-            });
-            expect(window.getSelection()!.toString()).toBe(TEXT.slice(8, 18));
-        });
-
-        it('returns focus to the same segment after an update', async () => {
-            const adapter = await givenAdapter(partialOverlap);
-            segmentElement(adapter.root, 6).focus();
-            expect(document.activeElement).toBe(
-                segmentElement(adapter.root, 6),
-            );
-
-            await adapter.update({ highlights: [a, b, c] });
-
-            expect(document.activeElement).toBe(
-                segmentElement(adapter.root, 6),
-            );
-        });
-
         it('applies a changed minSelectionLength to the next selection', async () => {
             const adapter = await givenAdapter({
                 ...partialOverlap,
@@ -826,6 +799,113 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             expect(eventsOf(adapter, 'select')).toEqual([
                 selectEvent(8, 18, [a, b]),
             ]);
+        });
+    });
+
+    // Every adapter restores through core's captureViewState/restoreViewState,
+    // which own these rules; the cases pin them on each adapter's update flush.
+    describe(`${name} — selection across an update`, () => {
+        it('keeps the selection across an update', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            setSelection(createRangeFromOffsets(adapter.root, 8, 18)!);
+
+            await adapter.update({ highlights: [a, b, c] });
+
+            expect(getSelectionOffsets(adapter.root)).toEqual({
+                start: 8,
+                end: 18,
+            });
+            expect(window.getSelection()!.toString()).toBe(TEXT.slice(8, 18));
+        });
+
+        it('keeps the selection when an update passes the same text again', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            setSelection(createRangeFromOffsets(adapter.root, 8, 18)!);
+
+            await adapter.update({ text: TEXT, highlights: [a, b, c] });
+
+            expect(getSelectionOffsets(adapter.root)).toEqual({
+                start: 8,
+                end: 18,
+            });
+        });
+
+        // U1: the same offsets over a new text select different characters,
+        // which the user did not select.
+        it('clears the selection when an update replaces the text', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            setSelection(createRangeFromOffsets(adapter.root, 8, 18)!);
+
+            await adapter.update({ text: REPLACED_TEXT });
+
+            expect(getSelectionOffsets(adapter.root)).toBeNull();
+            expect(window.getSelection()!.toString()).toBe('');
+        });
+
+        it('leaves a selection outside the root alone when an update replaces the text', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            const outside = givenTextOutsideRoots('Elsewhere on the page');
+            const range = document.createRange();
+            range.setStart(outside, 0);
+            range.setEnd(outside, 9);
+            setSelection(range);
+
+            await adapter.update({ text: REPLACED_TEXT });
+
+            expect(window.getSelection()!.toString()).toBe('Elsewhere');
+        });
+    });
+
+    describe(`${name} — focus across an update`, () => {
+        it('returns focus to the same segment after an update', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            segmentElement(adapter.root, 6).focus();
+            expect(document.activeElement).toBe(
+                segmentElement(adapter.root, 6),
+            );
+
+            await adapter.update({ highlights: [a, b, c] });
+
+            expect(document.activeElement).toBe(
+                segmentElement(adapter.root, 6),
+            );
+        });
+
+        // U2: the focused segment [6,15) is gone; [0,15) of `a` now covers 6.
+        it('moves focus to the highlighted segment that now covers the focused offset', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            segmentElement(adapter.root, 6).focus();
+
+            await adapter.update({ highlights: [a] });
+
+            expect(document.activeElement).toBe(
+                segmentElement(adapter.root, 0),
+            );
+        });
+
+        // U2: with `c` alone, offset 6 lies in the plain segment [0,10).
+        it('focuses nothing in the root when the focused offset is no longer highlighted', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            segmentElement(adapter.root, 6).focus();
+
+            await adapter.update({ highlights: [c] });
+
+            expect(
+                segmentElement(adapter.root, 0).hasAttribute('data-depth'),
+            ).toBe(false);
+            expect(adapter.root.contains(document.activeElement)).toBe(false);
+        });
+
+        it('focuses nothing in the root when the segment covering the focused offset is not focusable', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            segmentElement(adapter.root, 6).focus();
+
+            await adapter.update({ highlights: [a], focusable: false });
+
+            expect(
+                segmentElement(adapter.root, 0).hasAttribute('data-depth'),
+            ).toBe(true);
+            expect(adapter.root.contains(document.activeElement)).toBe(false);
         });
     });
 

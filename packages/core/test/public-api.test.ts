@@ -30,10 +30,12 @@ describe('@overlapmark/core/dom entry point', () => {
 
         expect(names).toEqual([
             'attachInteractions',
+            'captureViewState',
             'createRangeFromOffsets',
             'getOffsetFromPoint',
             'getSelectionOffsets',
             'getTextLength',
+            'restoreViewState',
         ]);
     });
 });

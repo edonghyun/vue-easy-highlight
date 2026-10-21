@@ -13,8 +13,8 @@ import type {
 } from '@overlapmark/core';
 import {
     attachInteractions,
-    createRangeFromOffsets,
-    getSelectionOffsets,
+    captureViewState,
+    restoreViewState,
 } from '@overlapmark/core/dom';
 
 export interface HighlighterOptions<T = unknown> extends RenderOptions {
@@ -118,37 +118,14 @@ export function createHighlighter<T>(
     return {
         update(next) {
             if (destroyed) return;
-            const selection = window.getSelection();
-            const saved = getSelectionOffsets(el, selection);
-            const active = document.activeElement;
-            const focusedStart =
-                active && el.contains(active)
-                    ? active
-                          .closest('[data-om-start]')
-                          ?.getAttribute('data-om-start')
-                    : null;
+            const view = captureViewState(el);
+            const textChanged =
+                next.text !== undefined && next.text !== opts.text;
 
             opts = { ...opts, ...next };
             render();
 
-            if (saved) {
-                const range = createRangeFromOffsets(
-                    el,
-                    saved.start,
-                    saved.end,
-                );
-                if (range && selection) {
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                }
-            }
-            if (focusedStart != null) {
-                const target =
-                    el.querySelector<HTMLElement>(
-                        `[data-om-start="${focusedStart}"][tabindex]`,
-                    ) ?? null;
-                target?.focus({ preventScroll: true });
-            }
+            restoreViewState(el, view, { textChanged });
         },
         on(type, fn) {
             const set = listeners[type] as Set<typeof fn>;
