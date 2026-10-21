@@ -4,11 +4,11 @@ import { PNG } from 'pngjs';
 
 export interface Fixture {
     text: string;
-    highlights: { id: string; start: number; end: number }[];
+    highlights: { id: string; start: number; end: number; color?: string }[];
 }
 
 export const fixtures: Record<
-    'overlaps' | 'unicode' | 'wrap' | 'whitespace',
+    'overlaps' | 'unicode' | 'wrap' | 'whitespace' | 'distinct' | 'similar',
     Fixture
 > = JSON.parse(
     readFileSync(new URL('../fixtures.json', import.meta.url), 'utf8'),
@@ -316,6 +316,42 @@ export async function backgroundsAt(
         backgrounds.push(brightest);
     }
     return backgrounds;
+}
+
+/** The colour of the pixel at viewport point (`x`, `y`) in a screenshot of the page. */
+export async function pixelAt(page: Page, x: number, y: number): Promise<Rgb> {
+    const shot = PNG.sync.read(
+        await page.screenshot({
+            clip: { x: Math.floor(x), y: Math.floor(y), width: 1, height: 1 },
+            scale: 'css',
+            animations: 'disabled',
+        }),
+    );
+    return [shot.data[0], shot.data[1], shot.data[2]];
+}
+
+/** `#rrggbb` as its channels. */
+export function rgbOf(hex: string): Rgb {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/** `color` at `alpha` painted over `backdrop` the plain way (source-over). */
+export function over(color: Rgb, alpha: number, backdrop: Rgb): Rgb {
+    return color.map((c, i) => c * alpha + backdrop[i] * (1 - alpha)) as Rgb;
+}
+
+/** Every channel of `actual` is within `tolerance` of `expected`. */
+export function expectColorClose(
+    actual: Rgb,
+    expected: Rgb,
+    tolerance = 3,
+): void {
+    for (let i = 0; i < 3; i++)
+        expect(
+            Math.abs(actual[i] - expected[i]),
+            `channel ${i} of ${actual.join(',')} near ${expected.map(Math.round).join(',')}`,
+        ).toBeLessThanOrEqual(tolerance);
 }
 
 /** The background luminance at each character strictly decreases along `offsets`. */

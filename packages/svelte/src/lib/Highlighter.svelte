@@ -10,6 +10,7 @@
         ElementSpec,
         Highlight,
         HoverDetail,
+        Overlap,
         PointDetail,
         Segment,
         SelectDetail,
@@ -26,9 +27,11 @@
         highlights?: readonly Highlight<T>[];
         /** How overlaps are drawn. Default `'layers'`. */
         strategy?: Strategy;
+        /** How nested layers combine with the `layers` strategy. Default `'multiply'`. */
+        overlap?: Overlap;
         /** Put `tabindex="0"` on highlighted segments; Enter/Space calls `onclick`. Default `true`. */
         focusable?: boolean;
-        /** Color baked into the `--om-brush` image for highlights without `color`. */
+        /** Color of highlights without `color`: set on the root as `--om-default-color` and baked into their `--om-brush`. */
         defaultColor?: string;
         /** Returns a CSS image value for `--om-brush`. */
         brush?: (color: string) => string;
@@ -83,11 +86,27 @@
     function attributesOf(spec: ElementSpec): Record<string, string> {
         const attributes = { ...spec.attrs };
         if (spec.className) attributes.class = spec.className;
-        const style = Object.entries(spec.style)
-            .map(([name, value]) => `${name}: ${value}`)
-            .join('; ');
+        const style = styleText(spec.style);
         if (style) attributes.style = style;
         return attributes;
+    }
+
+    /** `style` as the text of a `style` attribute. */
+    function styleText(style: Record<string, string>): string {
+        return Object.entries(style)
+            .map(([name, value]) => `${name}: ${value}`)
+            .join('; ');
+    }
+
+    /**
+     * The root's `style`: the caller's, then core's properties so they win;
+     * `undefined` when both are empty, so no empty attribute renders.
+     */
+    function rootStyleOf(
+        own: string | null | undefined,
+        core: Record<string, string>,
+    ): string | undefined {
+        return [own, styleText(core)].filter(Boolean).join('; ') || undefined;
     }
 </script>
 
@@ -112,12 +131,14 @@
         text,
         highlights = [],
         strategy,
+        overlap,
         focusable,
         defaultColor,
         brush,
         minSelectionLength,
         touchSelectionDelay,
         class: className,
+        style,
         onselect,
         onclick,
         ondblclick,
@@ -132,6 +153,7 @@
     const segments = $derived(computeSegments(text, highlights));
     const options: RenderOptions = $derived({
         strategy,
+        overlap,
         focusable,
         defaultColor,
         brush,
@@ -200,6 +222,7 @@
 <div
     {...rest}
     {...rootSpec.attrs}
+    style={rootStyleOf(style, rootSpec.style)}
     bind:this={root}
     class={className
         ? `${rootSpec.className} ${className}`

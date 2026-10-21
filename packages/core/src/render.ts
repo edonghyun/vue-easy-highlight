@@ -6,9 +6,27 @@ export { DEFAULT_COLOR, defaultBrush };
 
 export type Strategy = 'layers' | 'depth';
 
+/**
+ * How nested layers of the `layers` strategy combine, set on the root as
+ * `data-om-overlap` for the stylesheet:
+ * - `multiply`: each layer multiplies with those under it, so a spot gets
+ *   darker with every highlight that covers it, whatever their colors.
+ * - `darken`: each layer's own color is mixed toward `--om-depth-ink` by
+ *   `--om-depth-step` per nesting level. It darkens reliably only for colors
+ *   of similar lightness.
+ * - `none`: plain translucent layers.
+ */
+export type Overlap = 'multiply' | 'darken' | 'none';
+
 export interface RenderOptions {
     strategy?: Strategy;
+    /** How nested layers combine with the `layers` strategy. Default `'multiply'`. */
+    overlap?: Overlap;
     focusable?: boolean;
+    /**
+     * Color of highlights without `color`: baked into their brush and set as
+     * `--om-default-color` on the root.
+     */
     defaultColor?: string;
     brush?: (color: string) => string;
 }
@@ -102,13 +120,24 @@ export function segmentKey(segment: Segment): string {
     return `${segment.start}:${segment.end}:${ids}`;
 }
 
+/**
+ * The class, attributes and inline style of the root element. `style` holds
+ * `--om-default-color` when `defaultColor` is given and safe, and is empty
+ * otherwise.
+ */
 export function rootAttributes(options: RenderOptions = {}): {
     className: 'om-root';
-    attrs: { 'data-om-strategy': Strategy };
+    attrs: { 'data-om-strategy': Strategy; 'data-om-overlap': Overlap };
+    style: Record<string, string>;
 } {
+    const defaultColor = safeColor(options.defaultColor);
     return {
         className: 'om-root',
-        attrs: { 'data-om-strategy': options.strategy ?? 'layers' },
+        attrs: {
+            'data-om-strategy': options.strategy ?? 'layers',
+            'data-om-overlap': options.overlap ?? 'multiply',
+        },
+        style: defaultColor ? { '--om-default-color': defaultColor } : {},
     };
 }
 

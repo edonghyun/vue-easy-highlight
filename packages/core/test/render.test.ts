@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    onTestFinished,
+    vi,
+} from 'vitest';
 import {
     DEFAULT_COLOR,
     computeSegments,
@@ -184,15 +192,49 @@ describe('rootAttributes', () => {
     it('defaults to the layers strategy', () => {
         expect(rootAttributes()).toEqual({
             className: 'om-root',
-            attrs: { 'data-om-strategy': 'layers' },
+            attrs: {
+                'data-om-strategy': 'layers',
+                'data-om-overlap': 'multiply',
+            },
+            style: {},
         });
     });
 
     it('reports the depth strategy when given', () => {
-        expect(rootAttributes({ strategy: 'depth' })).toEqual({
-            className: 'om-root',
-            attrs: { 'data-om-strategy': 'depth' },
+        expect(rootAttributes({ strategy: 'depth' }).attrs).toEqual({
+            'data-om-strategy': 'depth',
+            'data-om-overlap': 'multiply',
         });
+    });
+
+    it('marks the root with the overlap mode, multiply by default', () => {
+        const modes = (['multiply', 'darken', 'none'] as const).map(
+            (overlap) => rootAttributes({ overlap }).attrs['data-om-overlap'],
+        );
+
+        expect(rootAttributes().attrs['data-om-overlap']).toBe('multiply');
+        expect(modes).toEqual(['multiply', 'darken', 'none']);
+    });
+
+    it('puts --om-default-color inline on the root only when defaultColor is given', () => {
+        const given = rootAttributes({ defaultColor: '#123456' });
+
+        const absent = rootAttributes();
+
+        expect(given.style).toEqual({ '--om-default-color': '#123456' });
+        expect(absent.style).toEqual({});
+    });
+
+    it('leaves an unsafe defaultColor off the root', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        onTestFinished(() => warn.mockRestore());
+
+        const unsafe = rootAttributes({
+            defaultColor: 'blue} body {color: red',
+        });
+
+        expect(unsafe.style).toEqual({});
+        expect(warn).toHaveBeenCalled();
     });
 });
 

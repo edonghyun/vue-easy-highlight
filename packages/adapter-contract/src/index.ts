@@ -266,6 +266,38 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             expect(coveredByBoth).toHaveLength(1);
         });
 
+        it('marks the root with the multiply overlap mode by default', async () => {
+            const { root } = await givenAdapter(partialOverlap);
+
+            expect(root.getAttribute('data-om-overlap')).toBe('multiply');
+        });
+
+        it('marks the root with the overlap mode it was given', async () => {
+            const { root } = await givenAdapter({
+                ...partialOverlap,
+                overlap: 'darken',
+            });
+
+            expect(root.getAttribute('data-om-overlap')).toBe('darken');
+            expect(serializeRoot(root)).toEqual(
+                expectedTree({ ...partialOverlap, overlap: 'darken' }),
+            );
+        });
+
+        it('sets --om-default-color on the root only when defaultColor is given', async () => {
+            const given = await givenAdapter({
+                ...partialOverlap,
+                defaultColor: CUSTOM_COLOR,
+            });
+
+            const absent = await givenAdapter(partialOverlap);
+
+            expect(
+                given.root.style.getPropertyValue('--om-default-color'),
+            ).toBe(CUSTOM_COLOR);
+            expect(absent.root.hasAttribute('style')).toBe(false);
+        });
+
         it('renders no tabindex when focusable is false', async () => {
             const { root } = await givenAdapter({
                 ...partialOverlap,
@@ -953,6 +985,59 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             // Four marks: a · a+b (two layers) · b.
             expect(brushesOf(adapter.root)).toEqual(
                 Array(4).fill(solidBrush(CUSTOM_COLOR)),
+            );
+        });
+
+        it('switches the overlap mode in place and keeps the selection', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+            const root = adapter.root;
+            setSelection(createRangeFromOffsets(root, 8, 18)!);
+
+            await adapter.update({ overlap: 'none' });
+
+            expect(adapter.root).toBe(root);
+            expect(root.getAttribute('data-om-overlap')).toBe('none');
+            expect(serializeRoot(root)).toEqual(
+                expectedTree({ ...partialOverlap, overlap: 'none' }),
+            );
+            expect(getSelectionOffsets(root)).toEqual({ start: 8, end: 18 });
+        });
+
+        it('applies a new defaultColor in place', async () => {
+            const adapter = await givenAdapter({
+                ...partialOverlap,
+                defaultColor: CUSTOM_COLOR,
+            });
+            const root = adapter.root;
+
+            await adapter.update({ defaultColor: '#123456' });
+
+            expect(adapter.root).toBe(root);
+            expect(root.style.getPropertyValue('--om-default-color')).toBe(
+                '#123456',
+            );
+            expect(serializeRoot(root)).toEqual(
+                expectedTree({ ...partialOverlap, defaultColor: '#123456' }),
+            );
+        });
+
+        it('takes --om-default-color off the root when defaultColor is removed', async () => {
+            const adapter = await givenAdapter({
+                ...partialOverlap,
+                defaultColor: CUSTOM_COLOR,
+            });
+
+            const before =
+                adapter.root.style.getPropertyValue('--om-default-color');
+
+            await adapter.update({ defaultColor: undefined });
+
+            expect(before).toBe(CUSTOM_COLOR);
+            expect(
+                adapter.root.style.getPropertyValue('--om-default-color'),
+            ).toBe('');
+            expect(serializeRoot(adapter.root)).toEqual(
+                expectedTree(partialOverlap),
             );
         });
 

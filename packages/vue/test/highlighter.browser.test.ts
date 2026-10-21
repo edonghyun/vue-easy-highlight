@@ -137,6 +137,24 @@ describe('Highlighter: root element', () => {
         expect(root.getAttribute('data-om-strategy')).toBe('layers');
     });
 
+    it('sets --om-default-color on the root beside the style the caller passes', () => {
+        const host = givenApp(() =>
+            h(Highlighter, {
+                text: TEXT,
+                highlights: [a],
+                defaultColor: '#123456',
+                style: { lineHeight: '2', '--om-default-color': 'red' },
+            }),
+        );
+
+        const root = host.firstElementChild as HTMLElement;
+
+        expect(root.style.lineHeight).toBe('2');
+        expect(root.style.getPropertyValue('--om-default-color')).toBe(
+            '#123456',
+        );
+    });
+
     it('puts the style and id given to the component on the root div beside om-root', () => {
         const host = givenApp(() =>
             h(Highlighter, {

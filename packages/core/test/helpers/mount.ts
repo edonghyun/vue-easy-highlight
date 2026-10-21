@@ -40,7 +40,7 @@ export interface RenderIntoOptions extends RenderOptions {
 
 /**
  * Renders `text` with `highlights` into `root` from the core render model,
- * replacing its children and setting the root class and attributes. With
+ * replacing its children and setting the root class, attributes and style. With
  * `decoration`, each highlighted segment's innermost element ends with
  * `<span data-om-skip aria-hidden="true">{decoration}</span>`, unless the
  * decoration is `''`.
@@ -54,6 +54,9 @@ export function renderInto(
     const r = rootAttributes(options);
     root.classList.add(r.className);
     for (const [k, v] of Object.entries(r.attrs)) root.setAttribute(k, v);
+    // The root's inline style is core's alone: drop what an earlier render set.
+    root.removeAttribute('style');
+    for (const [k, v] of Object.entries(r.style)) root.style.setProperty(k, v);
     const frag = document.createDocumentFragment();
     for (const seg of computeSegments(text, [...highlights])) {
         const specs = segmentElements(seg, options);

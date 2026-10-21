@@ -129,6 +129,22 @@ describe('Highlighter: root element', () => {
         expect(root.getAttribute('aria-label')).toBe('Article body');
     });
 
+    it('sets --om-default-color on the root beside the style the caller passes', () => {
+        const host = givenMounted(Highlighter, {
+            text: TEXT,
+            highlights: [a],
+            defaultColor: '#123456',
+            style: 'line-height: 2; --om-default-color: red',
+        });
+
+        const root = host.firstElementChild as HTMLElement;
+
+        expect(root.style.lineHeight).toBe('2');
+        expect(root.style.getPropertyValue('--om-default-color')).toBe(
+            '#123456',
+        );
+    });
+
     it('keeps its own root class and strategy attribute over those the caller passes', () => {
         const host = givenMounted(Highlighter, {
             text: TEXT,

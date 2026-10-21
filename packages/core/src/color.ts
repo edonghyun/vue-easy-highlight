@@ -7,13 +7,14 @@ const MAX_LENGTH = 64;
 const UNSAFE = /[;{}<>\\]|url\(|expression\(/i;
 
 /**
- * `value` when it is safe to put in a style declaration, otherwise
- * `undefined` (with a dev warning). A highlight color goes into a style
+ * `value` when it is a string safe to put in a style declaration, otherwise
+ * `undefined`: silently for a value that is not a string (an absent
+ * `null` or `undefined` among them), with a dev warning for an unsafe one. A highlight color goes into a style
  * attribute, on the server as a string, so a value that could end its
  * declaration or open a rule would inject CSS.
  */
-export function safeColor(value: string | undefined): string | undefined {
-    if (value === undefined) return undefined;
+export function safeColor(value: unknown): string | undefined {
+    if (typeof value !== 'string') return undefined;
     if (value.length > MAX_LENGTH || UNSAFE.test(value)) {
         warnOnce(
             `ignoring unsafe highlight color ${JSON.stringify(value.slice(0, MAX_LENGTH))}`,

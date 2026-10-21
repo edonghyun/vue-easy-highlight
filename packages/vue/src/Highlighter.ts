@@ -9,6 +9,7 @@ import type {
     ElementSpec,
     Highlight,
     HoverDetail,
+    Overlap,
     PointDetail,
     RenderOptions,
     Segment,
@@ -160,9 +161,11 @@ const highlighterProps = {
     // a bare `focusable` attribute still casts to `true`.
     /** How overlaps are drawn. Default `'layers'`. */
     strategy: { type: String as PropType<Strategy>, default: undefined },
+    /** How nested layers combine with the `layers` strategy. Default `'multiply'`. */
+    overlap: { type: String as PropType<Overlap>, default: undefined },
     /** Put `tabindex="0"` on highlighted segments; Enter/Space emits `click`. Default `true`. */
     focusable: { type: Boolean, default: undefined },
-    /** Color baked into the `--om-brush` image for highlights without `color`. */
+    /** Color of highlights without `color`: set on the root as `--om-default-color` and baked into their `--om-brush`. */
     defaultColor: { type: String, default: undefined },
     /** Returns a CSS image value for `--om-brush`. */
     brush: {
@@ -289,6 +292,7 @@ const component = defineComponent({
         return () => {
             const options: RenderOptions = {
                 strategy: props.strategy,
+                overlap: props.overlap,
                 focusable: props.focusable,
                 defaultColor: props.defaultColor,
                 brush: props.brush,
@@ -298,10 +302,14 @@ const component = defineComponent({
             return h(
                 'div',
                 // The caller's classes follow `om-root`; core's attributes
-                // come last so the caller's cannot replace them.
+                // and style properties come last so the caller's cannot
+                // replace them. An empty style is left out, as on segments.
                 mergeProps({ class: rootSpec.className }, attrs, {
                     ref: root,
                     ...rootSpec.attrs,
+                    ...(Object.keys(rootSpec.style).length > 0 && {
+                        style: rootSpec.style,
+                    }),
                 }),
                 rendered.segments.map((segment) =>
                     segmentVNode(

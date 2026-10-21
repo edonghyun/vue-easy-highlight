@@ -35,12 +35,22 @@ describe('safeColor', () => {
         warn.mockRestore();
     });
 
-    it('leaves an absent color absent without a warning', () => {
-        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it.each([undefined, null])(
+        'leaves the absent color %s absent without a warning',
+        (color) => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-        expect(safeColor(undefined)).toBeUndefined();
+            expect(safeColor(color)).toBeUndefined();
 
-        expect(warn).not.toHaveBeenCalled();
-        warn.mockRestore();
-    });
+            expect(warn).not.toHaveBeenCalled();
+            warn.mockRestore();
+        },
+    );
+
+    it.each([42, { toString: () => 'red' }, ['red']])(
+        'ignores the non-string color %o',
+        (color) => {
+            expect(safeColor(color)).toBeUndefined();
+        },
+    );
 });

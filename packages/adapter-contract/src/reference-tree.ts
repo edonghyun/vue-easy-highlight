@@ -18,6 +18,7 @@ import type { ElementTree, RootTree, TreeNode } from './serialize';
 export function expectedTree(props: ContractProps): RootTree {
     const options: RenderOptions = {
         strategy: props.strategy,
+        overlap: props.overlap,
         focusable: props.focusable,
         defaultColor: props.defaultColor,
         brush: props.brush,
@@ -26,6 +27,7 @@ export function expectedTree(props: ContractProps): RootTree {
     return {
         classes: classTokens(root.className),
         attrs: { ...root.attrs },
+        style: { ...root.style },
         children: computeSegments(props.text, [...props.highlights]).map(
             (segment) => {
                 const innermost: TreeNode[] = [segment.text];

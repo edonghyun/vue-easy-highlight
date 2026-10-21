@@ -24,5 +24,23 @@
     "whitespace": {
         "text": "Two  spaces\nand a newline   stay counted.",
         "highlights": [{ "id": "w", "start": 5, "end": 16 }]
+    },
+    "distinct": {
+        "text": "One analysis may cover a sentence that another analysis covers again, and a third covers a few words.",
+        "highlights": [
+            { "id": "a", "start": 0, "end": 80, "color": "#ddd6ff" },
+            { "id": "b", "start": 10, "end": 70, "color": "#ffd6e0" },
+            { "id": "c", "start": 20, "end": 60, "color": "#3b5bdb" },
+            { "id": "d", "start": 30, "end": 50, "color": "#fff3bf" }
+        ]
+    },
+    "similar": {
+        "text": "One analysis may cover a sentence that another analysis covers again, and a third covers a few words.",
+        "highlights": [
+            { "id": "a", "start": 0, "end": 80, "color": "#ddd6ff" },
+            { "id": "b", "start": 10, "end": 70, "color": "#ffd6e0" },
+            { "id": "c", "start": 20, "end": 60, "color": "#d6e6ff" },
+            { "id": "d", "start": 30, "end": 50, "color": "#d9f2d0" }
+        ]
     }
 }

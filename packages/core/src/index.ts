@@ -16,6 +16,7 @@ export {
 } from './render';
 export type {
     Strategy,
+    Overlap,
     RenderOptions,
     ElementSpec,
     DecorationTarget,

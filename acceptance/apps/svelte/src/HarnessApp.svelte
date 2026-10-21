@@ -4,6 +4,7 @@
     import type {
         Highlight,
         HoverDetail,
+        Overlap,
         PointDetail,
         Segment,
         SelectDetail,
@@ -19,6 +20,7 @@
     const fixture =
         fixtures[(params.fixture ?? 'overlaps') as keyof typeof fixtures];
     const strategy = params.strategy as Strategy | undefined;
+    const overlap = params.overlap as Overlap | undefined;
     const minSelectionLength = params.minSelectionLength
         ? Number(params.minSelectionLength)
         : undefined;
@@ -76,6 +78,7 @@
     text={fixture.text}
     {highlights}
     {strategy}
+    {overlap}
     {minSelectionLength}
     {onselect}
     {onclick}

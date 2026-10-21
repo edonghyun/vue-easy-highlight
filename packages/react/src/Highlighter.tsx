@@ -9,6 +9,7 @@ import type {
     ElementSpec,
     Highlight,
     HoverDetail,
+    Overlap,
     PointDetail,
     RenderOptions,
     Segment,
@@ -56,9 +57,11 @@ export interface HighlighterOwnProps<T = unknown> {
     highlights?: readonly Highlight<T>[];
     /** How overlaps are drawn. Default `'layers'`. */
     strategy?: Strategy;
+    /** How nested layers combine with the `layers` strategy. Default `'multiply'`. */
+    overlap?: Overlap;
     /** Put `tabindex="0"` on highlighted segments; Enter/Space calls `onClick`. Default `true`. */
     focusable?: boolean;
-    /** Color baked into the `--om-brush` image for highlights without `color`. */
+    /** Color of highlights without `color`: set on the root as `--om-default-color` and baked into their `--om-brush`. */
     defaultColor?: string;
     /** Returns a CSS image value for `--om-brush`. */
     brush?: (color: string) => string;
@@ -233,6 +236,7 @@ function HighlighterRender<T>(
         text,
         highlights = NO_HIGHLIGHTS,
         strategy,
+        overlap,
         focusable,
         defaultColor,
         brush,
@@ -244,6 +248,7 @@ function HighlighterRender<T>(
         onHover,
         renderDecoration,
         className,
+        style,
         ...divProps
     } = props;
 
@@ -308,16 +313,24 @@ function HighlighterRender<T>(
 
     const options: RenderOptions = {
         strategy,
+        overlap,
         focusable,
         defaultColor,
         brush,
     };
     const rootSpec = rootAttributes(options);
+    // The caller's style, with core's properties over it; none at all when
+    // both are empty, so the server renders no empty `style` attribute.
+    const rootStyle =
+        Object.keys(rootSpec.style).length > 0
+            ? { ...style, ...rootSpec.style }
+            : style;
     return (
         <ViewStateBoundary root={root}>
             <div
                 {...divProps}
                 {...reactAttrs(rootSpec.attrs)}
+                style={rootStyle}
                 ref={root}
                 className={
                     className

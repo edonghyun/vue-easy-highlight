@@ -403,6 +403,23 @@ describe('createHighlighter: destroy()', () => {
         expect(el.hasAttribute('data-om-strategy')).toBe(false);
     });
 
+    it('removes the overlap attribute and the root style it set, and keeps the element style', () => {
+        const el = givenElement();
+        el.style.color = 'navy';
+        const h = createHighlighter(el, {
+            text: TEXT,
+            highlights: [a],
+            defaultColor: '#123456',
+        });
+        expect(el.style.getPropertyValue('--om-default-color')).toBe('#123456');
+
+        h.destroy();
+
+        expect(el.hasAttribute('data-om-overlap')).toBe(false);
+        expect(el.style.getPropertyValue('--om-default-color')).toBe('');
+        expect(el.style.color).toBe('navy');
+    });
+
     it('ignores update() after destroy()', () => {
         const { el, h } = givenHighlighter();
         h.destroy();

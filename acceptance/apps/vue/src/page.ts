@@ -1,7 +1,7 @@
 // The harness page set-up from the query, shared by the entry that mounts
 // (harness.*) and the one that hydrates (entry-client-ssr.*).
 
-/** Applies `width`, `scroll` and `css` from `params`; returns `#host`. */
+/** Applies `width`, `scroll`, `bg` and `css` from `params`; returns `#host`. */
 export function setUpPage(params: URLSearchParams): HTMLElement {
     const host = document.getElementById('host')!;
     const width = params.get('width');
@@ -13,6 +13,14 @@ export function setUpPage(params: URLSearchParams): HTMLElement {
         scroller.style.overflow = 'auto';
         host.replaceWith(scroller);
         scroller.append(host);
+    }
+    if (params.get('bg') === '1') {
+        const tinted = document.createElement('div');
+        tinted.id = 'tinted';
+        tinted.style.background = '#e7f5ff';
+        tinted.style.padding = '12px';
+        host.replaceWith(tinted);
+        tinted.append(host);
     }
     if (params.get('css') === 'default-color') {
         const style = document.createElement('style');

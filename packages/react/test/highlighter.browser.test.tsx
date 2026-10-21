@@ -26,7 +26,7 @@ import {
     startTransition,
     useLayoutEffect,
 } from 'react';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it, onTestFinished } from 'vitest';
@@ -112,6 +112,29 @@ describe('Highlighter: root element', () => {
         expect(root.id).toBe('body-text');
         expect(root.getAttribute('aria-label')).toBe('Article body');
         expect(root.dataset.testid).toBe('highlighter');
+    });
+
+    it('sets --om-default-color on the root beside the style the caller passes', () => {
+        const { host } = givenRendered(
+            <Highlighter
+                text={TEXT}
+                highlights={[a]}
+                defaultColor="#123456"
+                style={
+                    {
+                        lineHeight: '2',
+                        '--om-default-color': 'red',
+                    } as CSSProperties
+                }
+            />,
+        );
+
+        const root = host.firstElementChild as HTMLElement;
+
+        expect(root.style.lineHeight).toBe('2');
+        expect(root.style.getPropertyValue('--om-default-color')).toBe(
+            '#123456',
+        );
     });
 
     it('keeps its own root class and strategy attribute over those the caller passes', () => {

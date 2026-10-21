@@ -12,7 +12,7 @@ import {
 } from '@overlapmark/adapter-contract';
 import type { ContractProps } from '@overlapmark/adapter-contract';
 import '@overlapmark/core/styles.css';
-import type { PointDetail, Segment, Strategy } from '@overlapmark/core';
+import type { PointDetail, Segment } from '@overlapmark/core';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 import { createApp, createSSRApp, h } from 'vue';
@@ -90,17 +90,22 @@ function givenConsoleSpies() {
     return { warn, error };
 }
 
-const cases: { strategy: Strategy }[] = [
-    { strategy: 'layers' },
-    { strategy: 'depth' },
+// The last case puts a style on the root, which hydration must take over too.
+const cases: { label: string; options: Partial<ContractProps> }[] = [
+    { label: 'the layers strategy', options: { strategy: 'layers' } },
+    { label: 'the depth strategy', options: { strategy: 'depth' } },
+    {
+        label: 'the darken overlap and a defaultColor',
+        options: { overlap: 'darken', defaultColor: '#123456' },
+    },
 ];
 
 describe.each(cases)(
-    'Highlighter SSR with the $strategy strategy and decorations',
-    ({ strategy }) => {
+    'Highlighter SSR with $label and decorations',
+    ({ options }) => {
         const props: ContractProps = {
             ...partialOverlap,
-            strategy,
+            ...options,
             decoration,
         };
 

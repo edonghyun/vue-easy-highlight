@@ -11,6 +11,7 @@ export function propsOf(props: ContractProps): ContractProps {
         highlights: props.highlights,
     };
     if (props.strategy !== undefined) picked.strategy = props.strategy;
+    if (props.overlap !== undefined) picked.overlap = props.overlap;
     if (props.focusable !== undefined) picked.focusable = props.focusable;
     if (props.defaultColor !== undefined)
         picked.defaultColor = props.defaultColor;

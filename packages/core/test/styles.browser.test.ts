@@ -1,4 +1,5 @@
 import { describe, expect, it, onTestFinished } from 'vitest';
+import { page } from 'vitest/browser';
 import '../src/styles.css';
 import type { Highlight } from '../src';
 import { givenInDocument, givenRenderedRoot, select } from './helpers/mount';
@@ -64,6 +65,92 @@ function markOf(root: Element): HTMLElement {
     return root.querySelector('mark')!;
 }
 
+type Rgb = [number, number, number];
+
+/** What the browser painted for an element: its pixels, row by row. */
+interface Shot {
+    width: number;
+    height: number;
+    /** Device pixels per CSS pixel. */
+    scale: number;
+    at(x: number, y: number): Rgb;
+}
+
+/** A screenshot of `el`, decoded in the page. */
+async function screenshotOf(el: HTMLElement): Promise<Shot> {
+    const base64 = await page.screenshot({ element: el, save: false });
+    const image = new Image();
+    image.src = `data:image/png;base64,${base64}`;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+    ctx.drawImage(image, 0, 0);
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    return {
+        width: canvas.width,
+        height: canvas.height,
+        scale: canvas.width / el.getBoundingClientRect().width,
+        at: (x, y) => {
+            const i = (y * canvas.width + x) * 4;
+            return [data[i], data[i + 1], data[i + 2]];
+        },
+    };
+}
+
+/** The rows of the shot's middle column painted in `color`, top to bottom, in CSS px. */
+function rowsIn(shot: Shot, color: Rgb): number[] {
+    const x = Math.floor(shot.width / 2);
+    const rows: number[] = [];
+    for (let y = 0; y < shot.height; y++) {
+        const pixel = shot.at(x, y);
+        if (pixel.every((v, i) => Math.abs(v - color[i]) <= 40))
+            rows.push(y / shot.scale);
+    }
+    return rows;
+}
+
+/** Pure red, green and blue: they stay apart where they do not overlap. */
+const PRIMARIES: { color: string; rgb: Rgb }[] = [
+    { color: '#ff0000', rgb: [255, 0, 0] },
+    { color: '#00ff00', rgb: [0, 255, 0] },
+    { color: '#0000ff', rgb: [0, 0, 255] },
+];
+
+/**
+ * A root of `text` covered three times over by highlights of the `preset`
+ * class, outermost red, then green, then blue, with room around it for
+ * what the preset paints outside the line.
+ */
+function givenNestedPreset(preset: string): HTMLElement {
+    const root = givenRenderedRoot(
+        'aaaaaaaa',
+        PRIMARIES.map(({ color }, i) => ({
+            id: String(i),
+            start: 0,
+            end: 8,
+            color,
+            className: preset,
+        })),
+    );
+    root.style.width = 'fit-content';
+    root.style.padding = '24px';
+    root.style.font = '20px/1.6 sans-serif';
+    return root;
+}
+
+/** Every pair of `values` is at least `gap` apart. */
+function expectApart(values: number[], gap: number): void {
+    for (let i = 0; i < values.length; i++) {
+        for (let j = i + 1; j < values.length; j++)
+            expect(
+                Math.abs(values[i] - values[j]),
+                `${values[i]} and ${values[j]} (${values.join(', ')})`,
+            ).toBeGreaterThanOrEqual(gap);
+    }
+}
+
 describe('default stylesheet', () => {
     it('darkens deeper segments with the depth strategy', () => {
         const root = givenRenderedRoot('aaaa bbbb cccc', three, {
@@ -96,6 +183,25 @@ describe('default stylesheet', () => {
         expect(at(DEFAULT_MAX_DEPTH)).not.toBe(at(DEFAULT_MAX_DEPTH - 1));
         expect(at(DEFAULT_MAX_DEPTH + 1)).toBe(at(DEFAULT_MAX_DEPTH));
         expect(at(DEFAULT_MAX_DEPTH + 2)).toBe(at(DEFAULT_MAX_DEPTH));
+    });
+
+    it('darkens each nested layer with the darken overlap mode, down to the default --om-max-depth', () => {
+        const hs = Array.from({ length: DEFAULT_MAX_DEPTH + 2 }, (_, i) => ({
+            id: String(i),
+            start: 0,
+            end: 1,
+        }));
+        const root = givenRenderedRoot('a', hs, { overlap: 'darken' });
+
+        const layers = [...root.querySelectorAll('mark')].map(bg);
+
+        const l = layers.map(luminance);
+        for (let i = 1; i < DEFAULT_MAX_DEPTH; i++)
+            expect(l[i]).toBeLessThan(l[i - 1]);
+        expect(layers[DEFAULT_MAX_DEPTH]).toBe(layers[DEFAULT_MAX_DEPTH - 1]);
+        expect(layers[DEFAULT_MAX_DEPTH + 1]).toBe(
+            layers[DEFAULT_MAX_DEPTH - 1],
+        );
     });
 
     it('paints a translucent background on every nested mark with the layers strategy', () => {
@@ -218,6 +324,81 @@ describe('default stylesheet', () => {
             true,
         );
         expect(rgba(cs.backgroundColor)[3]).toBe(0);
+    });
+
+    it('darkens nested markers of distinct colors under the default overlap mode', async () => {
+        const root = givenRenderedRoot(
+            'aaaa bbbb cccc dddd',
+            ['#ddd6ff', '#ffd6e0', '#3b5bdb', '#fff3bf'].map((color, i) => ({
+                id: String(i),
+                start: i * 5,
+                end: 19,
+                color,
+                className: 'om-style-marker',
+            })),
+        );
+        root.style.font = '20px/1.6 sans-serif';
+        const shot = await screenshotOf(root);
+        const origin = root.getBoundingClientRect();
+
+        // The brightest pixel of each segment is its marker, not a glyph.
+        const luminances = [...root.querySelectorAll('[data-om-depth]')].map(
+            (segment) => {
+                const box = segment.getBoundingClientRect();
+                let brightest = 0;
+                for (
+                    let y = Math.ceil((box.top - origin.top + 4) * shot.scale);
+                    y < (box.bottom - origin.top - 4) * shot.scale;
+                    y++
+                ) {
+                    for (
+                        let x = Math.ceil(
+                            (box.left - origin.left + 2) * shot.scale,
+                        );
+                        x < (box.right - origin.left - 2) * shot.scale;
+                        x++
+                    ) {
+                        const [r, g, b] = shot.at(x, y);
+                        brightest = Math.max(
+                            brightest,
+                            luminance(`rgb(${r}, ${g}, ${b})`),
+                        );
+                    }
+                }
+                return brightest;
+            },
+        );
+
+        expect(luminances).toHaveLength(4);
+        for (let i = 1; i < luminances.length; i++)
+            expect(luminances[i]).toBeLessThan(luminances[i - 1]);
+    });
+
+    it('draws nested underlines at distinct heights', async () => {
+        const root = givenNestedPreset('om-style-underline');
+
+        const shot = await screenshotOf(root);
+
+        const bottoms = PRIMARIES.map(({ rgb }) => rowsIn(shot, rgb).at(-1));
+        expect(bottoms).not.toContain(undefined);
+        expectApart(bottoms as number[], 2);
+    });
+
+    it('draws nested boxes that can be told apart', async () => {
+        const root = givenNestedPreset('om-style-box');
+
+        const shot = await screenshotOf(root);
+
+        const edges = PRIMARIES.map(({ rgb }) => rowsIn(shot, rgb));
+        for (const rows of edges) expect(rows).not.toEqual([]);
+        expectApart(
+            edges.map((rows) => rows[0]),
+            2,
+        );
+        expectApart(
+            edges.map((rows) => rows.at(-1)!),
+            2,
+        );
     });
 
     it('preserves whitespace on the root', () => {

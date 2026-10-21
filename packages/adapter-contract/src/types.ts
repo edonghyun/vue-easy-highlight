@@ -3,6 +3,7 @@ import type {
     HoverDetail,
     PointDetail,
     Segment,
+    Overlap,
     SelectDetail,
     Strategy,
 } from '@overlapmark/core';
@@ -12,8 +13,9 @@ export interface ContractProps {
     text: string;
     highlights: readonly Highlight[];
     strategy?: Strategy;
+    overlap?: Overlap;
     focusable?: boolean;
-    /** Color passed to `brush` for highlights without `color`. */
+    /** Color of highlights without `color`: passed to `brush`, and set on the root. */
     defaultColor?: string;
     /** Returns the CSS image value of `--om-brush` for a color. */
     brush?: (color: string) => string;
