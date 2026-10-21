@@ -9,7 +9,7 @@ export default defineConfig({
     },
     format: ['esm', 'cjs'],
     dts: true,
-    // Shared chunks for CJS too: dom/ must reuse core's module state (segment ranks WeakMap).
+    // Keep splitting on for CJS too: the dom/ and adapter/ entries share chunks with the main entry instead of bundling their own copies.
     splitting: true,
     clean: true,
     onSuccess: async () => {

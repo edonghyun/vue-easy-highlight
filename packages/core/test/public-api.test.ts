@@ -22,7 +22,7 @@ describe('@overlapmark/core entry point', () => {
 });
 
 describe('@overlapmark/core/adapter entry point', () => {
-    it('exports exactly the helpers adapter authors build on', () => {
+    it('pins the unstable @overlapmark/core/adapter entry to exactly the helpers adapter authors build on', () => {
         const names = Object.keys(adapter).sort();
 
         expect(names).toEqual([

@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
     deploy:
-        if: vars.PAGES_ENABLED == 'true'
+        if: vars.PAGES_ENABLED == 'true' && github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
         timeout-minutes: 10
         environment:

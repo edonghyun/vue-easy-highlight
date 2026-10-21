@@ -10,7 +10,8 @@ export type Strategy = 'layers' | 'depth';
  * How nested layers of the `layers` strategy combine, set on the root as
  * `data-om-overlap` for the stylesheet:
  * - `multiply`: each layer multiplies with those under it, so a spot gets
- *   darker with every highlight that covers it, whatever their colors.
+ *   darker with every highlight that covers it, for any color except pure
+ *   white (a white layer does not darken).
  * - `darken`: each layer's own color is mixed toward `--om-depth-ink` by
  *   `--om-depth-step` per nesting level. It darkens reliably only for colors
  *   of similar lightness.

@@ -12,7 +12,7 @@ Overlapping text highlights for Vue, React, Svelte and plain JS. The more highli
 npm install @overlapmark/vue @overlapmark/core     # or @overlapmark/react, @overlapmark/svelte, @overlapmark/dom
 ```
 
-- **Overlaps get darker.** Nested highlights darken the spot they share, whatever their colors ([Overlap modes](#overlap-modes)).
+- **Overlaps get darker.** Nested highlights darken the spot they share ([Overlap modes](#overlap-modes)).
 - **Click tells you which highlights.** A click, tap or Enter reports every highlight covering that point; a selection reports its range, so you can add a highlight from it.
 - **Same DOM and events everywhere.** Vue, React, Svelte and vanilla JS render the same markup, report the same detail objects and render on the server.
 - **Style it your way.** CSS variables, per-highlight colors and classes, decorations of your own, or no shipped CSS at all.
@@ -223,9 +223,9 @@ With the default `layers` strategy, each highlight covering a segment is its own
 
 <img src="https://raw.githubusercontent.com/edonghyun/overlapmark/main/docs-assets/overlap-multiply.png" alt="The demo paragraph in multiply mode: every nested highlight darkens the spot it covers." width="100%">
 
-Each nested layer multiplies with the layers under it (`mix-blend-mode: multiply`), like a highlighter pen drawn over itself, so every highlight covering a spot darkens it, whatever the colors. The root is an isolated group (`isolation: isolate`), so the layers never blend with the page behind the root.
+Each nested layer multiplies with the layers under it (`mix-blend-mode: multiply`), like a highlighter pen drawn over itself, so every highlight covering a spot darkens it, for any color except pure white (a white layer multiplies to no change). The root is an isolated group (`isolation: isolate`), so the layers never blend with the page behind the root.
 
-**When to use:** text on a light background, with any palette. **Caveats:** a nested layer, its own text included, multiplies with everything painted under it inside the root. On a dark background, pastel layers fade into the background, and the light text of a nested highlight is tinted by the layers below it and loses contrast. For dark themes, keep a light reading surface behind the highlighted text, or switch to `darken` with deeper colors (see the snippet below).
+**When to use:** text on a light background, with any palette. **Caveats:** a nested layer, its own text included, multiplies with everything painted under it inside the root, so a decoration such as a badge's background inside a nested mark is tinted too. On a dark background, pastel layers fade into the background, and the light text of a nested highlight is tinted by the layers below it and loses contrast. For dark themes, keep a light reading surface behind the highlighted text, or switch to `darken` with deeper colors (see the snippet below).
 
 ### `darken`
 
