@@ -21,6 +21,12 @@ export interface HighlighterOptions<T = unknown> extends RenderOptions {
     text: string;
     highlights?: readonly Highlight<T>[];
     minSelectionLength?: number;
+    /**
+     * Milliseconds without a selection change before a touch selection emits
+     * `select`. Default 500. A value changed by `update()` applies from the
+     * next selection change. The re-render of `update()` is one, so a touch
+     * selection already waiting restarts its wait with the new value.
+     */
     touchSelectionDelay?: number;
 }
 

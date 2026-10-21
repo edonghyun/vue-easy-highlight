@@ -18,7 +18,11 @@ export interface InteractionOptions<
      * so it may be changed (or defined as a getter) after attaching.
      */
     minSelectionLength?: number;
-    /** Touch selections are confirmed after this many ms without change. Default 500. Read live. */
+    /**
+     * Touch selections are confirmed after this many ms without change.
+     * Default 500. Read each time a selection change starts the wait, so a
+     * changed value applies from the next selection change.
+     */
     touchSelectionDelay?: number;
 }
 

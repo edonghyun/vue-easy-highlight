@@ -161,19 +161,6 @@ describe('createHighlighter: update() re-rendering a selection', () => {
         expect(window.getSelection()!.toString()).toBe(TEXT.slice(8, 18));
     });
 
-    // The spec only asks to keep the selection when the highlights change; with
-    // a new text the selection is restored by offset, over the new characters.
-    it('restores the selection offsets over a new text that still contains them', async () => {
-        const { el, h } = givenHighlighter();
-        const next = 'Goodbye cruel world, see you';
-        await selectAndWait(el, 8, 13);
-
-        h.update({ text: next, highlights: [] });
-
-        expect(getSelectionOffsets(el)).toEqual({ start: 8, end: 13 });
-        expect(window.getSelection()!.toString()).toBe('cruel');
-    });
-
     it('clips a restored selection to the end of a shorter text', async () => {
         const { el, h } = givenHighlighter();
         await selectAndWait(el, 16, 21);
@@ -217,19 +204,6 @@ describe('createHighlighter: update() re-rendering focus and hover', () => {
         const after = segmentElement(el, 6);
         expect(after).not.toBe(before);
         expect(document.activeElement).toBe(after);
-    });
-
-    // Current behavior, not a decided contract: the spec says nothing about
-    // focus when its segment disappears. Change this test if that is decided.
-    it('drops focus when no focusable segment starts at the focused offset any more', () => {
-        const { el, h } = givenHighlighter();
-        segmentElement(el, 6).focus();
-        expect(document.activeElement).toBe(segmentElement(el, 6));
-
-        h.update({ highlights: [c] });
-
-        expect(el.querySelector('[data-om-start="6"]')).toBeNull();
-        expect(document.activeElement).toBe(document.body);
     });
 
     /**
@@ -294,6 +268,39 @@ describe('createHighlighter: update() re-rendering focus and hover', () => {
         h.destroy();
 
         expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
+    });
+});
+
+describe('createHighlighter: update()', () => {
+    // Characterization tests, not a decided contract: they pin what update()
+    // does today where the spec is silent. Change them, and move them out of
+    // this group, once the behavior is decided.
+    describe('current behavior (undecided)', () => {
+        // The spec only asks to keep the selection when the highlights
+        // change; with a new text the selection is restored by offset, over
+        // the new characters.
+        it('restores the selection offsets over a new text that still contains them', async () => {
+            const { el, h } = givenHighlighter();
+            const next = 'Goodbye cruel world, see you';
+            await selectAndWait(el, 8, 13);
+
+            h.update({ text: next, highlights: [] });
+
+            expect(getSelectionOffsets(el)).toEqual({ start: 8, end: 13 });
+            expect(window.getSelection()!.toString()).toBe('cruel');
+        });
+
+        // The spec says nothing about focus when its segment disappears.
+        it('drops focus when no focusable segment starts at the focused offset any more', () => {
+            const { el, h } = givenHighlighter();
+            segmentElement(el, 6).focus();
+            expect(document.activeElement).toBe(segmentElement(el, 6));
+
+            h.update({ highlights: [c] });
+
+            expect(el.querySelector('[data-om-start="6"]')).toBeNull();
+            expect(document.activeElement).toBe(document.body);
+        });
     });
 });
 
