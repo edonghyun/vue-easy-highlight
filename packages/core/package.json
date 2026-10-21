@@ -40,7 +40,8 @@
     },
     "scripts": {
         "build": "tsup",
-        "test": "vitest run",
+        "test": "vitest run --project node --project browser",
+        "test:perf": "vitest run --project perf",
         "bench": "vitest bench --run --reporter=verbose",
         "typecheck": "tsc --noEmit"
     }

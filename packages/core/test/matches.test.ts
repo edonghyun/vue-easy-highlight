@@ -95,6 +95,7 @@ describe('findMatches next to surrogate pairs', () => {
         ]);
     });
 
+    // A hang here means the search no longer advances a whole code point after a match.
     it('finds every occurrence of an astral query and terminates', () => {
         expect(findMatches('😀😀😀', '😀')).toEqual([
             { start: 0, end: 2 },

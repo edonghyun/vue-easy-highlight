@@ -30,13 +30,14 @@ interface Norm {
 
 /**
  * Oracle for spec §4.2, written from the spec rather than from production:
- * clamp to [0, length], drop empty or reversed ranges, then widen each end
- * outward to the nearest code-point boundary.
+ * drop non-integer ranges, clamp to [0, length], drop empty or reversed
+ * ranges, then widen each end outward to the nearest code-point boundary.
  */
 function normalizedEntries(text: string, hs: Highlight[]): Norm[] {
     const bounds = codePointBoundaries(text);
     const clamp = (x: number) => Math.max(0, Math.min(x, text.length));
     return hs.flatMap((h, i) => {
+        if (!Number.isInteger(h.start) || !Number.isInteger(h.end)) return [];
         const start = clamp(h.start);
         const end = clamp(h.end);
         if (start >= end) return [];

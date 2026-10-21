@@ -9,6 +9,7 @@
     "scripts": {
         "build": "pnpm -r build",
         "test": "pnpm -r test",
+        "test:perf": "pnpm -r test:perf",
         "lint": "eslint .",
         "typecheck": "pnpm -r typecheck",
         "format": "prettier --write .",
