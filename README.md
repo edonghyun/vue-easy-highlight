@@ -52,7 +52,7 @@ hl.on('click', ({ highlights: covering }) =>
 );
 ```
 
-Select text with the mouse, finger or Shift+Arrow keys and a new highlight is added. Overlapping parts show up denser. Clicking (or pressing Enter/Space on a focused highlight) reports every highlight covering that point.
+Select text with the mouse or a finger, or extend a selection with Shift+Arrow keys, and a new highlight is added. Overlapping parts show up denser. Clicking (or pressing Enter/Space on a focused highlight) reports every highlight covering that point.
 
 To add highlights from a search instead of a selection:
 
@@ -193,7 +193,9 @@ Overlap strategies (`strategy` option): `layers` (default) stacks one element pe
 
 The names follow each framework: `on('select', fn)` in `@overlapmark/dom`, `@select` in Vue, `onSelect` in React (`onDblClick` for `dblclick`), `onselect` in Svelte. The detail types (`SelectDetail`, `PointDetail`, `HoverDetail`) come from `@overlapmark/core`.
 
-`select` fires one macrotask after `pointerup`/`keyup` (on touch, after `touchSelectionDelay` ms, default 500, without a selection change). On the keyboard, `keyup` confirms only once no modifier (Shift/Ctrl/Alt/Meta) is held, so a Shift+Arrow run emits a single `select` when Shift is released.
+`select` fires one macrotask after `pointerup`/`keyup` (on touch, after `touchSelectionDelay` ms, default 500, without a selection change). On the keyboard, `keyup` confirms only once no modifier (Shift/Ctrl/Alt/Meta) is held, so a Shift+Arrow run emits a single `select` when Shift is released. Shift+Arrow extends a selection the user already has; in Chrome and Safari, Shift+Arrow from a caret in static text selects nothing.
+
+A mouse press on a focusable highlight focuses it when the button is released, if the press made no selection (a click), not when it goes down: Chrome would otherwise not start a drag selection on a highlight's first character.
 
 Every hover `enter` is followed by one `leave` for the same `segment` object. Besides the mouse moving away, a `leave` is also emitted when the adapter is destroyed (or the component unmounted) and when an update removes the hovered highlight from under the mouse. Such a programmatic `leave` has no pointer event behind it, so its `event` is `null`. An update that re-renders the hovered segment unchanged (same `start` and highlight ids) emits nothing.
 
