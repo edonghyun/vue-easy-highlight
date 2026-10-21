@@ -25,8 +25,3 @@ export function warnOnce(message: string): void {
     seen.add(message);
     console.warn(`[overlapmark] ${message}`);
 }
-
-/** @internal test-only: forget which messages were already emitted. */
-export function resetWarnings(): void {
-    seen.clear();
-}

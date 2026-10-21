@@ -29,22 +29,27 @@ function loadAsBundled(nodeEnv: string | null) {
 }
 
 describe('warnOnce dev guard', () => {
-    it('warns in a browser bundle built for development (no process global)', () => {
+    it('warns once per message in a development browser bundle (no process global)', () => {
         const { warnOnce, warn } = loadAsBundled('development');
+
         warnOnce('x');
         warnOnce('x');
+
         expect(warn).toHaveBeenCalledTimes(1);
         expect(warn).toHaveBeenCalledWith('[overlapmark] x');
     });
 
     it('is silent in a production bundle', () => {
         const { warnOnce, warn } = loadAsBundled('production');
+
         warnOnce('x');
+
         expect(warn).not.toHaveBeenCalled();
     });
 
     it('is silent and does not throw without process and without replacement', () => {
         const { warnOnce, warn } = loadAsBundled(null);
+
         expect(() => warnOnce('x')).not.toThrow();
         expect(warn).not.toHaveBeenCalled();
     });
