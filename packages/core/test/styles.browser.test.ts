@@ -1,28 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import '../src/styles.css';
-import { computeSegments, rootAttributes, segmentElements } from '../src';
-import type { Highlight, RenderOptions } from '../src';
-
-function mount(text: string, highlights: Highlight[], options: RenderOptions = {}): HTMLElement {
-    const root = document.createElement('div');
-    const r = rootAttributes(options);
-    root.className = r.className;
-    for (const [k, v] of Object.entries(r.attrs)) root.setAttribute(k, v);
-    for (const seg of computeSegments(text, highlights)) {
-        let parent: HTMLElement = root;
-        for (const spec of segmentElements(seg, options)) {
-            const el = document.createElement(spec.tag);
-            el.className = spec.className;
-            for (const [k, v] of Object.entries(spec.attrs)) el.setAttribute(k, v);
-            for (const [k, v] of Object.entries(spec.style)) el.style.setProperty(k, v);
-            parent.appendChild(el);
-            parent = el;
-        }
-        parent.append(seg.text);
-    }
-    document.body.appendChild(root);
-    return root;
-}
+import { mount } from './helpers/mount';
 
 // Normalise any computed color (rgb, color(srgb), oklab...) through a canvas, then compute relative luminance.
 function rgba(css: string): [number, number, number, number] {
