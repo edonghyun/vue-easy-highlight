@@ -9,6 +9,14 @@ export default defineConfig({
             {
                 extends: true,
                 test: {
+                    name: 'node',
+                    environment: 'node',
+                    include: ['test/**/*.node.test.ts'],
+                },
+            },
+            {
+                extends: true,
+                test: {
                     name: 'browser',
                     include: ['test/**/*.browser.test.ts'],
                     browser: {

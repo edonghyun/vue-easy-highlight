@@ -58,17 +58,17 @@ function add({ start, end }: SelectDetail) {
 
 ## Props
 
-| Prop                  | Type                                           | Default    | Description                                                                                                                                             |
-| --------------------- | ---------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `text`                | `string`                                       | required   | The source text. Positions are UTF-16 indices.                                                                                                          |
-| `highlights`          | `Highlight[]`                                  | `[]`       | `{ id, start, end, color?, className?, data? }`; `end` is exclusive                                                                                     |
-| `strategy`            | `'layers' \| 'depth'`                          | `'layers'` | How overlaps are drawn                                                                                                                                  |
-| `focusable`           | `boolean`                                      | `true`     | Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space emits `click`                                                               |
-| `describe`            | `(highlights: readonly Highlight[]) => string` | count      | The accessible description of a focusable segment, from the highlights covering it: `'1 highlight'` / `` `${n} highlights` `` by default; `''` for none |
-| `defaultColor`        | `string`                                       | `#ddd6ff`  | Color baked into the `--om-brush` image for highlights without `color`; for flat backgrounds set `--om-default-color` in CSS                            |
-| `brush`               | `(color: string) => string`                    | built-in   | Returns a CSS image value for `--om-brush` (used by `om-style-marker`)                                                                                  |
-| `minSelectionLength`  | `number`                                       | `1`        | Shorter selections do not emit `select`                                                                                                                 |
-| `touchSelectionDelay` | `number`                                       | `500`      | Milliseconds of no selection change before `select` fires on touch; a change applies from the next selection change                                     |
+| Prop                  | Type                                              | Default    | Description                                                                                                                                             |
+| --------------------- | ------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `text`                | `string`                                          | required   | The source text. Positions are UTF-16 indices.                                                                                                          |
+| `highlights`          | `Highlight<T>[]`                                  | `[]`       | `{ id, start, end, color?, className?, data? }`; `end` is exclusive                                                                                     |
+| `strategy`            | `'layers' \| 'depth'`                             | `'layers'` | How overlaps are drawn                                                                                                                                  |
+| `focusable`           | `boolean`                                         | `true`     | Put `tabindex="0"` and `role="button"` on highlighted segments; Enter/Space emits `click`                                                               |
+| `describe`            | `(highlights: readonly Highlight<T>[]) => string` | count      | The accessible description of a focusable segment, from the highlights covering it: `'1 highlight'` / `` `${n} highlights` `` by default; `''` for none |
+| `defaultColor`        | `string`                                          | `#ddd6ff`  | Color baked into the `--om-brush` image for highlights without `color`; for flat backgrounds set `--om-default-color` in CSS                            |
+| `brush`               | `(color: string) => string`                       | built-in   | Returns a CSS image value for `--om-brush` (used by `om-style-marker`)                                                                                  |
+| `minSelectionLength`  | `number`                                          | `1`        | Shorter selections do not emit `select`                                                                                                                 |
+| `touchSelectionDelay` | `number`                                          | `500`      | Milliseconds of no selection change before `select` fires on touch; a change applies from the next selection change                                     |
 
 The component renders a single `<div class="om-root">`. Classes and other attributes you put on `<Highlighter>` land on that `div`, classes after `om-root`. The root's own `om-root` class and `data-om-strategy` (from `strategy`) always win: a `data-om-strategy` you pass is replaced.
 
@@ -83,6 +83,8 @@ For large lists, hold the highlights in a `shallowRef` and replace the array (`l
 | `select`             | `{ start, end, text, rect, highlights }` (highlights overlapping the selection)                             |
 | `click` / `dblclick` | `{ offset, segment, highlights, event }` (`event` is a `MouseEvent` or, for Enter/Space, a `KeyboardEvent`) |
 | `hover`              | `{ type: 'enter' \| 'leave', segment, highlights, event }`; desktop mouse only                              |
+
+`Highlighter` is generic over the `data` of your highlights: in a template, given `Highlight<Note>[]`, the event details, `describe` and the decoration slot's `segment` hold `Highlight<Note>` objects, as `vue-tsc` checks them. A render function names the type: `h(Highlighter<Note>, { ... })`.
 
 The detail types (`SelectDetail`, `PointDetail`, `HoverDetail`) come from `@overlapmark/core`; their timing is the same as in [`@overlapmark/dom`](../dom#events). Every hover `enter` is followed by one `leave` for the same `segment` object. Besides the mouse moving away, unmounting the component, `<KeepAlive>` deactivating it, and an update that removes the hovered highlight from under the mouse also emit its `leave`, with `event: null`.
 

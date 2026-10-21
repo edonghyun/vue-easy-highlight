@@ -52,8 +52,8 @@ import type {
     VNodeProps,
 } from 'vue';
 
-/** Scoped slots of `Highlighter`. */
-export interface HighlighterSlots {
+/** Scoped slots of `Highlighter`, for highlights whose `data` is a `T`. */
+export interface HighlighterSlots<T = unknown> {
     /**
      * Decoration for each highlighted segment (style tier 3), such as a count
      * or an icon. It is rendered in `<span data-om-skip aria-hidden="true">`
@@ -64,7 +64,7 @@ export interface HighlighterSlots {
      * nothing (`v-if`, or `null`, `undefined`, `false`, `''` or `[]` from a
      * render function) to leave a segment without a container.
      */
-    decoration: { segment: Segment };
+    decoration: { segment: Segment<T> };
 }
 
 /**
@@ -147,13 +147,16 @@ function segmentVNode(
     );
 }
 
-/** The props options of `Highlighter`. */
-const highlighterProps = {
+/**
+ * The props options of `Highlighter`, for highlights whose `data` is a `T`.
+ * Only types depend on `T`: every call returns the same options.
+ */
+const highlighterPropsOf = <T>() => ({
     /** The source text. Positions are UTF-16 indices. */
     text: { type: String, required: true as const },
     /** `{ id, start, end, color?, className?, data? }`; `end` is exclusive. */
     highlights: {
-        type: Array as PropType<readonly Highlight[]>,
+        type: Array as PropType<readonly Highlight<T>[]>,
         default: () => [],
     },
     // `default: undefined` leaves the defaults to core. For `focusable` it
@@ -171,7 +174,7 @@ const highlighterProps = {
      */
     describe: {
         type: Function as PropType<
-            (highlights: readonly Highlight[]) => string
+            (highlights: readonly Highlight<T>[]) => string
         >,
         default: undefined,
     },
@@ -190,60 +193,86 @@ const highlighterProps = {
      * selection change.
      */
     touchSelectionDelay: { type: Number, default: undefined },
-};
+});
 
 /** The emits options of `Highlighter`, typing each event's detail. */
-const highlighterEmits = {
-    select: (_detail: SelectDetail) => true,
-    click: (_detail: PointDetail) => true,
-    dblclick: (_detail: PointDetail) => true,
-    hover: (_detail: HoverDetail) => true,
-};
+const highlighterEmitsOf = <T>() => ({
+    select: (_detail: SelectDetail<T>) => true,
+    click: (_detail: PointDetail<T>) => true,
+    dblclick: (_detail: PointDetail<T>) => true,
+    hover: (_detail: HoverDetail<T>) => true,
+});
 
-/** The listener props of `highlighterEmits`. */
-interface HighlighterListeners {
-    onSelect?: (detail: SelectDetail) => unknown;
-    onClick?: (detail: PointDetail) => unknown;
-    onDblclick?: (detail: PointDetail) => unknown;
-    onHover?: (detail: HoverDetail) => unknown;
-}
+type HighlighterPropsOptions<T> = ReturnType<typeof highlighterPropsOf<T>>;
+type HighlighterEmitsOptions<T> = ReturnType<typeof highlighterEmitsOf<T>>;
+
+/**
+ * The listener props of the emits options `E`, `onSelect` for `select`, as
+ * Vue derives them: its own `EmitsToProps` is not exported before 3.5.
+ */
+type ListenersOf<E> = {
+    [K in keyof E & string as `on${Capitalize<K>}`]?: E[K] extends (
+        ...args: infer A
+    ) => unknown
+        ? (...args: A) => unknown
+        : never;
+};
 
 /** No setup bindings, data, computed or methods, as Vue writes it. */
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type None = {};
 
 /**
- * The type of `Highlighter`, spelled out so its declaration holds on every
- * Vue the peer range admits. The type `defineComponent` infers is emitted
- * with every type argument of the Vue the package builds with (20 in late
- * 3.5 patches, 19 in 3.5.0, 13 in 3.3 and 3.4) and with `PublicProps`, which
- * Vue 3.3 does not export. These are the 13 arguments all of them take.
+ * The type of `Highlighter` for highlights whose `data` is a `T`, spelled out
+ * so its declaration holds on every Vue the peer range admits. The type
+ * `defineComponent` infers is emitted with every type argument of the Vue the
+ * package builds with (20 in late 3.5 patches, 19 in 3.5.0, 13 in 3.3 and
+ * 3.4) and with `PublicProps`, which Vue 3.3 does not export. These are the
+ * 13 arguments all of them take.
  */
-type HighlighterComponent = DefineComponent<
-    typeof highlighterProps,
+type HighlighterComponentOf<T> = DefineComponent<
+    HighlighterPropsOptions<T>,
     None,
     None,
     None,
     None,
     ComponentOptionsMixin,
     ComponentOptionsMixin,
-    typeof highlighterEmits,
+    HighlighterEmitsOptions<T>,
     string,
     VNodeProps & AllowedComponentProps & ComponentCustomProps,
-    Readonly<ExtractPropTypes<typeof highlighterProps>> & HighlighterListeners,
-    ExtractDefaultPropTypes<typeof highlighterProps>,
-    SlotsType<HighlighterSlots>
+    Readonly<ExtractPropTypes<HighlighterPropsOptions<T>>> &
+        ListenersOf<HighlighterEmitsOptions<T>>,
+    ExtractDefaultPropTypes<HighlighterPropsOptions<T>>,
+    SlotsType<HighlighterSlots<T>>
 >;
 
-// Annotated apart from `defineComponent`: the annotation would otherwise
-// steer the inference of its options.
+/**
+ * `HighlighterComponentOf<unknown>` with a constructor generic over `T`. A
+ * template type checker (vue-tsc) constructs the component from the props it
+ * is given, so `T` is inferred from `highlights`, and the instance types the
+ * listeners, `describe` and the decoration slot with it.
+ *
+ * `Omit` drops the constructor `DefineComponent` has: TypeScript reads its
+ * `new (...args: any[])` as a mixin and would intersect every instance with
+ * the instance for `unknown`.
+ */
+type HighlighterComponent = {
+    new <T = unknown>(
+        props: InstanceType<HighlighterComponentOf<T>>['$props'],
+    ): InstanceType<HighlighterComponentOf<T>>;
+} & Omit<HighlighterComponentOf<unknown>, never>;
+
+// Typed apart from `defineComponent`: an annotation would otherwise steer the
+// inference of its options. The cast to `HighlighterComponent` below holds
+// because only types depend on `T`.
 const component = defineComponent({
     name: 'Highlighter',
     // Merged by hand in the render function: Vue's own fallthrough would let
     // a caller's `data-om-strategy` override the root attributes core sets.
     inheritAttrs: false,
-    props: highlighterProps,
-    emits: highlighterEmits,
+    props: highlighterPropsOf<unknown>(),
+    emits: highlighterEmitsOf<unknown>(),
     slots: Object as SlotsType<HighlighterSlots>,
     setup(props, { attrs, emit, slots }) {
         const root = ref<HTMLElement>();
@@ -340,4 +369,4 @@ const component = defineComponent({
  * `select`, `click`, `dblclick` and `hover` with core's detail objects.
  * Attributes and classes given to the component land on that `div`.
  */
-export const Highlighter: HighlighterComponent = component;
+export const Highlighter = component as HighlighterComponent;

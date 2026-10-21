@@ -43,6 +43,64 @@ const correctUse = `
     );
 `;
 
+// The component as a template type checker (vue-tsc) sees it: constructed
+// from the props it is given. A render function names the data's type, as
+// `h(Highlighter<Note>, ...)`. `Equal` holds for identical types only, so
+// `any` and `unknown` pass none of the checks.
+const typedData = `
+    import { h } from 'vue';
+    import type { Highlight, Segment } from '@overlapmark/core';
+    import { Highlighter } from './index';
+
+    type Equal<A, B> =
+        (<X>() => X extends A ? 1 : 2) extends <X>() => X extends B ? 1 : 2
+            ? true
+            : false;
+    interface Note {
+        note: string;
+    }
+    const notes: Highlight<Note>[] = [
+        { id: 'a', start: 0, end: 11, data: { note: 'first' } },
+    ];
+
+    const highlighter = new Highlighter({
+        text: 'Overlapping highlights',
+        highlights: notes,
+        describe: (highlights) => {
+            const typed: Equal<(typeof highlights)[0]['data'], Note | undefined> = true;
+            // @ts-expect-error \`Note\` has no \`missing\`.
+            return typed && highlights[0].data?.missing;
+        },
+        onSelect: (detail) => {
+            const typed: Equal<(typeof detail.highlights)[0]['data'], Note | undefined> = true;
+            // @ts-expect-error \`Note\` has no \`missing\`.
+            return typed && detail.highlights[0].data?.missing;
+        },
+        onHover: (detail) => {
+            const typed: Equal<typeof detail.segment, Segment<Note>> = true;
+            return typed;
+        },
+    });
+
+    type DecorationProps = Parameters<
+        NonNullable<typeof highlighter.$slots.decoration>
+    >[0];
+    export const typedSegment: Equal<DecorationProps['segment'], Segment<Note>> = true;
+    export const missingField = (props: DecorationProps) =>
+        // @ts-expect-error \`Note\` has no \`missing\`.
+        props.segment.highlights[0].data?.missing;
+
+    export const vnode = h(Highlighter<Note>, {
+        text: 'Overlapping highlights',
+        highlights: notes,
+        onClick: (detail) => {
+            const typed: Equal<(typeof detail.highlights)[0]['data'], Note | undefined> = true;
+            // @ts-expect-error \`Note\` has no \`missing\`.
+            return typed && detail.highlights[0].data?.missing;
+        },
+    });
+`;
+
 const misusedProp = `
     import { h } from 'vue';
     import { Highlighter } from './index';
@@ -132,6 +190,16 @@ describe.each(Object.entries(vueTypes))(
             'accept props, listeners and the decoration slot',
             () => {
                 const errors = typeErrorsOf(correctUse, vue);
+
+                expect(errors).toEqual([]);
+            },
+            typeCheckTimeout,
+        );
+
+        it(
+            'type highlight data in listeners, describe and the decoration slot from the highlights',
+            () => {
+                const errors = typeErrorsOf(typedData, vue);
 
                 expect(errors).toEqual([]);
             },
