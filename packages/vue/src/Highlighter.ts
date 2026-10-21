@@ -37,7 +37,19 @@ import {
     ref,
     toRaw,
 } from 'vue';
-import type { PropType, SlotsType, VNode, VNodeChild } from 'vue';
+import type {
+    AllowedComponentProps,
+    ComponentCustomProps,
+    ComponentOptionsMixin,
+    DefineComponent,
+    ExtractDefaultPropTypes,
+    ExtractPropTypes,
+    PropType,
+    SlotsType,
+    VNode,
+    VNodeChild,
+    VNodeProps,
+} from 'vue';
 
 /** Scoped slots of `Highlighter`. */
 export interface HighlighterSlots {
@@ -134,53 +146,91 @@ function segmentVNode(
     );
 }
 
+/** The props options of `Highlighter`. */
+const highlighterProps = {
+    /** The source text. Positions are UTF-16 indices. */
+    text: { type: String, required: true as const },
+    /** `{ id, start, end, color?, className?, data? }`; `end` is exclusive. */
+    highlights: {
+        type: Array as PropType<readonly Highlight[]>,
+        default: () => [],
+    },
+    // `default: undefined` leaves the defaults to core. For `focusable` it
+    // also keeps Vue from reading an absent Boolean prop as `false`, while
+    // a bare `focusable` attribute still casts to `true`.
+    /** How overlaps are drawn. Default `'layers'`. */
+    strategy: { type: String as PropType<Strategy>, default: undefined },
+    /** Put `tabindex="0"` on highlighted segments; Enter/Space emits `click`. Default `true`. */
+    focusable: { type: Boolean, default: undefined },
+    /** Color baked into the `--om-brush` image for highlights without `color`. */
+    defaultColor: { type: String, default: undefined },
+    /** Returns a CSS image value for `--om-brush`. */
+    brush: {
+        type: Function as PropType<(color: string) => string>,
+        default: undefined,
+    },
+    /** Shorter selections do not emit `select`. Default 1. */
+    minSelectionLength: { type: Number, default: undefined },
+    /**
+     * Milliseconds without a selection change before a touch selection
+     * emits `select`. Default 500; a change applies from the next
+     * selection change.
+     */
+    touchSelectionDelay: { type: Number, default: undefined },
+};
+
+/** The emits options of `Highlighter`, typing each event's detail. */
+const highlighterEmits = {
+    select: (_detail: SelectDetail) => true,
+    click: (_detail: PointDetail) => true,
+    dblclick: (_detail: PointDetail) => true,
+    hover: (_detail: HoverDetail) => true,
+};
+
+/** The listener props of `highlighterEmits`. */
+interface HighlighterListeners {
+    onSelect?: (detail: SelectDetail) => unknown;
+    onClick?: (detail: PointDetail) => unknown;
+    onDblclick?: (detail: PointDetail) => unknown;
+    onHover?: (detail: HoverDetail) => unknown;
+}
+
+/** No setup bindings, data, computed or methods, as Vue writes it. */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+type None = {};
+
 /**
- * Renders `text` with overlapping `highlights` in a `div`, and emits
- * `select`, `click`, `dblclick` and `hover` with core's detail objects.
- * Attributes and classes given to the component land on that `div`.
+ * The type of `Highlighter`, spelled out so its declaration holds on every
+ * Vue the peer range admits. The type `defineComponent` infers is emitted
+ * with every type argument of the Vue the package builds with (20 in late
+ * 3.5 patches, 19 in 3.5.0, 13 in 3.3 and 3.4) and with `PublicProps`, which
+ * Vue 3.3 does not export. These are the 13 arguments all of them take.
  */
-export const Highlighter = defineComponent({
+type HighlighterComponent = DefineComponent<
+    typeof highlighterProps,
+    None,
+    None,
+    None,
+    None,
+    ComponentOptionsMixin,
+    ComponentOptionsMixin,
+    typeof highlighterEmits,
+    string,
+    VNodeProps & AllowedComponentProps & ComponentCustomProps,
+    Readonly<ExtractPropTypes<typeof highlighterProps>> & HighlighterListeners,
+    ExtractDefaultPropTypes<typeof highlighterProps>,
+    SlotsType<HighlighterSlots>
+>;
+
+// Annotated apart from `defineComponent`: the annotation would otherwise
+// steer the inference of its options.
+const component = defineComponent({
     name: 'Highlighter',
     // Merged by hand in the render function: Vue's own fallthrough would let
     // a caller's `data-om-strategy` override the root attributes core sets.
     inheritAttrs: false,
-    props: {
-        /** The source text. Positions are UTF-16 indices. */
-        text: { type: String, required: true },
-        /** `{ id, start, end, color?, className?, data? }`; `end` is exclusive. */
-        highlights: {
-            type: Array as PropType<readonly Highlight[]>,
-            default: () => [],
-        },
-        // `default: undefined` leaves the defaults to core. For `focusable` it
-        // also keeps Vue from reading an absent Boolean prop as `false`, while
-        // a bare `focusable` attribute still casts to `true`.
-        /** How overlaps are drawn. Default `'layers'`. */
-        strategy: { type: String as PropType<Strategy>, default: undefined },
-        /** Put `tabindex="0"` on highlighted segments; Enter/Space emits `click`. Default `true`. */
-        focusable: { type: Boolean, default: undefined },
-        /** Color baked into the `--om-brush` image for highlights without `color`. */
-        defaultColor: { type: String, default: undefined },
-        /** Returns a CSS image value for `--om-brush`. */
-        brush: {
-            type: Function as PropType<(color: string) => string>,
-            default: undefined,
-        },
-        /** Shorter selections do not emit `select`. Default 1. */
-        minSelectionLength: { type: Number, default: undefined },
-        /**
-         * Milliseconds without a selection change before a touch selection
-         * emits `select`. Default 500; a change applies from the next
-         * selection change.
-         */
-        touchSelectionDelay: { type: Number, default: undefined },
-    },
-    emits: {
-        select: (_detail: SelectDetail) => true,
-        click: (_detail: PointDetail) => true,
-        dblclick: (_detail: PointDetail) => true,
-        hover: (_detail: HoverDetail) => true,
-    },
+    props: highlighterProps,
+    emits: highlighterEmits,
     slots: Object as SlotsType<HighlighterSlots>,
     setup(props, { attrs, emit, slots }) {
         const root = ref<HTMLElement>();
@@ -265,3 +315,10 @@ export const Highlighter = defineComponent({
         };
     },
 });
+
+/**
+ * Renders `text` with overlapping `highlights` in a `div`, and emits
+ * `select`, `click`, `dblclick` and `hover` with core's detail objects.
+ * Attributes and classes given to the component land on that `div`.
+ */
+export const Highlighter: HighlighterComponent = component;
