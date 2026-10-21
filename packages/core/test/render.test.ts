@@ -6,6 +6,7 @@ import {
     rootAttributes,
     segmentAt,
     segmentElements,
+    segmentKey,
     type Highlight,
 } from '../src';
 
@@ -170,5 +171,53 @@ describe('rootAttributes', () => {
             className: 'om-root',
             attrs: { 'data-om-strategy': 'depth' },
         });
+    });
+});
+
+describe('segmentKey', () => {
+    it('gives every segment of one render a different key, plain ones included', () => {
+        const C = { id: 'c', start: 17, end: 19 };
+        const segments = computeSegments(text, [A, C]);
+
+        const keys = segments.map(segmentKey);
+
+        // [0,15) a · [15,17) plain · [17,19) c · [19,21) plain
+        expect(segments.map((s) => s.depth)).toEqual([1, 0, 1, 0]);
+        expect(new Set(keys).size).toBe(segments.length);
+    });
+
+    it('gives the same key to the same segment computed again', () => {
+        const again = segmentOf([{ ...A }, { ...B }], 6);
+
+        expect(segmentKey(again)).toBe(segmentKey(overlap));
+    });
+
+    it('changes when an id covering the segment changes', () => {
+        const renamed = segmentOf([A, { ...B, id: 'b2' }], 6);
+
+        expect(renamed.start).toBe(overlap.start);
+        expect(renamed.end).toBe(overlap.end);
+        expect(segmentKey(renamed)).not.toBe(segmentKey(overlap));
+    });
+
+    it('changes when the segment end changes', () => {
+        const shorter = segmentOf([{ ...A, end: 10 }], 0);
+        const longer = segmentOf([A], 0);
+
+        expect(shorter.highlights.map((h) => h.id)).toEqual(['a']);
+        expect(segmentKey(shorter)).not.toBe(segmentKey(longer));
+    });
+
+    it('does not mistake one id containing a comma for two ids', () => {
+        const oneId = segmentOf([{ id: 'a,b', start: 0, end: 15 }], 0);
+        const twoIds = segmentOf(
+            [
+                { id: 'a', start: 0, end: 15 },
+                { id: 'b', start: 0, end: 15 },
+            ],
+            0,
+        );
+
+        expect(segmentKey(oneId)).not.toBe(segmentKey(twoIds));
     });
 });

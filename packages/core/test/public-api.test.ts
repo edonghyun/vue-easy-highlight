@@ -19,6 +19,7 @@ describe('@overlapmark/core entry point', () => {
             'rootAttributes',
             'segmentAt',
             'segmentElements',
+            'segmentKey',
         ]);
     });
 });

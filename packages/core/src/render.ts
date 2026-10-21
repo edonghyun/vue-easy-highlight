@@ -86,6 +86,20 @@ export function segmentElements<T>(
     });
 }
 
+/**
+ * The key a framework adapter gives a segment's element when it diffs a
+ * re-render: built from `start`, `end` and the covering highlight ids, so it
+ * is unique among the segments of one render and changes whenever the ids
+ * covering the segment change. An element is then reused only for the same
+ * highlights, and a stale hover target is never patched into a different
+ * segment. Ids are joined with U+0000, which ids do not contain in practice,
+ * so an id holding a comma cannot pass for two ids.
+ */
+export function segmentKey(segment: Segment): string {
+    const ids = segment.highlights.map((h) => h.id).join('\u0000');
+    return `${segment.start}:${segment.end}:${ids}`;
+}
+
 export function rootAttributes(options: RenderOptions = {}): {
     className: 'om-root';
     attrs: { 'data-om-strategy': Strategy };
