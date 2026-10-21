@@ -19,12 +19,9 @@ concurrency:
 
 jobs:
     release:
-        if: vars.RELEASE_ENABLED == 'true'
+        if: vars.RELEASE_ENABLED == 'true' && github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
         timeout-minutes: 15
-        env:
-            # Only needed when trusted publishing is not set up on npm.
-            NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         steps:
             - uses: actions/checkout@v7
             # Node 24 ships an npm that supports trusted publishing (OIDC).
@@ -33,18 +30,14 @@ jobs:
                   node-version: 24.11.0
             - run: corepack enable
             - run: pnpm install --frozen-lockfile
-            # With trusted publishing, npm authenticates through OIDC and no
-            # token is configured. An NPM_TOKEN secret, when present, is used
-            # instead.
-            - if: env.NPM_TOKEN != ''
-              run: |
-                  echo "NODE_AUTH_TOKEN=$NPM_TOKEN" >> "$GITHUB_ENV"
-                  echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' >> ~/.npmrc
-            - uses: changesets/action@v1
+            - uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
               with:
                   publish: pnpm release
                   title: 'chore: version packages'
                   commit: 'chore: version packages'
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  # Used for the first release; once trusted publishing is set
+                  # up, delete the secret and npm authenticates through OIDC.
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
                   NPM_CONFIG_PROVENANCE: true

@@ -26,7 +26,7 @@ jobs:
             - run: pnpm check:packages
             - run: pnpm check:readme
 
-    acceptance:
+    legs:
         name: acceptance (${{ matrix.profile }}${{ matrix.os && format(', {0}', matrix.os) || '' }})
         runs-on: ${{ matrix.os || 'ubuntu-latest' }}
         timeout-minutes: 20
@@ -86,3 +86,12 @@ jobs:
                       acceptance/.work/report
                       acceptance/.work/test-results
                   retention-days: 14
+
+    # One stable check name for branch protection: the matrix legs are named
+    # per profile, so require this job instead of each leg.
+    acceptance:
+        needs: legs
+        if: always()
+        runs-on: ubuntu-latest
+        steps:
+            - run: test "${{ needs.legs.result }}" = success
