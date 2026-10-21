@@ -6,14 +6,32 @@ Vanilla JS adapter for overlapmark: render overlapping text highlights into any 
 npm install @overlapmark/dom @overlapmark/core
 ```
 
+```html
+<p id="text"></p>
+```
+
 ```ts
 import '@overlapmark/core/styles.css';
 import { createHighlighter } from '@overlapmark/dom';
 
+const text = 'Overlapping highlights get darker where they overlap.';
+let highlights = [{ id: 'a', start: 0, end: 20 }];
+
 const hl = createHighlighter(document.getElementById('text')!, {
-    text: 'Some text to highlight',
-    highlights: [{ id: 'a', start: 5, end: 9 }],
+    text,
+    highlights,
 });
+
+hl.on('select', ({ start, end }) => {
+    highlights = [...highlights, { id: crypto.randomUUID(), start, end }];
+    hl.update({ highlights });
+});
+hl.on('click', ({ highlights: covering }) =>
+    console.log(
+        'covered by',
+        covering.map((h) => h.id),
+    ),
+);
 ```
 
 ## `createHighlighter(el, options)`

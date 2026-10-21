@@ -8,31 +8,38 @@
     },
     "scripts": {
         "build": "pnpm -r build",
-        "test": "pnpm -r test",
+        "test": "pnpm -r test && vitest run -c acceptance/vitest.config.ts",
         "test:perf": "pnpm -r test:perf",
         "lint": "eslint .",
-        "typecheck": "pnpm -r typecheck",
+        "typecheck": "pnpm -r typecheck && tsc -p acceptance",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "acceptance:pack": "node --experimental-strip-types acceptance/scripts/pack.ts",
-        "check:packages": "node --experimental-strip-types acceptance/scripts/check-packages.ts"
+        "check:packages": "node --experimental-strip-types acceptance/scripts/check-packages.ts",
+        "acceptance:build": "node --experimental-strip-types acceptance/scripts/prepare-app.ts",
+        "acceptance": "playwright test -c acceptance/playwright.config.ts",
+        "check:readme": "node --experimental-strip-types acceptance/scripts/check-readme.ts"
     },
     "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@changesets/cli": "^3",
         "@eslint/js": "^10",
+        "@playwright/test": "^1.64.1",
         "@types/node": "^22.20.5",
+        "@types/pngjs": "^6.0.5",
         "@vitest/browser-playwright": "^5.0.5",
         "eslint": "^10",
         "eslint-plugin-svelte": "^3.23.1",
         "fast-check": "^4.10.2",
         "playwright": "^1.64.1",
+        "pngjs": "^7.0.0",
         "prettier": "^3.9",
         "prettier-plugin-svelte": "^4.1.1",
         "publint": "0.3.25",
         "tsup": "^9.0.0",
         "typescript": "~6.0.3",
         "typescript-eslint": "^8.72",
+        "vite": "^8.3.4",
         "vitest": "^5.0.5"
     }
 }
