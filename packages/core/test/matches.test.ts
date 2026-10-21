@@ -77,7 +77,7 @@ describe('findMatches', () => {
 
         const [m] = findMatches(text, '하이라이트');
 
-        expect(text.slice(m.start, m.end)).toBe('하이라이트');
+        expect(text.slice(m!.start, m!.end)).toBe('하이라이트');
     });
 });
 

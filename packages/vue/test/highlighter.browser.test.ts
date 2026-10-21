@@ -275,8 +275,8 @@ describe('Highlighter: decoration slot', () => {
 
             // Live positive control: the overlap segment [6,15) is decorated.
             expect(decorations).toHaveLength(1);
-            expect(decorations[0].textContent).toBe('overlap');
-            expect(decorations[0].closest('[data-om-start]')).toBe(
+            expect(decorations[0]!.textContent).toBe('overlap');
+            expect(decorations[0]!.closest('[data-om-start]')).toBe(
                 segmentElement(rootIn(host), 6),
             );
         },
@@ -298,8 +298,8 @@ describe('Highlighter: highlights held in deep reactive state', () => {
         await clickCharacter(rootIn(host), 10);
 
         expect(emitted.clicks).toHaveLength(1);
-        expect(emitted.clicks[0].highlights[0]).toBe(a);
-        expect(emitted.clicks[0].highlights[1]).toBe(b);
+        expect(emitted.clicks[0]!.highlights[0]).toBe(a);
+        expect(emitted.clicks[0]!.highlights[1]).toBe(b);
     });
 
     it('renders a highlight pushed into the reactive array in place', async () => {
@@ -325,7 +325,7 @@ describe('Highlighter: highlights held in deep reactive state', () => {
             h(Highlighter, { text: TEXT, highlights: highlights.value }),
         );
 
-        highlights.value[0].end = 5;
+        highlights.value[0]!.end = 5;
         await nextTick();
 
         expect(segmentElement(rootIn(host), 0).textContent).toBe('Hello');
@@ -352,7 +352,7 @@ describe('Highlighter: between a change in place and its flush', () => {
         shown.click();
 
         expect(emitted.clicks).toHaveLength(1);
-        expect(emitted.clicks[0].highlights).toEqual([a, b]);
+        expect(emitted.clicks[0]!.highlights).toEqual([a, b]);
         // Precondition: the flush had not run yet.
         expect(segmentElement(rootIn(host), 6)).toBe(shown);
     });
@@ -422,7 +422,7 @@ describe('Highlighter: equal highlights passed again in a new array', () => {
         // Live positive control: moving out leaves the segment entered first.
         await userEvent.hover(outside);
         expect(emitted.hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-        expect(emitted.hovers[1].segment).toBe(emitted.hovers[0].segment);
+        expect(emitted.hovers[1]!.segment).toBe(emitted.hovers[0]!.segment);
     });
 });
 
@@ -534,8 +534,8 @@ describe('Highlighter: remounting', () => {
                 'enter',
                 'leave',
             ]);
-            expect(emitted.hovers[1].segment).toBe(emitted.hovers[0].segment);
-            expect(emitted.hovers[1].event).toBeNull();
+            expect(emitted.hovers[1]!.segment).toBe(emitted.hovers[0]!.segment);
+            expect(emitted.hovers[1]!.event).toBeNull();
         });
     });
 });

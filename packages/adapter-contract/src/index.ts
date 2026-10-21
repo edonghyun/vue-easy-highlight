@@ -693,7 +693,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 await expect
                     .poll(() => eventsOf(adapter, 'select'))
                     .toHaveLength(1);
-                const [detail] = detailsOf(adapter, 'select');
+                const detail = detailsOf(adapter, 'select')[0]!;
                 expect(detail.highlights[0]).toBe(a);
                 expect(detail.highlights[1]).toBe(b);
             });
@@ -707,7 +707,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 await expect
                     .poll(() => eventsOf(adapter, 'select'))
                     .toHaveLength(1);
-                const [detail] = detailsOf(adapter, 'select');
+                const detail = detailsOf(adapter, 'select')[0]!;
                 expect(detail.rect.width).toBeGreaterThan(0);
             });
 
@@ -843,7 +843,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                         event: expect.any(MouseEvent),
                     },
                 ]);
-                expect(clicks[0].event.type).toBe('click');
+                expect(clicks[0]!.event.type).toBe('click');
             });
 
             it('reports empty highlights for a click on plain text', async () => {
@@ -876,7 +876,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                 el.dispatchEvent(control);
                 const clicks = detailsOf(adapter, 'click');
                 expect(clicks).toHaveLength(1);
-                expect(clicks[0].event).toBe(control);
+                expect(clicks[0]!.event).toBe(control);
             });
 
             it('emits select but not click when a real drag ends inside a highlight', async () => {
@@ -917,7 +917,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                         event: expect.any(MouseEvent),
                     },
                 ]);
-                expect(dblclicks[0].event.type).toBe('dblclick');
+                expect(dblclicks[0]!.event.type).toBe('dblclick');
                 expect(window.getSelection()!.toString()).toBe('wonderful');
             });
 
@@ -946,7 +946,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                             event: expect.any(KeyboardEvent),
                         },
                     ]);
-                    expect((clicks[0].event as KeyboardEvent).key).toBe(key);
+                    expect((clicks[0]!.event as KeyboardEvent).key).toBe(key);
                 },
             );
 
@@ -1047,8 +1047,8 @@ export function defineAdapterContract(factory: AdapterFactory): void {
 
                 const hovers = detailsOf(adapter, 'hover');
                 expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-                expect(hovers[1].segment).toBe(hovers[0].segment);
-                expect(hovers[1].highlights).toEqual([a, b]);
+                expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
+                expect(hovers[1]!.highlights).toEqual([a, b]);
             });
 
             // Adapters must detach core's listeners while the component can
@@ -1062,8 +1062,8 @@ export function defineAdapterContract(factory: AdapterFactory): void {
 
                 const hovers = detailsOf(adapter, 'hover');
                 expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-                expect(hovers[1].segment).toBe(hovers[0].segment);
-                expect(hovers[1].event).toBeNull();
+                expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
+                expect(hovers[1]!.event).toBeNull();
             });
 
             it('reports the entered segment, its highlights and the pointer event', async () => {
@@ -1225,7 +1225,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                     event: expect.any(MouseEvent),
                 },
             ]);
-            expect(clicks[0].highlights[0]).toBe(c);
+            expect(clicks[0]!.highlights[0]).toBe(c);
         });
 
         it('emits select text from the updated text', async () => {
@@ -1483,11 +1483,11 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             const hovers = detailsOf(adapter, 'hover');
             expect(hovers[1]).toEqual({
                 type: 'leave',
-                segment: hovers[0].segment,
+                segment: hovers[0]!.segment,
                 highlights: [a, b],
                 event: null,
             });
-            expect(hovers[1].segment).toBe(hovers[0].segment);
+            expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
         });
 
         it('emits that leave only once', async () => {
@@ -1538,12 +1538,12 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             expect(leaves).toEqual([
                 {
                     type: 'leave',
-                    segment: hovers[0].segment,
+                    segment: hovers[0]!.segment,
                     highlights: [a, b],
                     event: null,
                 },
             ]);
-            expect(leaves[0].segment).toBe(hovers[0].segment);
+            expect(leaves[0]!.segment).toBe(hovers[0]!.segment);
         });
 
         it('emits nothing when an update re-renders the hovered segment unchanged', async () => {
@@ -1560,7 +1560,7 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await userEvent.hover(outside);
             const hovers = detailsOf(adapter, 'hover');
             expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-            expect(hovers[1].segment).toBe(hovers[0].segment);
+            expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
         });
 
         it('emits that leave after the update restored the selection and focus', async () => {
@@ -1583,12 +1583,12 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             await adapter.update({ highlights: [left] });
 
             await expect.poll(() => seen).toHaveLength(1);
-            expect(seen[0].event).toEqual({
+            expect(seen[0]!.event).toEqual({
                 type: 'hover',
                 detail: expect.objectContaining({ type: 'leave', event: null }),
             });
-            expect(seen[0].offsets).toEqual({ start: 16, end: 19 });
-            expect(seen[0].focused).toBe(segmentElement(adapter.root, 0));
+            expect(seen[0]!.offsets).toEqual({ start: 16, end: 19 });
+            expect(seen[0]!.focused).toBe(segmentElement(adapter.root, 0));
         });
     });
 

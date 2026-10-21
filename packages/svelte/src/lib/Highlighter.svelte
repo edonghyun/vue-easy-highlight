@@ -218,11 +218,12 @@
     (the innermost holds the text), then the decoration if `target` puts it
     there. No whitespace between the tags and blocks: it would be text in the
     segment, shifting every offset after it. Hand-formatted for that reason.
+    `i` stays below `specs.length`.
 -->
 <!-- prettier-ignore -->
 {#snippet layer(segment: Segment<T>, specs: ElementSpec[], target: DecorationTarget | null, i: number)}<svelte:element
-    this={specs[i].tag}
-    {...attributesOf(specs[i])}
+    this={specs[i]!.tag}
+    {...attributesOf(specs[i]!)}
 >{#if i + 1 < specs.length}{@render layer(segment, specs, target, i + 1)}{:else}{segment.text}{/if}{#if decoration && target?.index === i}<svelte:element
     this={target.container.tag}
     {...attributesOf(target.container)}

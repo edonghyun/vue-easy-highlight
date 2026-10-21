@@ -36,7 +36,7 @@ const overlap = segmentOf([A, B], 6);
 
 describe('segmentElements', () => {
     it('renders a plain segment as a single span.om-seg', () => {
-        const plain = computeSegments('abc', [])[0];
+        const plain = computeSegments('abc', [])[0]!;
 
         expect(segmentElements(plain)).toEqual([
             {
@@ -77,7 +77,7 @@ describe('segmentElements with the layers strategy', () => {
             role: 'button',
             'aria-description': '2 highlights',
         });
-        expect(inner.attrs).toEqual({ 'data-om-id': 'b' });
+        expect(inner!.attrs).toEqual({ 'data-om-id': 'b' });
     });
 
     it('gives each mark its own level, color and brush', () => {
@@ -88,7 +88,7 @@ describe('segmentElements with the layers strategy', () => {
             '--om-color': '#ff0000',
             '--om-brush': defaultBrush('#ff0000'),
         });
-        expect(inner.style).toEqual({
+        expect(inner!.style).toEqual({
             '--om-level': '1',
             '--om-brush': defaultBrush(DEFAULT_COLOR),
         });
@@ -97,7 +97,7 @@ describe('segmentElements with the layers strategy', () => {
     it('paints uncolored highlights with the defaultColor option', () => {
         const [, inner] = segmentElements(overlap, { defaultColor: '#00ff00' });
 
-        expect(inner.style['--om-brush']).toBe(defaultBrush('#00ff00'));
+        expect(inner!.style['--om-brush']).toBe(defaultBrush('#00ff00'));
     });
 
     it('paints each mark with a custom brush applied to its resolved color', () => {

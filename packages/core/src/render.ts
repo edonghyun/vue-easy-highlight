@@ -57,10 +57,11 @@ function countHighlights(highlights: readonly Highlight[]): string {
         : `${highlights.length} highlights`;
 }
 
+/** The elements of one segment, outermost first: always at least one. */
 export function segmentElements<T>(
     segment: Segment<T>,
     options: RenderOptions<T> = {},
-): ElementSpec[] {
+): [ElementSpec, ...ElementSpec[]] {
     const {
         strategy = 'layers',
         focusable = true,
@@ -69,8 +70,9 @@ export function segmentElements<T>(
     } = options;
     const defaultColor = safeColor(options.defaultColor) ?? DEFAULT_COLOR;
     const { highlights, depth, start } = segment;
+    const first = highlights[0];
 
-    if (depth === 0 || highlights.length === 0) {
+    if (depth === 0 || !first) {
         return [
             {
                 tag: 'span',
@@ -117,14 +119,14 @@ export function segmentElements<T>(
         ];
     }
 
-    return highlights.map((h, i) => {
+    const markOf = (h: Highlight<T>, i: number): ElementSpec => {
         const style: Record<string, string> = { '--om-level': String(i) };
         const color = safeColor(h.color);
         if (color) style['--om-color'] = color;
         style['--om-brush'] = brush(color ?? defaultColor);
         const cls = h.className ? `om-hl ${h.className}` : 'om-hl';
         return {
-            tag: 'mark' as const,
+            tag: 'mark',
             className: i === 0 ? `om-seg ${cls}` : cls,
             attrs:
                 i === 0
@@ -132,7 +134,11 @@ export function segmentElements<T>(
                     : { 'data-om-id': h.id },
             style,
         };
-    });
+    };
+    return [
+        markOf(first, 0),
+        ...highlights.slice(1).map((h, i) => markOf(h, i + 1)),
+    ];
 }
 
 /**

@@ -272,7 +272,7 @@ export function attachInteractions<T>(
 
     const sameHighlights = (x: Segment<T>, y: Segment<T>): boolean =>
         x.highlights.length === y.highlights.length &&
-        x.highlights.every((h, i) => h.id === y.highlights[i].id);
+        x.highlights.every((h, i) => h.id === y.highlights[i]?.id);
 
     // An adapter re-render can replace the hovered element while the mouse
     // stays still. Observer callbacks run as microtasks, so this runs after

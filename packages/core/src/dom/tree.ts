@@ -171,7 +171,7 @@ export function placeOf(
             // At or past the point right after the host is after; anything
             // earlier, its own children included, is before.
             const after = root.ownerDocument.createRange();
-            after.setStartAfter(trees[level].stand);
+            after.setStartAfter(trees[level]!.stand); // level is an index found in trees
             after.collapse(true);
             const c = after.comparePoint(n, o);
             return { where: c >= 0 ? 1 : -1, node: n, offset: o };

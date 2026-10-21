@@ -21,24 +21,24 @@
     text="Hello"
     highlights={notes}
     onselect={(detail) => {
-        expectTypeOf(detail.highlights[0].data).toEqualTypeOf<
+        expectTypeOf(detail.highlights[0]!.data).toEqualTypeOf<
             Note | undefined
         >();
         // @ts-expect-error `Note` has no `missing`.
-        return detail.highlights[0].data?.missing;
+        return detail.highlights[0]!.data?.missing;
     }}
     onhover={(detail) => {
         expectTypeOf(detail.segment).toEqualTypeOf<Segment<Note>>();
     }}
     describe={(highlights) => {
-        expectTypeOf(highlights[0].data).toEqualTypeOf<Note | undefined>();
+        expectTypeOf(highlights[0]!.data).toEqualTypeOf<Note | undefined>();
         // @ts-expect-error `Note` has no `missing`.
-        return highlights[0].data?.missing ?? '';
+        return highlights[0]!.data?.missing ?? '';
     }}
 >
     {#snippet decoration(segment)}
         {expectTypeOf(segment).toEqualTypeOf<Segment<Note>>()}
         {// @ts-expect-error `Note` has no `missing`.
-        segment.highlights[0].data?.missing}
+        segment.highlights[0]!.data?.missing}
     {/snippet}
 </Highlighter>

@@ -133,15 +133,18 @@ function segmentVNode(
     const childrenAt = (i: number, inner: VNodeChild): VNodeChild[] =>
         decoration && i === target?.index ? [inner, decoration] : [inner];
     let inner: VNodeChild = segment.text;
-    for (let i = specs.length - 1; i > 0; i--)
-        inner = h(specs[i].tag, propsOfSpec(specs[i]), childrenAt(i, inner));
+    for (let i = specs.length - 1; i > 0; i--) {
+        const spec = specs[i]!; // 0 < i < length
+        inner = h(spec.tag, propsOfSpec(spec), childrenAt(i, inner));
+    }
+    const [outermost] = specs;
     return h(
-        specs[0].tag,
+        outermost.tag,
         {
             // A segment whose covering ids change gets a new element, so a
             // hover target is never patched into a different segment.
             key: segmentKey(segment),
-            ...propsOfSpec(specs[0]),
+            ...propsOfSpec(outermost),
         },
         childrenAt(0, inner),
     );

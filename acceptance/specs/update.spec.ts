@@ -8,7 +8,7 @@ import {
 } from './helpers.ts';
 
 const { text, highlights } = fixtures.overlaps;
-const [a] = highlights;
+const a = highlights[0]!; // fixtures.json
 
 test.describe('Applying new highlights', () => {
     test('shows them without a reload @core', async ({ page }) => {

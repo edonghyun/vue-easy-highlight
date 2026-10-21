@@ -174,10 +174,10 @@ export function getSelectionOffsets(
     const sel = selection ?? selectionOf(root);
     if (!sel || sel.rangeCount === 0) return null;
     const ranges = rangesOf(sel, root);
-    // A caret alone (every click and arrow key, page-wide) selects nothing.
-    if (ranges.every((r) => r.collapsed)) return null;
     const first = ranges[0];
     const last = ranges[ranges.length - 1];
+    // A caret alone (every click and arrow key, page-wide) selects nothing.
+    if (!first || !last || ranges.every((r) => r.collapsed)) return null;
     const from = placeOf(root, first.startContainer, first.startOffset);
     const to = placeOf(root, last.endContainer, last.endOffset);
     // No overlap: the selection ends before the root, or starts after it.
@@ -203,8 +203,7 @@ function locate(
     pos: number,
     preferEnd: boolean,
 ): [Node, number] {
-    for (let i = 0; i < segs.length; i++) {
-        const { el, start } = segs[i];
+    for (const [i, { el, start }] of segs.entries()) {
         const nodes = textNodes(el);
         let len = 0;
         for (const t of nodes) len += t.data.length;

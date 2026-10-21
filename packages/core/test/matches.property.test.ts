@@ -82,8 +82,8 @@ describe('findMatches properties', () => {
                 const matches = findMatches(text, queries, options);
 
                 for (let i = 1; i < matches.length; i++) {
-                    const prev = matches[i - 1];
-                    const cur = matches[i];
+                    const prev = matches[i - 1]!;
+                    const cur = matches[i]!;
                     expect(
                         prev.start < cur.start ||
                             (prev.start === cur.start && prev.end < cur.end),

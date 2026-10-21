@@ -12,17 +12,17 @@ function rgba(css: string): [number, number, number, number] {
     ctx.clearRect(0, 0, 1, 1);
     ctx.fillStyle = css;
     ctx.fillRect(0, 0, 1, 1);
+    // A 1×1 image holds exactly four bytes.
     const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
-    return [r, g, b, a / 255];
+    return [r!, g!, b!, a! / 255];
 }
 function luminance(css: string): number {
-    const [r, g, b] = rgba(css)
-        .slice(0, 3)
-        .map((v) => {
-            const c = v / 255;
-            return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-        });
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const linear = (v: number): number => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    const [r, g, b] = rgba(css);
+    return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 }
 const bg = (el: Element) => getComputedStyle(el).backgroundColor;
 
@@ -93,8 +93,10 @@ async function screenshotOf(el: HTMLElement): Promise<Shot> {
         height: canvas.height,
         scale: canvas.width / el.getBoundingClientRect().width,
         at: (x, y) => {
+            if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height)
+                throw new RangeError(`pixel ${x},${y} is outside the image`);
             const i = (y * canvas.width + x) * 4;
-            return [data[i], data[i + 1], data[i + 2]];
+            return [data[i]!, data[i + 1]!, data[i + 2]!];
         },
     };
 }
@@ -105,7 +107,7 @@ function rowsIn(shot: Shot, color: Rgb): number[] {
     const rows: number[] = [];
     for (let y = 0; y < shot.height; y++) {
         const pixel = shot.at(x, y);
-        if (pixel.every((v, i) => Math.abs(v - color[i]) <= 40))
+        if (pixel.every((v, i) => Math.abs(v - color[i]!) <= 40))
             rows.push(y / shot.scale);
     }
     return rows;
@@ -145,7 +147,7 @@ function expectApart(values: number[], gap: number): void {
     for (let i = 0; i < values.length; i++) {
         for (let j = i + 1; j < values.length; j++)
             expect(
-                Math.abs(values[i] - values[j]),
+                Math.abs(values[i]! - values[j]!),
                 `${values[i]} and ${values[j]} (${values.join(', ')})`,
             ).toBeGreaterThanOrEqual(gap);
     }
@@ -162,8 +164,8 @@ describe('default stylesheet', () => {
         ].map((el) => luminance(bg(el)));
 
         expect(l).toHaveLength(3);
-        expect(l[0]).toBeGreaterThan(l[1]);
-        expect(l[1]).toBeGreaterThan(l[2]);
+        expect(l[0]).toBeGreaterThan(l[1]!);
+        expect(l[1]).toBeGreaterThan(l[2]!);
     });
 
     it('stops darkening at the default --om-max-depth', () => {
@@ -197,7 +199,7 @@ describe('default stylesheet', () => {
 
         const l = layers.map(luminance);
         for (let i = 1; i < DEFAULT_MAX_DEPTH; i++)
-            expect(l[i]).toBeLessThan(l[i - 1]);
+            expect(l[i]).toBeLessThan(l[i - 1]!);
         expect(layers[DEFAULT_MAX_DEPTH]).toBe(layers[DEFAULT_MAX_DEPTH - 1]);
         expect(layers[DEFAULT_MAX_DEPTH + 1]).toBe(
             layers[DEFAULT_MAX_DEPTH - 1],
@@ -371,7 +373,7 @@ describe('default stylesheet', () => {
 
         expect(luminances).toHaveLength(4);
         for (let i = 1; i < luminances.length; i++)
-            expect(luminances[i]).toBeLessThan(luminances[i - 1]);
+            expect(luminances[i]).toBeLessThan(luminances[i - 1]!);
     });
 
     it('draws nested underlines at distinct heights', async () => {
@@ -392,7 +394,7 @@ describe('default stylesheet', () => {
         const edges = PRIMARIES.map(({ rgb }) => rowsIn(shot, rgb));
         for (const rows of edges) expect(rows).not.toEqual([]);
         expectApart(
-            edges.map((rows) => rows[0]),
+            edges.map((rows) => rows[0]!),
             2,
         );
         expectApart(
@@ -423,7 +425,7 @@ describe('default stylesheet', () => {
             );
 
             for (let i = 1; i < DEFAULT_MAX_DEPTH; i++)
-                expect(offsets[i]).toBeGreaterThan(offsets[i - 1]);
+                expect(offsets[i]).toBeGreaterThan(offsets[i - 1]!);
             expect(offsets[DEFAULT_MAX_DEPTH]).toBe(
                 offsets[DEFAULT_MAX_DEPTH - 1],
             );

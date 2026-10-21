@@ -218,7 +218,7 @@ describe('Highlighter: between a prop change and its flush', () => {
         shown.click();
 
         expect(reported.clicks).toHaveLength(1);
-        expect(reported.clicks[0].highlights).toEqual([a, b]);
+        expect(reported.clicks[0]!.highlights).toEqual([a, b]);
         // Precondition: the flush had not run yet.
         expect(segmentElement(rootIn(host), 6)).toBe(shown);
     });
@@ -304,8 +304,8 @@ describe('Highlighter: caller highlights', () => {
         await clickCharacter(rootIn(host), 10);
 
         expect(reported.clicks).toHaveLength(1);
-        expect(reported.clicks[0].highlights[0]).toBe(a);
-        expect(reported.clicks[0].highlights[1]).toBe(b);
+        expect(reported.clicks[0]!.highlights[0]).toBe(a);
+        expect(reported.clicks[0]!.highlights[1]).toBe(b);
     });
 
     it('reports the objects the caller reads from its deep $state array', async () => {
@@ -320,8 +320,8 @@ describe('Highlighter: caller highlights', () => {
         await clickCharacter(rootIn(host), 10);
 
         expect(reported.clicks).toHaveLength(1);
-        expect(reported.clicks[0].highlights[0]).toBe(highlights[0]);
-        expect(reported.clicks[0].highlights[1]).toBe(highlights[1]);
+        expect(reported.clicks[0]!.highlights[0]).toBe(highlights[0]);
+        expect(reported.clicks[0]!.highlights[1]).toBe(highlights[1]);
     });
 
     it('renders a highlight pushed into a deep $state array in place, and reports it as the caller reads it', async () => {
@@ -343,15 +343,15 @@ describe('Highlighter: caller highlights', () => {
             'a c',
         );
         expect(segmentElement(root, 15).getAttribute('data-om-ids')).toBe('c');
-        expect(reported.clicks[0].highlights).toHaveLength(1);
-        expect(reported.clicks[0].highlights[0]).toBe(highlights[1]);
+        expect(reported.clicks[0]!.highlights).toHaveLength(1);
+        expect(reported.clicks[0]!.highlights[0]).toBe(highlights[1]);
     });
 
     it('renders a highlight changed in place in a deep $state array', () => {
         const highlights = deepState<Highlight[]>([{ ...a }]);
         const host = givenMounted(Highlighter, { text: TEXT, highlights });
 
-        highlights[0].end = 5;
+        highlights[0]!.end = 5;
         flushSync();
 
         expect(segmentElement(rootIn(host), 0).textContent).toBe('Hello');
@@ -373,7 +373,7 @@ describe('Highlighter: caller highlights', () => {
         await clickCharacter(rootIn(host), 20);
 
         expect(reported.clicks).toHaveLength(1);
-        expect(reported.clicks[0].highlights[0]).toBe(c);
+        expect(reported.clicks[0]!.highlights[0]).toBe(c);
     });
 });
 
@@ -441,7 +441,7 @@ describe('Highlighter: equal highlights passed again in a new array', () => {
         // Live positive control: moving out leaves the segment entered first.
         await userEvent.hover(outside);
         expect(reported.hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-        expect(reported.hovers[1].segment).toBe(reported.hovers[0].segment);
+        expect(reported.hovers[1]!.segment).toBe(reported.hovers[0]!.segment);
     });
 });
 
@@ -489,7 +489,7 @@ describe('Highlighter: removal and remounting', () => {
         flushSync();
 
         expect(reported.hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-        expect(reported.hovers[1].segment).toBe(reported.hovers[0].segment);
-        expect(reported.hovers[1].event).toBeNull();
+        expect(reported.hovers[1]!.segment).toBe(reported.hovers[0]!.segment);
+        expect(reported.hovers[1]!.event).toBeNull();
     });
 });

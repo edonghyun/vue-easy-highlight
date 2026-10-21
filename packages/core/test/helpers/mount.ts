@@ -93,7 +93,7 @@ export function renderInto(
         if (target && decoration !== '') {
             const deco = elementOf(doc, target.container);
             deco.textContent = decoration;
-            elements[target.index].appendChild(deco);
+            elements[target.index]!.appendChild(deco);
         }
     }
     root.replaceChildren(frag);

@@ -69,12 +69,12 @@ const typedData = `
         describe: (highlights) => {
             const typed: Equal<(typeof highlights)[0]['data'], Note | undefined> = true;
             // @ts-expect-error \`Note\` has no \`missing\`.
-            return typed && highlights[0].data?.missing;
+            return typed && highlights[0]!.data?.missing;
         },
         onSelect: (detail) => {
             const typed: Equal<(typeof detail.highlights)[0]['data'], Note | undefined> = true;
             // @ts-expect-error \`Note\` has no \`missing\`.
-            return typed && detail.highlights[0].data?.missing;
+            return typed && detail.highlights[0]!.data?.missing;
         },
         onHover: (detail) => {
             const typed: Equal<typeof detail.segment, Segment<Note>> = true;
@@ -88,7 +88,7 @@ const typedData = `
     export const typedSegment: Equal<DecorationProps['segment'], Segment<Note>> = true;
     export const missingField = (props: DecorationProps) =>
         // @ts-expect-error \`Note\` has no \`missing\`.
-        props.segment.highlights[0].data?.missing;
+        props.segment.highlights[0]!.data?.missing;
 
     export const vnode = h(Highlighter<Note>, {
         text: 'Overlapping highlights',
@@ -96,7 +96,7 @@ const typedData = `
         onClick: (detail) => {
             const typed: Equal<(typeof detail.highlights)[0]['data'], Note | undefined> = true;
             // @ts-expect-error \`Note\` has no \`missing\`.
-            return typed && detail.highlights[0].data?.missing;
+            return typed && detail.highlights[0]!.data?.missing;
         },
     });
 `;

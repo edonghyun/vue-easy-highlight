@@ -73,7 +73,7 @@ test.describe('Overlap modes', () => {
 
     test('none paints plain translucent layers', async ({ page }) => {
         const [a, b] = fixtures.similar.highlights.map((h) => rgbOf(h.color!));
-        const expected = over(b, ALPHA, over(a, ALPHA, WHITE));
+        const expected = over(b!, ALPHA, over(a!, ALPHA, WHITE));
         await givenHarness(page, { fixture: 'similar', overlap: 'none' });
 
         const [none] = await backgroundsAt(page, [15]);
@@ -83,7 +83,7 @@ test.describe('Overlap modes', () => {
         await givenHarness(page, { fixture: 'similar', overlap: 'multiply' });
         const [multiplied] = await backgroundsAt(page, [15]);
         expect(
-            Math.max(...multiplied.map((v, i) => Math.abs(v - expected[i]))),
+            Math.max(...multiplied.map((v, i) => Math.abs(v - expected[i]!))),
         ).toBeGreaterThan(3);
     });
 
@@ -100,7 +100,7 @@ test.describe('Overlap modes', () => {
         expectColorClose(outside, tint);
         // The root is an isolated group: the outermost layer is painted over
         // the tint the plain way, not multiplied with it.
-        const a = rgbOf(fixtures.distinct.highlights[0].color!);
+        const a = rgbOf(fixtures.distinct.highlights[0]!.color!);
         expectColorClose(single, over(a, ALPHA, tint));
     });
 });

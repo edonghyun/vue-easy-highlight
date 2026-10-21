@@ -23,8 +23,9 @@ const frameworks: Framework[] = [
 function codeBlocks(markdown: string): string[] {
     const blocks: string[] = [];
     const fence = /^```(\w*)\n([\s\S]*?)^```$/gm;
+    // Both groups always take part in a match.
     for (const [, lang, body] of markdown.matchAll(fence)) {
-        if (!['sh', 'html', 'css', ''].includes(lang)) blocks.push(body);
+        if (!['sh', 'html', 'css', ''].includes(lang!)) blocks.push(body!);
     }
     return blocks;
 }

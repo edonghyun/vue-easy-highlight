@@ -136,7 +136,8 @@ export function createHighlighter<T>(
             if (target && decoration != null && decoration !== '') {
                 const container = elementOf(target.container);
                 container.append(decoration);
-                elements[target.index].appendChild(container);
+                // target.index indexes the elements built from `specs`.
+                elements[target.index]!.appendChild(container);
             }
         }
         el.replaceChildren(frag);

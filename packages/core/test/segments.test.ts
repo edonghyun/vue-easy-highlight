@@ -59,7 +59,7 @@ describe('computeSegments', () => {
             [6, 15, 2],
             [15, 21, 1],
         ]);
-        expectIds(segments[1].highlights, ['a', 'b']);
+        expectIds(segments[1]!.highlights, ['a', 'b']);
     });
 
     it('orders a containing highlight outside the contained one', () => {
@@ -77,7 +77,7 @@ describe('computeSegments', () => {
 
         const segments = computeSegments(text, [x, y]);
 
-        expectIds(segments[0].highlights, ['x', 'y']);
+        expectIds(segments[0]!.highlights, ['x', 'y']);
     });
 
     it('does not merge adjacent highlights', () => {
@@ -105,7 +105,7 @@ describe('computeSegments', () => {
     it('returns caller highlight objects by reference', () => {
         const segments = computeSegments(text, [A]);
 
-        expect(segments[0].highlights[0]).toBe(A);
+        expect(segments[0]!.highlights[0]).toBe(A);
     });
 });
 
@@ -168,7 +168,7 @@ describe('computeSegments with invalid or stale ranges', () => {
 
         const segments = computeSegments('abc', [first, second]);
 
-        expect(segments[0].highlights).toEqual([first, second]);
+        expect(segments[0]!.highlights).toEqual([first, second]);
     });
 
     it('normalizes each highlight on its own when invalid ranges are mixed', () => {
@@ -270,7 +270,7 @@ describe('computeSegments dev warnings', () => {
         core.computeSegments('abc', [{ id: 'rev', start: 2, end: 1 }]);
 
         expect(warn).toHaveBeenCalledTimes(1);
-        expect(warn.mock.calls[0][0]).toContain('rev');
+        expect(warn.mock.calls[0]![0]).toContain('rev');
     });
 });
 
@@ -313,7 +313,7 @@ describe('highlightsInRange', () => {
 
         const highlights = highlightsInRange(segments, 0, 3);
 
-        expectIds(segments[0].highlights, ['b', 'a']);
+        expectIds(segments[0]!.highlights, ['b', 'a']);
         expectIds(highlights, ['b', 'a']);
     });
 

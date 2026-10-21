@@ -241,17 +241,18 @@ export async function expectHighlightsOnTheirCharacters(
                     right: px(style.paddingRight) + px(style.borderRightWidth),
                 };
                 // One box per line: a Range reports a line's hanging space
-                // as a rect of its own, an inline element does not.
+                // as a rect of its own, an inline element does not. Each box
+                // is [left, top, right, bottom].
                 const perLine = (rects: number[][]): number[][] => {
                     const lines: number[][] = [];
                     for (const r of rects) {
                         const line = lines.find(
-                            (l) => Math.abs(l[1] - r[1]) <= 1,
+                            (l) => Math.abs(l[1]! - r[1]!) <= 1,
                         );
                         if (!line) lines.push([...r]);
                         else {
-                            line[0] = Math.min(line[0], r[0]);
-                            line[2] = Math.max(line[2], r[2]);
+                            line[0] = Math.min(line[0]!, r[0]!);
+                            line[2] = Math.max(line[2]!, r[2]!);
                         }
                     }
                     return lines;
@@ -274,7 +275,7 @@ export async function expectHighlightsOnTheirCharacters(
                 const same =
                     boxes.length === chars.length &&
                     boxes.every((b, i) =>
-                        b.every((v, j) => Math.abs(v - chars[i][j]) <= 1),
+                        b.every((v, j) => Math.abs(v - chars[i]![j]!) <= 1),
                     );
                 if (!same)
                     mismatches.push(
@@ -301,10 +302,10 @@ function luminance([r, g, b]: Rgb): number {
  * pixel in a screenshot of the root. Glyph pixels are darker than what is
  * behind them, so the brightest one is the highlight background.
  */
-export async function backgroundsAt(
+export async function backgroundsAt<const O extends readonly number[]>(
     page: Page,
-    offsets: number[],
-): Promise<Rgb[]> {
+    offsets: O,
+): Promise<{ -readonly [K in keyof O]: Rgb }> {
     const shot = PNG.sync.read(
         await rootOf(page).screenshot({ scale: 'css', animations: 'disabled' }),
     );
@@ -323,18 +324,20 @@ export async function backgroundsAt(
                 x < Math.floor(box.x + box.width - origin.x) - 1;
                 x++
             ) {
+                // (x, y) lies inside the character's box, inside the shot.
                 const i = (y * shot.width + x) * 4;
                 const pixel: Rgb = [
-                    shot.data[i],
-                    shot.data[i + 1],
-                    shot.data[i + 2],
+                    shot.data[i]!,
+                    shot.data[i + 1]!,
+                    shot.data[i + 2]!,
                 ];
                 if (luminance(pixel) > luminance(brightest)) brightest = pixel;
             }
         }
         backgrounds.push(brightest);
     }
-    return backgrounds;
+    // One background per offset, in order.
+    return backgrounds as { -readonly [K in keyof O]: Rgb };
 }
 
 /** The colour of the pixel at viewport point (`x`, `y`) in a screenshot of the page. */
@@ -346,7 +349,8 @@ export async function pixelAt(page: Page, x: number, y: number): Promise<Rgb> {
             animations: 'disabled',
         }),
     );
-    return [shot.data[0], shot.data[1], shot.data[2]];
+    // A 1×1 shot holds one pixel.
+    return [shot.data[0]!, shot.data[1]!, shot.data[2]!];
 }
 
 /** `#rrggbb` as its channels. */
@@ -357,7 +361,7 @@ export function rgbOf(hex: string): Rgb {
 
 /** `color` at `alpha` painted over `backdrop` the plain way (source-over). */
 export function over(color: Rgb, alpha: number, backdrop: Rgb): Rgb {
-    return color.map((c, i) => c * alpha + backdrop[i] * (1 - alpha)) as Rgb;
+    return color.map((c, i) => c * alpha + backdrop[i]! * (1 - alpha)) as Rgb;
 }
 
 /** Every channel of `actual` is within `tolerance` of `expected`. */
@@ -368,7 +372,7 @@ export function expectColorClose(
 ): void {
     for (let i = 0; i < 3; i++)
         expect(
-            Math.abs(actual[i] - expected[i]),
+            Math.abs(actual[i]! - expected[i]!),
             `channel ${i} of ${actual.join(',')} near ${expected.map(Math.round).join(',')}`,
         ).toBeLessThanOrEqual(tolerance);
 }
@@ -384,7 +388,7 @@ export async function expectLuminanceDecreasing(
         expect(
             luminances[i],
             `luminance at ${offsets[i]} below ${offsets[i - 1]} (${luminances.join(', ')})`,
-        ).toBeLessThan(luminances[i - 1]);
+        ).toBeLessThan(luminances[i - 1]!);
     }
 }
 

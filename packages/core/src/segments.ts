@@ -77,26 +77,21 @@ export function computeSegments<T>(
 
     // Rank entries once by the canonical order, using the normalized ranges.
     const byIndex = new Map<Highlight, number>();
-    const proxies = entries.map((e) => {
+    const ranked = entries.map((entry) => {
         const proxy: Highlight = {
-            id: e.source.id,
-            start: e.start,
-            end: e.end,
+            id: entry.source.id,
+            start: entry.start,
+            end: entry.end,
         };
-        byIndex.set(proxy, e.index);
-        return proxy;
+        byIndex.set(proxy, entry.index);
+        return { entry, proxy };
     });
-    const order = entries.map((_, i) => i);
-    order.sort((x, y) =>
-        compareHighlights(
-            proxies[x],
-            proxies[y],
-            (h) => byIndex.get(h) as number,
-        ),
+    ranked.sort((x, y) =>
+        compareHighlights(x.proxy, y.proxy, (h) => byIndex.get(h) as number),
     );
-    const byRank: Entry<T>[] = order.map((i, rank) => {
-        entries[i].rank = rank;
-        return entries[i];
+    const byRank: Entry<T>[] = ranked.map(({ entry }, rank) => {
+        entry.rank = rank;
+        return entry;
     });
 
     interface Event {
@@ -120,7 +115,8 @@ export function computeSegments<T>(
             start: cursor,
             end,
             text: text.slice(cursor, end),
-            highlights: active.map((r) => byRank[r].source),
+            // `active` holds ranks, which index `byRank`.
+            highlights: active.map((r) => byRank[r]!.source),
             depth: active.length,
         });
     };
@@ -134,8 +130,8 @@ export function computeSegments<T>(
             let lo = 0;
             let hi = active.length;
             while (lo < hi) {
-                const mid = (lo + hi) >> 1;
-                if (active[mid] < ev.rank) lo = mid + 1;
+                const mid = (lo + hi) >> 1; // lo <= mid < hi <= length
+                if (active[mid]! < ev.rank) lo = mid + 1;
                 else hi = mid;
             }
             active.splice(lo, 0, ev.rank);
@@ -155,8 +151,8 @@ export function segmentAt<T>(
     let lo = 0;
     let hi = segments.length - 1;
     while (lo <= hi) {
-        const mid = (lo + hi) >> 1;
-        const s = segments[mid];
+        const mid = (lo + hi) >> 1; // lo <= mid <= hi < length
+        const s = segments[mid]!;
         if (offset < s.start) hi = mid - 1;
         else if (offset >= s.end) lo = mid + 1;
         else return s;
@@ -175,8 +171,8 @@ export function highlightsInRange<T>(
     let lo = 0;
     let hi = segments.length;
     while (lo < hi) {
-        const mid = (lo + hi) >> 1;
-        if (segments[mid].end <= start) lo = mid + 1;
+        const mid = (lo + hi) >> 1; // lo <= mid < hi <= length
+        if (segments[mid]!.end <= start) lo = mid + 1;
         else hi = mid;
     }
     // First appearance (segment order, then order within a segment) is the
@@ -185,8 +181,10 @@ export function highlightsInRange<T>(
     // later, so it first appears in the same or an earlier in-range segment.
     // This uses the normalized ranges, not the raw start/end the caller passed.
     const seen = new Set<Highlight<T>>();
-    for (let i = lo; i < segments.length && segments[i].start < end; i++) {
-        for (const h of segments[i].highlights) seen.add(h);
+    for (let i = lo; i < segments.length; i++) {
+        const segment = segments[i]!;
+        if (segment.start >= end) break;
+        for (const h of segment.highlights) seen.add(h);
     }
     return [...seen];
 }

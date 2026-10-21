@@ -22,21 +22,21 @@ const highlighter = createHighlighter(root, {
     decorate: (segment) => {
         expectTypeOf(segment).toEqualTypeOf<Segment<Note>>();
         // @ts-expect-error `Note` has no `missing`.
-        return segment.highlights[0].data?.missing ?? null;
+        return segment.highlights[0]!.data?.missing ?? null;
     },
     // The accessible description.
     describe: (highlights) => {
-        expectTypeOf(highlights[0].data).toEqualTypeOf<Note | undefined>();
+        expectTypeOf(highlights[0]!.data).toEqualTypeOf<Note | undefined>();
         // @ts-expect-error `Note` has no `missing`.
-        return highlights[0].data?.missing ?? '';
+        return highlights[0]!.data?.missing ?? '';
     },
 });
 
 // Event details.
 highlighter.on('select', (detail) => {
-    expectTypeOf(detail.highlights[0].data).toEqualTypeOf<Note | undefined>();
+    expectTypeOf(detail.highlights[0]!.data).toEqualTypeOf<Note | undefined>();
     // @ts-expect-error `Note` has no `missing`.
-    return detail.highlights[0].data?.missing;
+    return detail.highlights[0]!.data?.missing;
 });
 highlighter.on('hover', (detail) => {
     expectTypeOf(detail.segment).toEqualTypeOf<Segment<Note>>();

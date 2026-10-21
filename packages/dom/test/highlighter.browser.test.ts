@@ -68,7 +68,8 @@ function alphaOf(css: string): number {
         .getContext('2d', { willReadFrequently: true })!;
     ctx.fillStyle = css;
     ctx.fillRect(0, 0, 1, 1);
-    return ctx.getImageData(0, 0, 1, 1).data[3] / 255;
+    // A 1×1 image holds exactly four bytes.
+    return ctx.getImageData(0, 0, 1, 1).data[3]! / 255;
 }
 
 describe('createHighlighter: rendering', () => {
@@ -322,11 +323,11 @@ describe('createHighlighter: update() re-rendering focus and hover', () => {
         expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
         expect(hovers[1]).toEqual({
             type: 'leave',
-            segment: hovers[0].segment,
+            segment: hovers[0]!.segment,
             highlights: [a, b],
             event: null,
         });
-        expect(hovers[1].segment).toBe(hovers[0].segment);
+        expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
     });
 
     it('does not emit that leave again when the pointer next moves', async () => {

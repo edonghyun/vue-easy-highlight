@@ -197,7 +197,7 @@ describe('attachInteractions: select on release', () => {
         );
 
         await expect.poll(() => selectsOf(events)).toHaveLength(1);
-        const [d] = detailsOf({ events }, 'select');
+        const d = detailsOf({ events }, 'select')[0]!;
         expect(d.text).toBe(TEXT.slice(d.start, d.end));
         expect(d.start).toBe(1);
         expect(d.end).toBeGreaterThanOrEqual(18);
@@ -223,7 +223,7 @@ describe('attachInteractions: select on release', () => {
         );
 
         await expect.poll(() => selectsOf(events)).toHaveLength(1);
-        const [d] = detailsOf({ events }, 'select');
+        const d = detailsOf({ events }, 'select')[0]!;
         expect(d.start).toBe(6);
         expect(d.text).toBe(TEXT.slice(d.start, d.end));
     });
@@ -547,7 +547,7 @@ describe('attachInteractions: click', () => {
 
             const clicks = detailsOf({ events }, 'click');
             expect(clicks).toHaveLength(1);
-            expect(clicks[0].event).toBe(press);
+            expect(clicks[0]!.event).toBe(press);
         },
     );
 
@@ -566,8 +566,8 @@ describe('attachInteractions: click', () => {
 
             const clicks = detailsOf({ events }, 'click');
             expect(clicks).toHaveLength(2);
-            expect(clicks[0].event).toBe(first);
-            expect(clicks[1].event).toBe(second);
+            expect(clicks[0]!.event).toBe(first);
+            expect(clicks[1]!.event).toBe(second);
         },
     );
 
@@ -659,11 +659,11 @@ describe('attachInteractions: hover', () => {
         expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
         expect(hovers[1]).toEqual({
             type: 'leave',
-            segment: hovers[0].segment,
+            segment: hovers[0]!.segment,
             highlights: [a, b],
             event: null,
         });
-        expect(hovers[1].segment).toBe(hovers[0].segment);
+        expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
     });
 
     it('emits no further leave on detach once the pointer has left', async () => {
@@ -790,7 +790,7 @@ describe('attachInteractions: a root inside a shadow root', () => {
         renderInto(root, TEXT, partialOverlap.highlights);
         restoreViewState(root, view);
 
-        const [click] = detailsOf({ events }, 'click');
+        const click = detailsOf({ events }, 'click')[0]!;
         expect(click.offset).toBe(8);
         expect(click.highlights).toEqual([a, b]);
         expect(shadow.activeElement).toBe(segmentElement(root, 6));
@@ -816,7 +816,7 @@ describe('attachInteractions: a root inside a shadow root', () => {
         );
 
         await expect.poll(() => selectsOf(events)).toHaveLength(1);
-        const [d] = detailsOf({ events }, 'select');
+        const d = detailsOf({ events }, 'select')[0]!;
         expect(d.start).toBe(6);
         expect(d.text).toBe(TEXT.slice(d.start, d.end));
     });
@@ -851,7 +851,7 @@ describe('attachInteractions: a root inside an iframe', () => {
         );
 
         await expect.poll(() => selectsOf(events)).toHaveLength(1);
-        const [click] = detailsOf({ events }, 'click');
+        const click = detailsOf({ events }, 'click')[0]!;
         expect(click.segment.start).toBe(6);
         expect(click.highlights).toEqual([a, b]);
         // The rect is the iframe's own DOMRect, of another realm.

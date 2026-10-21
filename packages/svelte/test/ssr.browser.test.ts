@@ -176,7 +176,7 @@ describe('Highlighter after hydration', () => {
         await userEvent.click(el, { position });
 
         expect(clicks.map((d) => d.offset)).toEqual([10]);
-        expect(clicks[0].highlights[0]).toBe(a);
-        expect(clicks[0].highlights[1]).toBe(b);
+        expect(clicks[0]!.highlights[0]).toBe(a);
+        expect(clicks[0]!.highlights[1]).toBe(b);
     });
 });

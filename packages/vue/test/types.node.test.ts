@@ -83,8 +83,9 @@ function typeErrorsOf(files: string[]): string[] {
     const errors = [
         ...stdout.matchAll(/^(.+?)\(\d+,\d+\): error TS\d+: (.*)$/gm),
     ].map(
+        // Both groups always take part in a match.
         ([, file, message]) =>
-            `${relative(root, resolve(root, file))}: ${message}`,
+            `${relative(root, resolve(root, file!))}: ${message}`,
     );
     if (status !== 0) errors.push(`vue-tsc exited with ${status}`);
     if (stderr) errors.push(`vue-tsc stderr: ${stderr}`);

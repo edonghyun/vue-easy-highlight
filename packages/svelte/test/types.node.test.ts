@@ -70,8 +70,9 @@ function typeErrorsOf(files: string[]): string[] {
     const errors = [
         ...stdout.matchAll(/^\d+ (?:ERROR|WARNING) "(.+?)" \d+:\d+ "(.*)"$/gm),
     ].map(
+        // Both groups always take part in a match.
         ([, file, message]) =>
-            `${relative(root, resolve(out, file))}: ${message}`,
+            `${relative(root, resolve(out, file!))}: ${message}`,
     );
     if (status !== 0) errors.push(`svelte-check exited with ${status}`);
     if (stderr) errors.push(`svelte-check stderr: ${stderr}`);

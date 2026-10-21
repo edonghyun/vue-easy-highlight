@@ -179,15 +179,18 @@ function segmentElement<T>(
     const childrenAt = (i: number, inner: ReactNode): ReactNode[] =>
         decoration && i === target?.index ? [inner, decoration] : [inner];
     let inner: ReactNode = segment.text;
-    for (let i = specs.length - 1; i > 0; i--)
+    for (let i = specs.length - 1; i > 0; i--) {
+        const spec = specs[i]!; // 0 < i < length
         inner = createElement(
-            specs[i].tag,
-            propsOfSpec(specs[i]),
+            spec.tag,
+            propsOfSpec(spec),
             ...childrenAt(i, inner),
         );
+    }
+    const [outermost] = specs;
     return createElement(
-        specs[0].tag,
-        { key: segmentKey(segment), ...propsOfSpec(specs[0]) },
+        outermost.tag,
+        { key: segmentKey(segment), ...propsOfSpec(outermost) },
         ...childrenAt(0, inner),
     );
 }
@@ -214,12 +217,12 @@ class ViewStateBoundary extends Component<{
     root: RefObject<HTMLElement | null>;
     children: ReactNode;
 }> {
-    getSnapshotBeforeUpdate(): ViewState | null {
+    override getSnapshotBeforeUpdate(): ViewState | null {
         const root = this.props.root.current;
         return root ? captureViewState(root) : null;
     }
 
-    componentDidUpdate(
+    override componentDidUpdate(
         _props: unknown,
         _state: unknown,
         view: ViewState | null,
@@ -228,7 +231,7 @@ class ViewStateBoundary extends Component<{
         if (root && view) restoreViewState(root, view);
     }
 
-    render(): ReactNode {
+    override render(): ReactNode {
         return this.props.children;
     }
 }

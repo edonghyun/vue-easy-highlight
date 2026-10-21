@@ -28,7 +28,7 @@ export function expectedTree(props: ContractProps): RootTree {
         style: { ...root.style },
         children: computeSegments(props.text, [...props.highlights]).map(
             (segment) => {
-                const innermost: TreeNode[] = [segment.text];
+                const innermost: [TreeNode, ...TreeNode[]] = [segment.text];
                 const decoration =
                     props.decoration && segment.depth > 0
                         ? props.decoration(segment)
@@ -39,7 +39,7 @@ export function expectedTree(props: ContractProps): RootTree {
                 const [outermost] = segmentElements(
                     segment,
                     options,
-                ).reduceRight<TreeNode[]>(
+                ).reduceRight<[TreeNode, ...TreeNode[]]>(
                     (children, spec) => [
                         {
                             tag: spec.tag,

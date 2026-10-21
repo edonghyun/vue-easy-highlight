@@ -331,8 +331,8 @@ describe('Highlighter: renderDecoration', () => {
 
             // Live positive control: the overlap segment [6,15) is decorated.
             expect(decorations).toHaveLength(1);
-            expect(decorations[0].textContent).toBe('overlap');
-            expect(decorations[0].closest('[data-om-start]')).toBe(
+            expect(decorations[0]!.textContent).toBe('overlap');
+            expect(decorations[0]!.closest('[data-om-start]')).toBe(
                 segmentElement(rootIn(host), 6),
             );
         },
@@ -398,7 +398,7 @@ describe('Highlighter: equal highlights passed again in a new array', () => {
         // Live positive control: moving out leaves the segment entered first.
         await userEvent.hover(outside);
         expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-        expect(hovers[1].segment).toBe(hovers[0].segment);
+        expect(hovers[1]!.segment).toBe(hovers[0]!.segment);
     });
 });
 
@@ -485,7 +485,7 @@ describe('Highlighter: handler props changed between renders', () => {
         await userEvent.hover(outside);
 
         expect(hovers.map((d) => d.type)).toEqual(['enter', 'leave']);
-        expect(hovers[1].event).toBeInstanceOf(PointerEvent);
+        expect(hovers[1]!.event).toBeInstanceOf(PointerEvent);
     });
 });
 

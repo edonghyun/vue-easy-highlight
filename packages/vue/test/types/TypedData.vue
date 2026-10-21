@@ -22,7 +22,7 @@ const notes: Highlight<Note>[] = [
 const noteSegment = {} as Segment<Note>;
 
 function onSelect(detail: SelectDetail<Note>): void {
-    expectTypeOf(detail.highlights[0].data).toEqualTypeOf<Note | undefined>();
+    expectTypeOf(detail.highlights[0]!.data).toEqualTypeOf<Note | undefined>();
 }
 </script>
 
@@ -32,21 +32,21 @@ function onSelect(detail: SelectDetail<Note>): void {
         :highlights="notes"
         :describe="
             (highlights) => {
-                expectTypeOf(highlights[0].data).toEqualTypeOf<
+                expectTypeOf(highlights[0]!.data).toEqualTypeOf<
                     Note | undefined
                 >();
                 // @ts-expect-error `Note` has no `missing`.
-                return highlights[0].data?.missing ?? '';
+                return highlights[0]!.data?.missing ?? '';
             }
         "
         @select="onSelect"
         @click="
             (detail) => {
-                expectTypeOf(detail.highlights[0].data).toEqualTypeOf<
+                expectTypeOf(detail.highlights[0]!.data).toEqualTypeOf<
                     Note | undefined
                 >();
                 // @ts-expect-error `Note` has no `missing`.
-                return detail.highlights[0].data?.missing;
+                return detail.highlights[0]!.data?.missing;
             }
         "
     >
@@ -54,7 +54,7 @@ function onSelect(detail: SelectDetail<Note>): void {
             {{ expectTypeOf(segment).toEqualTypeOf(noteSegment) }}
             {{
                 // @ts-expect-error `Note` has no `missing`.
-                segment.highlights[0].data?.missing
+                segment.highlights[0]!.data?.missing
             }}
         </template>
     </Highlighter>

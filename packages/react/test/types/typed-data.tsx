@@ -18,11 +18,11 @@ const notes: Highlight<Note>[] = [
     text="Hello"
     highlights={notes}
     onSelect={(detail) => {
-        expectTypeOf(detail.highlights[0].data).toEqualTypeOf<
+        expectTypeOf(detail.highlights[0]!.data).toEqualTypeOf<
             Note | undefined
         >();
         // @ts-expect-error `Note` has no `missing`.
-        return detail.highlights[0].data?.missing;
+        return detail.highlights[0]!.data?.missing;
     }}
     onHover={(detail) => {
         expectTypeOf(detail.segment).toEqualTypeOf<Segment<Note>>();
@@ -36,7 +36,7 @@ const notes: Highlight<Note>[] = [
     renderDecoration={(segment) => {
         expectTypeOf(segment).toEqualTypeOf<Segment<Note>>();
         // @ts-expect-error `Note` has no `missing`.
-        return segment.highlights[0].data?.missing;
+        return segment.highlights[0]!.data?.missing;
     }}
 />;
 
@@ -45,8 +45,8 @@ const notes: Highlight<Note>[] = [
     text="Hello"
     highlights={notes}
     describe={(highlights) => {
-        expectTypeOf(highlights[0].data).toEqualTypeOf<Note | undefined>();
+        expectTypeOf(highlights[0]!.data).toEqualTypeOf<Note | undefined>();
         // @ts-expect-error `Note` has no `missing`.
-        return highlights[0].data?.missing;
+        return highlights[0]!.data?.missing;
     }}
 />;

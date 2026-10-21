@@ -10,7 +10,7 @@ import {
 } from './helpers.ts';
 
 const { text, highlights } = fixtures.overlaps;
-const [a] = highlights;
+const a = highlights[0]!; // fixtures.json
 
 // The harness mounts the component inside an open shadow root on #host, or in
 // the document of an iframe, with `embed`; the log stays in the page.
@@ -50,6 +50,7 @@ function selectedText(root: Locator): Promise<string> {
             tree instanceof ShadowRoot
                 ? selection.getComposedRanges({ shadowRoots: [tree] })
                 : [selection.getRangeAt(0)];
+        if (!r) return '';
         const range = el.ownerDocument.createRange();
         range.setStart(r.startContainer, r.startOffset);
         range.setEnd(r.endContainer, r.endOffset);
