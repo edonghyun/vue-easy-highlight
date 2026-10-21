@@ -112,11 +112,39 @@ export function attachInteractions<T>(
         confirmSoon();
     };
 
+    // Chromium neither starts a drag selection nor places a caret when a mouse
+    // press on a focusable element lands at the very start of its text. So a
+    // press on a focusable segment lifts its tabindex until the button is
+    // released; a press that ends without a selection (a click) then focuses
+    // the segment, as the browser would have.
+    let lifted: { el: HTMLElement; tabindex: string } | null = null;
+
+    const putBackTabindex = (): HTMLElement | null => {
+        if (!lifted) return null;
+        const { el, tabindex } = lifted;
+        lifted = null;
+        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', tabindex);
+        return el;
+    };
+
     const onPointerDown = (e: PointerEvent): void => {
         lastPointerType = e.pointerType;
+        putBackTabindex();
+        if (e.pointerType === 'touch') return;
+        const el = segmentElementOf(e.target);
+        const tabindex = el?.getAttribute('tabindex');
+        if (!(el instanceof HTMLElement) || tabindex == null) return;
+        lifted = { el, tabindex };
+        el.removeAttribute('tabindex');
     };
 
     const onPointerUp = (): void => {
+        const pressed = putBackTabindex();
+        if (
+            pressed?.isConnected &&
+            window.getSelection()?.isCollapsed !== false
+        )
+            pressed.focus({ preventScroll: true });
         // Touch selections are confirmed by the settle timer, not by lifting the finger.
         if (lastPointerType !== 'touch') confirmSoon();
     };
@@ -277,6 +305,7 @@ export function attachInteractions<T>(
     document.addEventListener('selectionchange', onSelectionChange);
     document.addEventListener('pointerdown', onPointerDown, true);
     document.addEventListener('pointerup', onPointerUp, true);
+    document.addEventListener('pointercancel', putBackTabindex, true);
     document.addEventListener('keyup', onKeyUp, true);
     root.addEventListener('click', onClick);
     root.addEventListener('dblclick', onDblclick);
@@ -290,12 +319,14 @@ export function attachInteractions<T>(
         document.removeEventListener('selectionchange', onSelectionChange);
         document.removeEventListener('pointerdown', onPointerDown, true);
         document.removeEventListener('pointerup', onPointerUp, true);
+        document.removeEventListener('pointercancel', putBackTabindex, true);
         document.removeEventListener('keyup', onKeyUp, true);
         root.removeEventListener('click', onClick);
         root.removeEventListener('dblclick', onDblclick);
         root.removeEventListener('keydown', onKeyDown);
         root.removeEventListener('pointerover', onPointerOver);
         root.removeEventListener('pointerout', onPointerOut);
+        putBackTabindex();
         pending = false;
         last = null;
         // The pointer can no longer be tracked, so the hovered segment ends

@@ -151,6 +151,43 @@ describe('attachInteractions: select on release', () => {
         expect(d.end).toBeGreaterThanOrEqual(18);
     });
 
+    // Chromium neither starts a drag selection nor places a caret when the
+    // press lands at the very start of a focusable element's text.
+    it('emits select after a real mouse drag that starts on the first character of a highlight', async () => {
+        const { root, events } = givenInteractiveRoot();
+        const from = charPosition(root, 6);
+        const to = charPosition(root, 18);
+
+        await userEvent.dragAndDrop(
+            page.elementLocator(from.el),
+            page.elementLocator(to.el),
+            {
+                sourcePosition: {
+                    x: from.position.x - 2,
+                    y: from.position.y,
+                },
+                targetPosition: to.position,
+            },
+        );
+
+        await expect.poll(() => selectsOf(events)).toHaveLength(1);
+        const [d] = detailsOf({ events }, 'select');
+        expect(d.start).toBe(6);
+        expect(d.text).toBe(TEXT.slice(d.start, d.end));
+    });
+
+    it('still focuses a highlight a real click lands on', async () => {
+        const { root } = givenInteractiveRoot();
+        const { el, position } = charPosition(root, 6);
+
+        await userEvent.click(el, {
+            position: { x: position.x - 2, y: position.y },
+        });
+
+        expect(document.activeElement).toBe(segmentElement(root, 6));
+        expect(segmentElement(root, 6).getAttribute('tabindex')).toBe('0');
+    });
+
     it('emits select for the word a double click selects', async () => {
         const { root, events } = givenInteractiveRoot();
         const { el, position } = charPosition(root, 10);
