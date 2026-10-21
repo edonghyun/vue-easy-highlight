@@ -330,19 +330,18 @@ function HighlighterRender<T>(
     );
 }
 
+// `forwardRef` passes the ref on in React 18 as in 19; the cast below keeps
+// the component generic over the highlights' `data`, which `forwardRef`'s own
+// type erases.
+const ForwardedHighlighter = forwardRef(HighlighterRender);
+ForwardedHighlighter.displayName = 'Highlighter';
+
 /**
  * Renders `text` with overlapping `highlights` in a `div`, and calls
  * `onSelect`, `onClick`, `onDblClick` and `onHover` with core's detail
  * objects. `className`, `style` and the other `div` attributes land on that
  * `div`, and `ref` receives it.
- *
- * `forwardRef` passes the ref on in React 18 as in 19; the cast keeps the
- * component generic over the highlights' `data`, which `forwardRef`'s own
- * type erases.
  */
-const ForwardedHighlighter = forwardRef(HighlighterRender);
-ForwardedHighlighter.displayName = 'Highlighter';
-
 export const Highlighter = ForwardedHighlighter as <T = unknown>(
     props: HighlighterProps<T> & RefAttributes<HTMLDivElement>,
 ) => ReactElement;

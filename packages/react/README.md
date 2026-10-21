@@ -54,7 +54,7 @@ export function Article() {
 | `touchSelectionDelay` | `number`                    | `500`      | Milliseconds of no selection change before `onSelect` fires on touch; a change applies from the next selection change        |
 | `renderDecoration`    | `(segment) => ReactNode`    | none       | Decoration for each highlighted segment; see [Decorations](#decorations)                                                     |
 
-The component renders a single `<div class="om-root">`. `className` is added to `om-root`; `style`, `id`, `aria-*`, `data-*` and the other `div` props, DOM handlers such as `onPointerDown` included, land on that `div`, and `ref` (an object or callback ref) receives it. The root's own `data-om-strategy` (from `strategy`) always wins over one you pass. The component renders its children itself, so `children` and `dangerouslySetInnerHTML` are not accepted.
+The component renders a single `<div class="om-root">`. `className` is added to `om-root`; `style`, `id`, `aria-*`, `data-*` and the other `div` props, DOM handlers such as `onPointerDown` included, land on that `div`, and `ref` (an object or callback ref) receives it. The root's own `data-om-strategy` (from `strategy`) always wins over one you pass. The component renders its children itself, so `children` and `dangerouslySetInnerHTML` are not accepted. The props types are exported as `HighlighterProps` and `HighlighterOwnProps`.
 
 `Highlighter` is generic over the `data` of your highlights: given `Highlight<Note>[]`, the handlers receive `Highlight<Note>` objects. They are your own objects, so `detail.highlights[0] === myHighlight` holds.
 
