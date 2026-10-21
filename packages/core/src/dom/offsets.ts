@@ -174,7 +174,8 @@ export function getSelectionOffsets(
     const sel = selection ?? selectionOf(root);
     if (!sel || sel.rangeCount === 0) return null;
     const ranges = rangesOf(sel, root);
-    if (ranges.length === 0) return null;
+    // A caret alone (every click and arrow key, page-wide) selects nothing.
+    if (ranges.every((r) => r.collapsed)) return null;
     const first = ranges[0];
     const last = ranges[ranges.length - 1];
     const from = placeOf(root, first.startContainer, first.startOffset);

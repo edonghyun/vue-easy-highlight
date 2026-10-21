@@ -60,6 +60,12 @@ function centerOf(
     };
 }
 
+/** The boundary point right after the host of `shadow`, in the host's parent. */
+function afterHost(shadow: ShadowRoot): [Node, number] {
+    const parent = shadow.host.parentNode!;
+    return [parent, [...parent.childNodes].indexOf(shadow.host) + 1];
+}
+
 describe('getSelectionOffsets', () => {
     it('reads an explicit Selection argument', () => {
         const root = givenRenderedRoot(text, hl);
@@ -290,6 +296,64 @@ describe('getSelectionOffsets', () => {
                 );
 
             expect(getSelectionOffsets(root)).toEqual({ start: 0, end: 8 });
+        });
+
+        it('clips a selection that ends right after the shadow host', () => {
+            const shadow = givenShadowRoot();
+            const root = givenRenderedRootIn(shadow, text, hl);
+            const inner = createRangeFromOffsets(root, 8, 8)!;
+
+            window
+                .getSelection()!
+                .setBaseAndExtent(
+                    inner.startContainer,
+                    inner.startOffset,
+                    ...afterHost(shadow),
+                );
+
+            expect(getSelectionOffsets(root)).toEqual({
+                start: 8,
+                end: text.length,
+            });
+        });
+
+        it('returns no offsets for a selection that starts right after the shadow host', () => {
+            const shadow = givenShadowRoot();
+            const root = givenRenderedRootIn(shadow, text, hl);
+            const after = givenInDocument(document.createTextNode(' AFTER'));
+
+            window
+                .getSelection()!
+                .setBaseAndExtent(...afterHost(shadow), after, 3);
+
+            expect(getSelectionOffsets(root)).toBeNull();
+            // Live positive control: the same end, from a start inside the root.
+            const inner = createRangeFromOffsets(root, 8, 8)!;
+            window
+                .getSelection()!
+                .setBaseAndExtent(
+                    inner.startContainer,
+                    inner.startOffset,
+                    after,
+                    3,
+                );
+            expect(getSelectionOffsets(root)).toEqual({
+                start: 8,
+                end: text.length,
+            });
+        });
+
+        it('maps select-all to the whole text when the shadow host is the last child', () => {
+            const shadow = givenShadowRoot();
+            const root = givenRenderedRootIn(shadow, text, hl);
+            expect(document.body.lastChild).toBe(shadow.host);
+
+            window.getSelection()!.selectAllChildren(document.body);
+
+            expect(getSelectionOffsets(root)).toEqual({
+                start: 0,
+                end: text.length,
+            });
         });
     });
 

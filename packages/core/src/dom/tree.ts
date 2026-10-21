@@ -61,7 +61,9 @@ export function rangesOf(
     ) {
         try {
             return selection.getComposedRanges({ shadowRoots });
-        } catch {
+        } catch (error) {
+            // By name: an iframe's TypeError is another realm's.
+            if ((error as Error | null)?.name !== 'TypeError') throw error;
             // Safari 17 takes the shadow roots as arguments.
             const legacy = selection.getComposedRanges as unknown as (
                 ...roots: ShadowRoot[]
@@ -166,10 +168,13 @@ export function placeOf(
             };
         }
         if (level > 0) {
-            const range = root.ownerDocument.createRange();
-            range.selectNode(trees[level].stand);
-            const c = range.comparePoint(n, o);
-            return { where: c > 0 ? 1 : -1, node: n, offset: o };
+            // At or past the point right after the host is after; anything
+            // earlier, its own children included, is before.
+            const after = root.ownerDocument.createRange();
+            after.setStartAfter(trees[level].stand);
+            after.collapse(true);
+            const c = after.comparePoint(n, o);
+            return { where: c >= 0 ? 1 : -1, node: n, offset: o };
         }
         const shadow = shadowRootOf(n);
         if (!shadow) return null;
@@ -178,11 +183,22 @@ export function placeOf(
     }
 }
 
+const TEXT_NODE = 3;
+const CDATA_SECTION_NODE = 4;
+const PROCESSING_INSTRUCTION_NODE = 7;
+const COMMENT_NODE = 8;
+
 /** The length of `node` as a boundary point counts it: its characters, or its children. */
 function lengthOf(node: Node): number {
-    return 'data' in node
-        ? (node as CharacterData).length
-        : node.childNodes.length;
+    switch (node.nodeType) {
+        case TEXT_NODE:
+        case CDATA_SECTION_NODE:
+        case PROCESSING_INSTRUCTION_NODE:
+        case COMMENT_NODE:
+            return (node as CharacterData).length;
+        default:
+            return node.childNodes.length;
+    }
 }
 
 function sign(c: number): -1 | 0 | 1 {
