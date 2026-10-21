@@ -40,7 +40,11 @@ export function findMatches(
     query: string | readonly string[],
     options: FindMatchesOptions = {},
 ): { start: number; end: number }[] {
-    const { caseSensitive = false, overlapping = true, wholeWord = false } = options;
+    const {
+        caseSensitive = false,
+        overlapping = true,
+        wholeWord = false,
+    } = options;
     const queries = typeof query === 'string' ? [query] : query;
     const seen = new Set<string>();
     const result: { start: number; end: number }[] = [];
@@ -54,7 +58,8 @@ export function findMatches(
             const end = start + match[0].length;
             const ok =
                 !wholeWord ||
-                (!isWordChar(charBefore(text, start)) && !isWordChar(charAfter(text, end)));
+                (!isWordChar(charBefore(text, start)) &&
+                    !isWordChar(charAfter(text, end)));
             if (ok) {
                 const key = `${start}:${end}`;
                 if (!seen.has(key)) {

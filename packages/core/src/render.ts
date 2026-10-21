@@ -23,11 +23,23 @@ export function segmentElements<T>(
     segment: Segment<T>,
     options: RenderOptions = {},
 ): ElementSpec[] {
-    const { strategy = 'layers', focusable = true, defaultColor = DEFAULT_COLOR, brush = defaultBrush } = options;
+    const {
+        strategy = 'layers',
+        focusable = true,
+        defaultColor = DEFAULT_COLOR,
+        brush = defaultBrush,
+    } = options;
     const { highlights, depth, start } = segment;
 
     if (depth === 0 || highlights.length === 0) {
-        return [{ tag: 'span', className: 'om-seg', attrs: { 'data-om-start': String(start) }, style: {} }];
+        return [
+            {
+                tag: 'span',
+                className: 'om-seg',
+                attrs: { 'data-om-start': String(start) },
+                style: {},
+            },
+        ];
     }
 
     const segAttrs: Record<string, string> = {
@@ -40,13 +52,21 @@ export function segmentElements<T>(
     if (strategy === 'depth') {
         const classes: string[] = [];
         for (const h of highlights) {
-            if (h.className && !classes.includes(h.className)) classes.push(h.className);
+            if (h.className && !classes.includes(h.className))
+                classes.push(h.className);
         }
         const color = highlights.find((h) => h.color)?.color;
         const style: Record<string, string> = { '--om-depth': String(depth) };
         if (color) style['--om-color'] = color;
         style['--om-brush'] = brush(color ?? defaultColor);
-        return [{ tag: 'mark', className: ['om-seg', 'om-hl', ...classes].join(' '), attrs: segAttrs, style }];
+        return [
+            {
+                tag: 'mark',
+                className: ['om-seg', 'om-hl', ...classes].join(' '),
+                attrs: segAttrs,
+                style,
+            },
+        ];
     }
 
     return highlights.map((h, i) => {
@@ -57,7 +77,10 @@ export function segmentElements<T>(
         return {
             tag: 'mark' as const,
             className: i === 0 ? `om-seg ${cls}` : cls,
-            attrs: i === 0 ? { ...segAttrs, 'data-id': h.id } : { 'data-id': h.id },
+            attrs:
+                i === 0
+                    ? { ...segAttrs, 'data-id': h.id }
+                    : { 'data-id': h.id },
             style,
         };
     });
@@ -67,5 +90,8 @@ export function rootAttributes(options: RenderOptions = {}): {
     className: 'om-root';
     attrs: { 'data-om-strategy': Strategy };
 } {
-    return { className: 'om-root', attrs: { 'data-om-strategy': options.strategy ?? 'layers' } };
+    return {
+        className: 'om-root',
+        attrs: { 'data-om-strategy': options.strategy ?? 'layers' },
+    };
 }

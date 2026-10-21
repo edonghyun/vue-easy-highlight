@@ -10,9 +10,9 @@ describe('findMatches', () => {
         ]);
     });
     it('respects caseSensitive', () => {
-        expect(findMatches('Type type', 'type', { caseSensitive: true })).toEqual([
-            { start: 5, end: 9 },
-        ]);
+        expect(
+            findMatches('Type type', 'type', { caseSensitive: true }),
+        ).toEqual([{ start: 5, end: 9 }]);
     });
     it('returns overlapping matches by default and not when disabled', () => {
         expect(findMatches('aaaa', 'aa')).toEqual([
@@ -26,13 +26,17 @@ describe('findMatches', () => {
         ]);
     });
     it('treats hyphens, slashes and brackets literally', () => {
-        expect(findMatches('a-b/c [x]', '-b/c [x]')).toEqual([{ start: 1, end: 9 }]);
+        expect(findMatches('a-b/c [x]', '-b/c [x]')).toEqual([
+            { start: 1, end: 9 },
+        ]);
     });
     it('treats regex characters literally', () => {
         expect(findMatches('a.b axb', 'a.b')).toEqual([{ start: 0, end: 3 }]);
     });
     it('wholeWord excludes matches inside words', () => {
-        expect(findMatches('cat concat cat.', 'cat', { wholeWord: true })).toEqual([
+        expect(
+            findMatches('cat concat cat.', 'cat', { wholeWord: true }),
+        ).toEqual([
             { start: 0, end: 3 },
             { start: 11, end: 14 },
         ]);
@@ -64,6 +68,8 @@ describe('findMatches', () => {
         expect(findMatches('😀😀😀', '😀')).toHaveLength(3);
     });
     it('wholeWord treats astral letters as word characters', () => {
-        expect(findMatches('𝒜a a', 'a', { wholeWord: true })).toEqual([{ start: 4, end: 5 }]);
+        expect(findMatches('𝒜a a', 'a', { wholeWord: true })).toEqual([
+            { start: 4, end: 5 },
+        ]);
     });
 });
