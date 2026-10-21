@@ -114,7 +114,11 @@ export async function prepareApp(
 
 /** Every `[app, variant]` the sources under `acceptance/apps` provide. */
 async function presentTargets(): Promise<[App, Variant][]> {
-    const dirs = await readdir(join(acceptance, 'apps'));
+    const dirs = (
+        await readdir(join(acceptance, 'apps'), { withFileTypes: true })
+    )
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name);
     const targets: [App, Variant][] = [];
     for (const dir of dirs.sort()) {
         if (dir.endsWith('-floor')) continue;
