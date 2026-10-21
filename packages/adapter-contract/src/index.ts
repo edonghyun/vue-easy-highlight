@@ -742,6 +742,35 @@ export function defineAdapterContract(factory: AdapterFactory): void {
                     .toEqual([selectEvent(2, 5, [a])]);
             });
 
+            it('ignores a 0-length selection and reports a 1-character one by default', async () => {
+                const adapter = await givenAdapter(partialOverlap);
+                await selectAndWait(adapter.root, 4, 4);
+
+                settle(release);
+
+                // Live positive control: one character, released the same way.
+                await selectAndWait(adapter.root, 4, 5);
+                settle(release);
+                expect(eventsOf(adapter, 'select')).toEqual([
+                    selectEvent(4, 5, [a]),
+                ]);
+            });
+
+            it('confirms a touch selection after 500 ms by default', async () => {
+                const adapter = await givenAdapter(partialOverlap);
+                givenFakeTimeouts();
+                pointer('pointerdown', adapter.root, { pointerType: 'touch' });
+
+                await selectAndWait(adapter.root, 8, 18);
+
+                vi.advanceTimersByTime(499);
+                expect(eventsOf(adapter, 'select')).toEqual([]);
+                vi.advanceTimersByTime(1);
+                expect(eventsOf(adapter, 'select')).toEqual([
+                    selectEvent(8, 18, [a, b]),
+                ]);
+            });
+
             it('emits a keyboard selection once, when the modifier key is released', async () => {
                 const adapter = await givenAdapter({
                     ...partialOverlap,
