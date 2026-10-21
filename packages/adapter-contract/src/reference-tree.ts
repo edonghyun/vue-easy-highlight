@@ -18,6 +18,8 @@ export function expectedTree(props: ContractProps): RootTree {
     const options: RenderOptions = {
         strategy: props.strategy,
         focusable: props.focusable,
+        defaultColor: props.defaultColor,
+        brush: props.brush,
     };
     const root = rootAttributes(options);
     return {

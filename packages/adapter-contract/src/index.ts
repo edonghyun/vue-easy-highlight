@@ -17,6 +17,7 @@ import type {
     SelectDetail,
     Strategy,
 } from '@overlapmark/core';
+import { DEFAULT_COLOR } from '@overlapmark/core';
 import {
     createRangeFromOffsets,
     getSelectionOffsets,
@@ -32,6 +33,7 @@ import {
     c,
     codePointRanges,
     fixtures,
+    adjacent,
     partialOverlap,
 } from './fixtures';
 import {
@@ -129,6 +131,22 @@ interface ContractAdapter extends MountedAdapter, EventSource {
      * would.
      */
     whenRecorded(inspect: (event: AdapterEvent) => void): void;
+}
+
+/** A `defaultColor` unlike core's own. */
+const CUSTOM_COLOR = 'rgb(255, 0, 170)';
+
+/** Brushes unlike core's SVG stroke, so a dropped `brush` shows. */
+const solidBrush = (color: string): string =>
+    `linear-gradient(${color}, ${color})`;
+const stripedBrush = (color: string): string =>
+    `repeating-linear-gradient(90deg, ${color} 0 2px, transparent 2px 4px)`;
+
+/** The `--om-brush` of every highlight element under `root`, in document order. */
+function brushesOf(root: HTMLElement): string[] {
+    return [...root.querySelectorAll<HTMLElement>('.om-hl')].map((el) =>
+        el.style.getPropertyValue('--om-brush'),
+    );
 }
 
 const strategies: { strategy: Strategy }[] = [
@@ -243,6 +261,26 @@ export function defineAdapterContract(factory: AdapterFactory): void {
             expect(root.querySelectorAll('[data-depth]')).toHaveLength(3);
             expect(root.querySelectorAll('[tabindex]')).toHaveLength(0);
         });
+
+        describe.each(strategies)(
+            'with the $strategy strategy',
+            ({ strategy }) => {
+                // `adjacent`: `right` has a color, `left` has none.
+                it('paints a highlight without color with the given brush and defaultColor', async () => {
+                    const props = {
+                        ...adjacent,
+                        strategy,
+                        defaultColor: CUSTOM_COLOR,
+                        brush: solidBrush,
+                    };
+
+                    const { root } = await givenAdapter(props);
+
+                    expect(serializeRoot(root)).toEqual(expectedTree(props));
+                    expect(brushesOf(root)).toContain(solidBrush(CUSTOM_COLOR));
+                });
+            },
+        );
     });
 
     describe(`${name} — offset contract`, () => {
@@ -817,6 +855,43 @@ export function defineAdapterContract(factory: AdapterFactory): void {
 
             expect(serializeRoot(adapter.root)).toEqual(
                 expectedTree({ ...partialOverlap, strategy: 'depth' }),
+            );
+        });
+
+        it('renders a changed defaultColor and brush', async () => {
+            const adapter = await givenAdapter(partialOverlap);
+
+            await adapter.update({
+                defaultColor: CUSTOM_COLOR,
+                brush: solidBrush,
+            });
+
+            expect(serializeRoot(adapter.root)).toEqual(
+                expectedTree({
+                    ...partialOverlap,
+                    defaultColor: CUSTOM_COLOR,
+                    brush: solidBrush,
+                }),
+            );
+            // Four marks: a · a+b (two layers) · b.
+            expect(brushesOf(adapter.root)).toEqual(
+                Array(4).fill(solidBrush(CUSTOM_COLOR)),
+            );
+        });
+
+        it('renders a brush given in place of the first', async () => {
+            const adapter = await givenAdapter({
+                ...partialOverlap,
+                brush: solidBrush,
+            });
+
+            await adapter.update({ brush: stripedBrush });
+
+            expect(serializeRoot(adapter.root)).toEqual(
+                expectedTree({ ...partialOverlap, brush: stripedBrush }),
+            );
+            expect(brushesOf(adapter.root)).toEqual(
+                Array(4).fill(stripedBrush(DEFAULT_COLOR)),
             );
         });
 

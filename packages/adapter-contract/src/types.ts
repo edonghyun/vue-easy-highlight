@@ -13,6 +13,10 @@ export interface ContractProps {
     highlights: readonly Highlight[];
     strategy?: Strategy;
     focusable?: boolean;
+    /** Color passed to `brush` for highlights without `color`. */
+    defaultColor?: string;
+    /** Returns the CSS image value of `--om-brush` for a color. */
+    brush?: (color: string) => string;
     minSelectionLength?: number;
     touchSelectionDelay?: number;
     /**
