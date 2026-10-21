@@ -81,7 +81,7 @@ function normalize<T>(
 }
 
 /** Canonical rank of each entry of `segment.highlights`, recorded by computeSegments. */
-const segmentRanks = new WeakMap<Segment<never>, number[]>();
+const segmentRanks = new WeakMap<object, number[]>();
 
 export function computeSegments<T>(
     text: string,
