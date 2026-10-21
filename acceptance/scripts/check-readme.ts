@@ -73,9 +73,7 @@ for (const { heading, pkg, file } of frameworks) {
 
     const app = join(root, 'acceptance/apps', file);
     if (!existsSync(app)) {
-        console.log(
-            `skipped ${heading}: ${relative(root, app)} does not exist yet`,
-        );
+        problems.push(`${relative(root, app)} does not exist (${heading})`);
         continue;
     }
     if (!contains(normalized(readFileSync(app, 'utf8')), lines))
