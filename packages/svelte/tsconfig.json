@@ -1,0 +1,7 @@
+{
+    "extends": [
+        "../../tsconfig.base.json",
+        "../../tsconfig.workspace-paths.json"
+    ],
+    "include": ["src", "test", "*.config.ts", "*.config.js"]
+}

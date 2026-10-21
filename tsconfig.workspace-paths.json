@@ -11,6 +11,7 @@
             "@overlapmark/dom": ["./packages/dom/src/index.ts"],
             "@overlapmark/vue": ["./packages/vue/src/index.ts"],
             "@overlapmark/react": ["./packages/react/src/index.ts"],
+            "@overlapmark/svelte": ["./packages/svelte/src/lib/index.ts"],
             "@overlapmark/adapter-contract": [
                 "./packages/adapter-contract/src/index.ts"
             ],

@@ -6,6 +6,8 @@ export default tseslint.config(
         ignores: [
             '**/dist/**',
             '**/coverage/**',
+            // svelte-package's working copy of the sources
+            '**/.svelte-kit/**',
             'node_modules/**',
             'docs/**',
             '.superpowers/**',

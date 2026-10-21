@@ -24,6 +24,7 @@ pnpm-debug.log*
 
 dist
 coverage
+.svelte-kit
 .vitest-attachments
 __screenshots__
 

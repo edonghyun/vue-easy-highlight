@@ -32,6 +32,10 @@ export const workspaceAliases: WorkspaceAlias[] = [
         replacement: source('react/src/index.ts'),
     },
     {
+        find: /^@overlapmark\/svelte$/,
+        replacement: source('svelte/src/lib/index.ts'),
+    },
+    {
         find: /^@overlapmark\/adapter-contract\/fixtures$/,
         replacement: source('adapter-contract/src/fixtures.ts'),
     },

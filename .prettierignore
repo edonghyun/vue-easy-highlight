@@ -3,3 +3,4 @@ docs/superpowers
 pnpm-lock.yaml
 dist
 coverage
+.svelte-kit
