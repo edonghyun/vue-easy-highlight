@@ -5,5 +5,10 @@ export default defineConfig({
     format: ['esm'],
     dts: true,
     clean: true,
-    external: ['vue', '@overlapmark/core', '@overlapmark/core/dom'],
+    external: [
+        'vue',
+        '@overlapmark/core',
+        '@overlapmark/core/adapter',
+        '@overlapmark/core/dom',
+    ],
 });

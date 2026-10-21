@@ -7,7 +7,6 @@
 -->
 <script lang="ts" module>
     import type {
-        ElementSpec,
         Highlight,
         HoverDetail,
         Overlap,
@@ -16,6 +15,7 @@
         SelectDetail,
         Strategy,
     } from '@overlapmark/core';
+    import type { ElementSpec } from '@overlapmark/core/adapter';
     import type { Snippet } from 'svelte';
     import type { HTMLAttributes } from 'svelte/elements';
 
@@ -117,14 +117,15 @@
 </script>
 
 <script lang="ts" generics="T = unknown">
+    import { computeSegments } from '@overlapmark/core';
+    import type { RenderOptions } from '@overlapmark/core';
     import {
-        computeSegments,
         decorationTarget,
         rootAttributes,
         segmentElements,
         segmentKey,
-    } from '@overlapmark/core';
-    import type { DecorationTarget, RenderOptions } from '@overlapmark/core';
+    } from '@overlapmark/core/adapter';
+    import type { DecorationTarget } from '@overlapmark/core/adapter';
     import {
         attachInteractions,
         captureViewState,

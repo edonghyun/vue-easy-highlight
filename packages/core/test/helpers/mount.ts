@@ -2,13 +2,14 @@
 // tests that need it import '../src/styles.css' themselves.
 import { setSelection } from '@overlapmark/adapter-contract';
 import { onTestFinished } from 'vitest';
+import { computeSegments } from '../../src';
+import type { Highlight, RenderOptions, Segment } from '../../src';
 import {
-    computeSegments,
     decorationTarget,
     rootAttributes,
     segmentElements,
-} from '../../src';
-import type { ElementSpec, Highlight, RenderOptions, Segment } from '../../src';
+} from '../../src/adapter';
+import type { ElementSpec } from '../../src/adapter';
 import { createRangeFromOffsets } from '../../src/dom';
 
 export interface MountOptions extends RenderOptions {

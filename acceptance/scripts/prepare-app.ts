@@ -40,6 +40,7 @@ async function npm(cwd: string, args: string[]): Promise<void> {
 /** For each CommonJS entry point: an export it must provide as a function. */
 const commonJsEntries: Record<string, string> = {
     '@overlapmark/core': 'computeSegments',
+    '@overlapmark/core/adapter': 'segmentElements',
     '@overlapmark/core/dom': 'attachInteractions',
     '@overlapmark/dom': 'createHighlighter',
 };

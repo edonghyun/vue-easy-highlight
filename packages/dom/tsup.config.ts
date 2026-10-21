@@ -5,5 +5,9 @@ export default defineConfig({
     format: ['esm', 'cjs'],
     dts: true,
     clean: true,
-    external: ['@overlapmark/core', '@overlapmark/core/dom'],
+    external: [
+        '@overlapmark/core',
+        '@overlapmark/core/adapter',
+        '@overlapmark/core/dom',
+    ],
 });

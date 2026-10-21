@@ -39,6 +39,16 @@
                 "default": "./dist/index.cjs"
             }
         },
+        "./adapter": {
+            "import": {
+                "types": "./dist/adapter/index.d.ts",
+                "default": "./dist/adapter/index.js"
+            },
+            "require": {
+                "types": "./dist/adapter/index.d.cts",
+                "default": "./dist/adapter/index.cjs"
+            }
+        },
         "./dom": {
             "import": {
                 "types": "./dist/dom/index.d.ts",

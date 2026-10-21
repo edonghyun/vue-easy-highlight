@@ -1,12 +1,5 @@
-import {
-    computeSegments,
-    decorationTarget,
-    rootAttributes,
-    segmentElements,
-    segmentKey,
-} from '@overlapmark/core';
+import { computeSegments } from '@overlapmark/core';
 import type {
-    ElementSpec,
     Highlight,
     HoverDetail,
     Overlap,
@@ -16,6 +9,13 @@ import type {
     SelectDetail,
     Strategy,
 } from '@overlapmark/core';
+import {
+    decorationTarget,
+    rootAttributes,
+    segmentElements,
+    segmentKey,
+} from '@overlapmark/core/adapter';
+import type { ElementSpec } from '@overlapmark/core/adapter';
 import {
     attachInteractions,
     captureViewState,

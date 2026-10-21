@@ -1,8 +1,5 @@
-import {
-    computeSegments,
-    rootAttributes,
-    segmentElements,
-} from '@overlapmark/core';
+import { computeSegments } from '@overlapmark/core';
+import { rootAttributes, segmentElements } from '@overlapmark/core/adapter';
 import type { RenderOptions } from '@overlapmark/core';
 import type { ContractProps } from './types';
 import { classTokens } from './serialize';

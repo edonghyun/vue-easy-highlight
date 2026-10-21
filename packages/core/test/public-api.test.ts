@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as core from '../src/index';
+import * as adapter from '../src/adapter';
 import * as dom from '../src/dom/index';
 
 // Pins the runtime names each entry point exports. Adding or removing one is a
@@ -11,14 +12,23 @@ describe('@overlapmark/core entry point', () => {
 
         expect(names).toEqual([
             'DEFAULT_COLOR',
-            'compareHighlights',
             'computeSegments',
-            'decorationTarget',
             'defaultBrush',
             'findMatches',
             'highlightsInRange',
-            'rootAttributes',
             'segmentAt',
+        ]);
+    });
+});
+
+describe('@overlapmark/core/adapter entry point', () => {
+    it('exports exactly the helpers adapter authors build on', () => {
+        const names = Object.keys(adapter).sort();
+
+        expect(names).toEqual([
+            'compareHighlights',
+            'decorationTarget',
+            'rootAttributes',
             'segmentElements',
             'segmentKey',
         ]);

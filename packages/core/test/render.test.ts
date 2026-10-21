@@ -11,14 +11,16 @@ import {
     DEFAULT_COLOR,
     computeSegments,
     defaultBrush,
-    rootAttributes,
     segmentAt,
-    segmentElements,
-    segmentKey,
-    decorationTarget,
     type Highlight,
     type RenderOptions,
 } from '../src';
+import {
+    decorationTarget,
+    rootAttributes,
+    segmentElements,
+    segmentKey,
+} from '../src/adapter';
 
 const text = 'Hello wonderful world';
 const A = { id: 'a', start: 0, end: 15, className: 'note', color: '#ff0000' };

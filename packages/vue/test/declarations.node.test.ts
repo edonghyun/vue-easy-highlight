@@ -101,6 +101,9 @@ function typeErrorsOf(source: string, vue: string): string[] {
             '@overlapmark/core': [
                 join(workspace, 'packages/core/src/index.ts'),
             ],
+            '@overlapmark/core/adapter': [
+                join(workspace, 'packages/core/src/adapter.ts'),
+            ],
             '@overlapmark/core/dom': [
                 join(workspace, 'packages/core/src/dom/index.ts'),
             ],

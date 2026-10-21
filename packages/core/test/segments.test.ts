@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { compareHighlights } from '../src/adapter';
 import {
-    compareHighlights,
     computeSegments,
     highlightsInRange,
     segmentAt,

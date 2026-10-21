@@ -21,6 +21,10 @@ export const workspaceAliases: WorkspaceAlias[] = [
         replacement: source('core/src/styles.css'),
     },
     {
+        find: /^@overlapmark\/core\/adapter$/,
+        replacement: source('core/src/adapter.ts'),
+    },
+    {
         find: /^@overlapmark\/core\/dom$/,
         replacement: source('core/src/dom/index.ts'),
     },
