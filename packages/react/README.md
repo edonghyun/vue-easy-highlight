@@ -6,7 +6,7 @@ React component for overlapmark: render overlapping text highlights and listen t
 npm install @overlapmark/react @overlapmark/core
 ```
 
-Requires React 18 or later (`react` and `react-dom`). The tests run on React 19; React 18 is not tested yet.
+Requires React 18 or later (`react` and `react-dom`). The tests run on React 19; on React 18.3 the types are checked and the core scenarios run.
 
 ```tsx
 import '@overlapmark/core/styles.css';

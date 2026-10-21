@@ -212,7 +212,8 @@ In Vue, render `Highlighter` from [`@overlapmark/vue`](packages/vue) in place of
 
 ## Known limitations
 
-- **Untested peer lower bounds.** `@overlapmark/react` declares React 18 or later, `@overlapmark/vue` Vue 3.3 or later and `@overlapmark/svelte` Svelte 5 or later, but the test suites run on React 19, Vue 3.5 and Svelte 5.57 only; React 18, Vue 3.3–3.4 and earlier Svelte 5 releases are not tested yet.
+- **Peer lower bounds get a reduced test.** `@overlapmark/react` declares React 18 or later, `@overlapmark/vue` Vue 3.3 or later and `@overlapmark/svelte` Svelte 5 or later. The full suites run on React 19, Vue 3.5 and Svelte 5.57. On React 18.3, Vue 3.3 and Svelte 5.0 an app type-checks against the published types and runs the core scenarios (select, click, keyboard activation, update) in Chromium; releases in between are not tested.
+- **Svelte 5.0 needs an older esrap.** `Highlighter.svelte` ships as TypeScript source. Svelte 5.0 accepts any esrap 1.x, and a fresh install picks esrap 1.4, which fails to compile TypeScript in any component (`Not implemented type annotation EmptyStatement`). Pin esrap to 1.2.3 (npm `overrides`, pnpm `pnpm.overrides`), or use a later Svelte.
 - **Chromium only.** The browser tests run in Chromium; Firefox and WebKit are not tested yet.
 - **ESM only for the framework adapters.** `@overlapmark/vue`, `@overlapmark/react` and `@overlapmark/svelte` ship ES modules only; `@overlapmark/core` and `@overlapmark/dom` ship both ES modules and CommonJS.
 - **Programmatic hover `leave`.** A `leave` caused by unmounting, destroying or an update, not by the mouse, carries `event: null`. Hiding the component also emits one for a hovered segment: React's `<Activity mode="hidden">` and Vue's `<KeepAlive>` deactivating it.

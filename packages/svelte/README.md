@@ -6,7 +6,7 @@ Svelte 5 component for overlapmark: render overlapping text highlights and liste
 npm install @overlapmark/svelte @overlapmark/core
 ```
 
-Requires Svelte 5. The package ships `Highlighter.svelte` as source, compiled by your Svelte.
+Requires Svelte 5. The package ships `Highlighter.svelte` as source, compiled by your Svelte. The tests run on Svelte 5.57; on Svelte 5.0 the types are checked and the core scenarios run, with esrap pinned to 1.2.3: a fresh Svelte 5.0 install takes esrap 1.4, which fails to compile TypeScript in any component.
 
 ```svelte
 <script lang="ts">
