@@ -28,3 +28,6 @@ coverage
 __screenshots__
 
 .vitest/
+
+# local-only planning docs
+docs/
