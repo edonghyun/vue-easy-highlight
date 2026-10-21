@@ -372,12 +372,16 @@ export async function applyHighlights(
     page: Page,
     highlights: object[],
 ): Promise<void> {
-    await page
-        .locator('#highlights-json')
-        .evaluate(
-            (el, json) => ((el as HTMLTextAreaElement).value = json),
-            JSON.stringify(highlights),
-        );
+    // The native setter plus an `input` event, as typing would do: a
+    // framework binding (v-model, a React controlled textarea, bind:value)
+    // only sees a value set this way.
+    await page.locator('#highlights-json').evaluate((el, json) => {
+        Object.getOwnPropertyDescriptor(
+            HTMLTextAreaElement.prototype,
+            'value',
+        )!.set!.call(el, json);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+    }, JSON.stringify(highlights));
     await page.locator('#apply').dispatchEvent('click');
 }
 
