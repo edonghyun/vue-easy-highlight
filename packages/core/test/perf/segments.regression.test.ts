@@ -6,13 +6,15 @@ import { medianSegmentsMs } from '../helpers/perf';
 // project (`pnpm test:perf`), alone and without retries, never inside the
 // concurrent node/browser test run.
 //
-// Measured on a dev laptop (node 22): median of 30 samples after 20 warm-ups
-// 0.44–0.56 ms over three runs; the bench reports a 0.37–0.40 ms mean over
-// ~2,700 samples. 4 ms allows roughly 8x while still catching an accidental
-// quadratic step, which costs 10+ ms here (measured 10.6–16 ms). This
-// tolerance has not been measured on CI: re-pin it from CI medians once they
-// are available.
-const REGRESSION_CEILING_MS = 4;
+// Pinned at the observed CI max × 1.5, rounded up to 0.5 ms. Measured by
+// perf.yml on ubuntu-latest (node 22.22.0), 20 runs each, the median of 30
+// samples after 20 warm-ups per run:
+//   run 39669500741: 1.04–1.57 ms
+//   run 39670474615: 1.05–1.95 ms
+// Max 1.95 ms × 1.5 = 2.92 ms → 3 ms. An accidental quadratic step costs
+// 10+ ms even on a dev laptop (measured 10.6–16 ms; medians there are
+// 0.4–0.56 ms), so it fails here.
+const REGRESSION_CEILING_MS = 3;
 
 describe('computeSegments on 100k characters with 1,000 highlights', () => {
     it('stays under the measured regression ceiling', () => {
