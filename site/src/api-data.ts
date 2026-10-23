@@ -210,7 +210,8 @@ export const CSS_VARIABLES = [
     {
         name: '--om-max-depth',
         default: '6',
-        description: 'The depth at which darkening stops.',
+        description:
+            'The level at which darkening stops, and the furthest nested underlines and boxes are offset.',
     },
     {
         name: '--om-color',
@@ -223,6 +224,17 @@ export const CSS_VARIABLES = [
         default: 'per layer',
         description: 'Layer index, 0 for the outermost (layers strategy).',
     },
+    {
+        name: '--om-depth',
+        default: 'per segment',
+        description: 'Overlap count of a segment (depth strategy).',
+    },
+    {
+        name: '--om-brush',
+        default: 'per highlight',
+        description:
+            'The image `om-style-marker` paints, from the `brush` option.',
+    },
 ] as const;
 
 export const CSS_CLASSES = [
@@ -234,7 +246,8 @@ export const CSS_CLASSES = [
     },
     {
         name: 'om-hl',
-        description: 'A highlight element (`<mark>`), with `data-om-id`.',
+        description:
+            'A highlight element (`<mark>`). With the `layers` strategy it carries `data-om-id`; with `depth`, one per segment, it is also the `om-seg`.',
     },
     {
         name: 'om-style-marker',

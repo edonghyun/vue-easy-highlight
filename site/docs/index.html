@@ -174,11 +174,7 @@ npm install @overlapmark/svelte @overlapmark/core   # Svelte 5+</code></pre>
                     </p>
                     <div class="card" id="ex-events">
                         <div class="stage" id="ex-events-stage"></div>
-                        <ol
-                            class="log mono"
-                            id="ex-events-log"
-                            aria-live="polite"
-                        ></ol>
+                        <ol class="log mono" id="ex-events-log"></ol>
                     </div>
                 </section>
 
@@ -405,8 +401,11 @@ npm install @overlapmark/svelte @overlapmark/core   # Svelte 5+</code></pre>
                         <li>
                             <strong>Framework versions.</strong> React 18+, Vue
                             3.3+ and Svelte 5+. The lowest versions run a
-                            reduced suite. Svelte 5.0 needs esrap pinned to
-                            1.2.3.
+                            reduced suite. On Svelte 5.0, esrap 1.4 or later
+                            fails to compile TypeScript components (<code
+                                >Not implemented type annotation</code
+                            >); the tests pin esrap to 1.2.3 for Svelte 5.0.5,
+                            so pin it if you see that error.
                         </li>
                         <li>
                             <strong>Ctrl+drag</strong> that starts on a

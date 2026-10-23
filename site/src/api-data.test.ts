@@ -54,3 +54,15 @@ test('a name core lacks is caught', () => {
     expect(styles + render).not.toContain('--om-nope');
     expect(styles + render).not.toContain('om-style-nope');
 });
+
+test('every custom property core styles with is documented', () => {
+    const used = new Set(styles.match(/--om-[a-z-]+/g));
+    expect(used.size).toBeGreaterThan(0);
+    expect(new Set(CSS_VARIABLES.map((v) => v.name))).toEqual(used);
+});
+
+test('data-om-id is documented as layers-only', () => {
+    const hl = CSS_CLASSES.find((c) => c.name === 'om-hl')!;
+    expect(hl.description).toContain('data-om-id');
+    expect(hl.description).toContain('`layers` strategy');
+});

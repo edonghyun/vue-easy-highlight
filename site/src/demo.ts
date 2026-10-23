@@ -22,6 +22,8 @@ let added = 0;
 const hero = createHighlighter<Label>(byId('hero'), {
     text: heroText,
     highlights: heroMarks,
+    // The hero only collects selections; section 02 shows keyboard access.
+    focusable: false,
 });
 const status = byId('hero-status');
 
@@ -67,12 +69,17 @@ byId('reset').addEventListener('click', () => {
 showHero();
 
 const install = byId<HTMLButtonElement>('install');
+const INSTALL = install.textContent!.trim();
+let restore = 0;
 install.addEventListener('click', async () => {
-    const text = install.textContent!.trim();
     try {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(INSTALL);
         install.textContent = 'Copied';
-        setTimeout(() => (install.textContent = text), 1200);
+        clearTimeout(restore);
+        restore = window.setTimeout(
+            () => (install.textContent = INSTALL),
+            1200,
+        );
     } catch {
         // Clipboard access denied: the command stays visible to copy by hand.
     }

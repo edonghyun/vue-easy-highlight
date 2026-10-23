@@ -169,3 +169,25 @@ test('stages stay light under a dark OS theme', async ({ page }) => {
             .evaluate((el) => getComputedStyle(el).backgroundColor),
     ).toBe('rgb(255, 255, 255)');
 });
+
+test('hero highlights are not Tab stops', async ({ page }) => {
+    expect(
+        await page.locator('#click-stage [tabindex="0"]').count(),
+    ).toBeGreaterThan(0);
+    await expect(page.locator('#hero [tabindex]')).toHaveCount(0);
+});
+
+test('a second copy click keeps the install command', async ({
+    page,
+    context,
+}) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const chip = page.locator('#install');
+    await chip.click();
+    await expect(chip).toHaveText('Copied');
+    await chip.click();
+    await expect(chip).toHaveText('npm i @overlapmark/dom');
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+        'npm i @overlapmark/dom',
+    );
+});

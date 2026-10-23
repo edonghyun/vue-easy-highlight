@@ -85,3 +85,11 @@ test('quick-start tabs show the README code', async ({ page }) => {
         QUICK_STARTS.Svelte.code,
     );
 });
+
+test('the events log is not a live region', async ({ page }) => {
+    await expect(page.locator('#ex-events-log')).toHaveCount(1);
+    await expect(page.locator('#ex-events-log')).not.toHaveAttribute(
+        'aria-live',
+        /.*/,
+    );
+});
