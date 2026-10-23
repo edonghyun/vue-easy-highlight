@@ -14,15 +14,15 @@ pnpm exec playwright install chromium   # browser tests
 
 The repository is a pnpm workspace:
 
-| Path                              | What it is                                                                                     |
-| --------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `packages/core`                   | `@overlapmark/core`: segments, render contract, DOM helpers, `styles.css`                      |
-| `packages/dom`                    | `@overlapmark/dom`, the vanilla JS adapter                                                     |
-| `packages/vue`, `react`, `svelte` | The framework adapters                                                                         |
-| `packages/adapter-contract`       | Private: the browser test suite every adapter runs                                             |
-| `acceptance`                      | End-to-end tests of apps installed from the packed tarballs                                    |
-| `examples/vanilla`                | The [live demo](https://edonghyun.github.io/overlapmark/): `pnpm --filter vanilla-example dev` |
-| `docs-assets`                     | README images, rendered from the demo by `pnpm docs:images`                                    |
+| Path                              | What it is                                                                                               |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `packages/core`                   | `@overlapmark/core`: segments, render contract, DOM helpers, `styles.css`                                |
+| `packages/dom`                    | `@overlapmark/dom`, the vanilla JS adapter                                                               |
+| `packages/vue`, `react`, `svelte` | The framework adapters                                                                                   |
+| `packages/adapter-contract`       | Private: the browser test suite every adapter runs                                                       |
+| `acceptance`                      | End-to-end tests of apps installed from the packed tarballs                                              |
+| `site`                            | The [live demo and docs](https://edonghyun.github.io/overlapmark/): `pnpm --filter overlapmark-site dev` |
+| `docs-assets`                     | README images, rendered from the site by `pnpm docs:images`                                              |
 
 ## Checks
 

@@ -1,6 +1,6 @@
 name: Pages
 
-# Builds the demo (examples/vanilla) and deploys it to GitHub Pages at
+# Builds the site (site/: the demo and the docs) and deploys it to GitHub Pages at
 # https://edonghyun.github.io/overlapmark/. Off until the repository
 # variable PAGES_ENABLED is 'true' and Pages is set to deploy from Actions.
 on:
@@ -33,9 +33,9 @@ jobs:
             - run: corepack enable
             - run: pnpm install --frozen-lockfile
             # The site is served from the /overlapmark/ subpath.
-            - run: pnpm --filter vanilla-example build --base /overlapmark/
+            - run: pnpm --filter overlapmark-site build --base /overlapmark/
             - uses: actions/upload-pages-artifact@v5
               with:
-                  path: examples/vanilla/dist
+                  path: site/dist
             - id: deployment
               uses: actions/deploy-pages@v5

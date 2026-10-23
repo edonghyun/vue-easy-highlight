@@ -1,5 +1,5 @@
-// Renders the README images into docs-assets/ from the built demo
-// (examples/vanilla): one per overlap mode and a hero of the inspector.
+// Renders the README images into docs-assets/ from the built site
+// (site/): one per overlap mode and a hero of the inspector.
 // Run with `pnpm docs:images`. The pages are captured in the light theme at
 // twice the pixel density. The mode images are white cards on a transparent
 // page and the hero carries the page's own background, so both read on
@@ -14,12 +14,12 @@ import { preview } from 'vite';
 import { toPalettePng } from './palette-png.ts';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const demo = join(root, 'examples/vanilla');
+const demo = join(root, 'site');
 const out = join(root, 'docs-assets');
 
 const MODES = ['multiply', 'darken', 'none'] as const;
 
-execFileSync('pnpm', ['--filter', 'vanilla-example', 'build'], {
+execFileSync('pnpm', ['--filter', 'overlapmark-site', 'build'], {
     cwd: root,
     stdio: 'inherit',
 });

@@ -101,7 +101,7 @@ highlights = findMatches(text, 'highlights').map((m, i) => ({
 hl.update({ highlights });
 ```
 
-The [live demo](https://edonghyun.github.io/overlapmark/) lives in [`examples/vanilla`](examples/vanilla): `pnpm --filter vanilla-example dev`.
+The [live demo and docs](https://edonghyun.github.io/overlapmark/) live in [`site`](site): `pnpm --filter overlapmark-site dev`.
 
 ## Quick start (Vue)
 

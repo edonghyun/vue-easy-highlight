@@ -1,5 +1,5 @@
 // Vite/Vitest aliases resolving every workspace package to its sources, the
-// counterpart of tsconfig.workspace-paths.json. Tests and the examples run
+// counterpart of tsconfig.workspace-paths.json. Tests and the site run
 // without building first, and every importer shares one module instance:
 // @overlapmark/adapter-contract imports @overlapmark/core without declaring
 // it (core's own tests run the suite, so a declared dependency would be a

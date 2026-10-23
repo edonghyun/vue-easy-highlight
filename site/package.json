@@ -1,5 +1,5 @@
 {
-    "name": "vanilla-example",
+    "name": "overlapmark-site",
     "private": true,
     "version": "0.0.0",
     "type": "module",
@@ -7,7 +7,9 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run --passWithNoTests",
+        "test:e2e": "playwright test"
     },
     "dependencies": {
         "@overlapmark/core": "workspace:*",

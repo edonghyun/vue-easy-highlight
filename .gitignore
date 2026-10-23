@@ -32,7 +32,12 @@ __screenshots__
 
 # local-only planning docs
 docs/
+!site/docs/
 
 # acceptance-test working files
 acceptance/.work/
 packages/*/LICENSE
+
+# Playwright output of the site e2e suite
+site/test-results/
+site/playwright-report/

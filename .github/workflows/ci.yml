@@ -26,3 +26,4 @@ jobs:
             - run: pnpm test
             - run: pnpm test:perf
             - run: pnpm build
+            - run: pnpm --filter overlapmark-site test:e2e
