@@ -1,0 +1,7 @@
+{
+    "extends": ["../tsconfig.base.json", "../tsconfig.workspace-paths.json"],
+    "compilerOptions": {
+        "types": ["vite/client"]
+    },
+    "include": ["*.ts", "src/**/*.ts", "e2e/**/*.ts"]
+}

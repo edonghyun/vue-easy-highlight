@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>overlapmark docs</title>
+        <meta
+            name="description"
+            content="Usage and API reference for overlapmark: options, events, overlap modes, styling and accessibility."
+        />
+        <script type="module" src="/src/docs.ts"></script>
+    </head>
+    <body>
+        <header class="topbar">
+            <a class="brand" href="../">overlapmark</a>
+            <nav>
+                <a href="../">Demo</a>
+                <a href="./" aria-current="page">Docs</a>
+                <a href="https://github.com/edonghyun/overlapmark">GitHub</a>
+            </nav>
+        </header>
+
+        <div class="docs">
+            <aside id="toc" aria-label="On this page">
+                <details open>
+                    <summary>On this page</summary>
+                    <ol>
+                        <li><a href="#usage">Usage</a></li>
+                        <li><a href="#highlight">Highlight</a></li>
+                        <li>
+                            <a href="#create-highlighter">createHighlighter</a>
+                        </li>
+                        <li><a href="#options">Options</a></li>
+                        <li><a href="#events">Events</a></li>
+                        <li><a href="#overlap-modes">Overlap modes</a></li>
+                        <li><a href="#styling">Styling</a></li>
+                        <li><a href="#accessibility">Accessibility</a></li>
+                        <li><a href="#ssr">Server rendering</a></li>
+                        <li>
+                            <a href="#shadow-dom">Shadow DOM and iframes</a>
+                        </li>
+                        <li><a href="#limitations">Limitations</a></li>
+                        <li><a href="#migrating">Migrating</a></li>
+                    </ol>
+                </details>
+            </aside>
+
+            <main class="content">
+                <h1>Docs</h1>
+                <p class="lead">
+                    overlapmark renders a text once, cut into segments, with one
+                    nested <code>&lt;mark&gt;</code> per highlight. The more
+                    highlights cover a spot, the darker it gets, and a click
+                    reports every highlight under it. The same options and
+                    events work in vanilla JS, Vue, React and Svelte.
+                </p>
+
+                <section id="usage">
+                    <h2>Usage</h2>
+                    <p>
+                        Install the adapter for your framework, plus core for
+                        the stylesheet and types:
+                    </p>
+                    <div class="card">
+                        <pre><code>npm install @overlapmark/dom @overlapmark/core      # vanilla JS
+npm install @overlapmark/vue @overlapmark/core      # Vue 3.3+
+npm install @overlapmark/react @overlapmark/core    # React 18+
+npm install @overlapmark/svelte @overlapmark/core   # Svelte 5+</code></pre>
+                    </div>
+                    <p>
+                        Then render the text with its highlights. A selection
+                        adds a highlight; a click lists the highlights under it.
+                    </p>
+                    <div id="quick-starts"></div>
+                    <p>
+                        The quick starts use <code>crypto.randomUUID()</code>
+                        for ids, which browsers only offer on HTTPS or
+                        <code>localhost</code>. To highlight search results
+                        instead of selections,
+                        <code>findMatches(text, query)</code> from
+                        <code>@overlapmark/core</code> returns
+                        <code>{ start, end }[]</code>.
+                    </p>
+                    <p>
+                        In Vue the events are <code>@select</code>,
+                        <code>@click</code>, <code>@dblclick</code> and
+                        <code>@hover</code>; in React <code>onSelect</code>,
+                        <code>onClick</code>, <code>onDblClick</code> and
+                        <code>onHover</code>; in Svelte <code>onselect</code>,
+                        <code>onclick</code>, <code>ondblclick</code> and
+                        <code>onhover</code>. Each receives the same detail
+                        object as in vanilla JS, not a framework or DOM event.
+                    </p>
+                </section>
+
+                <section id="highlight">
+                    <h2>Highlight</h2>
+                    <p>
+                        A highlight is a plain object,
+                        <code>Highlight&lt;T&gt;</code> from
+                        <code>@overlapmark/core</code>:
+                    </p>
+                    <div class="table-wrap">
+                        <table data-table="highlight"></table>
+                    </div>
+                    <p>
+                        Ranges are normalised before rendering: a non-integer,
+                        empty or reversed range is dropped, and a range outside
+                        the text is clamped to it, each with a dev warning. A
+                        range that splits a surrogate pair is widened to the
+                        whole character. Duplicate ids and ids with whitespace
+                        also get a warning.
+                    </p>
+                    <p>
+                        <code>findMatches(text, query, options?)</code> finds
+                        literal occurrences of a string or an array of strings.
+                        Options: <code>caseSensitive</code> (default
+                        <code>false</code>), <code>overlapping</code> (default
+                        <code>true</code>) and <code>wholeWord</code> (default
+                        <code>false</code>).
+                    </p>
+                </section>
+
+                <section id="create-highlighter">
+                    <h2>createHighlighter</h2>
+                    <div class="card">
+                        <pre><code>createHighlighter&lt;T&gt;(el: HTMLElement, options: HighlighterOptions&lt;T&gt;): Highlighter&lt;T&gt;</code></pre>
+                    </div>
+                    <p>
+                        From <code>@overlapmark/dom</code>. It replaces the
+                        content of <code>el</code> with the rendered text, adds
+                        the <code>om-root</code> class and sets
+                        <code>data-om-strategy</code> and
+                        <code>data-om-overlap</code>. The Vue, React and Svelte
+                        <code>Highlighter</code> components take the same
+                        options as props.
+                    </p>
+                    <div class="table-wrap">
+                        <table data-table="methods"></table>
+                    </div>
+                    <p>
+                        <code>update()</code> restores a selection at the same
+                        text offsets, unless the text changed, and gives a
+                        focused highlight its focus back on the re-rendered
+                        element.
+                    </p>
+                </section>
+
+                <section id="options">
+                    <h2>Options</h2>
+                    <p>
+                        Options of <code>createHighlighter</code>, or props of
+                        the components:
+                    </p>
+                    <div class="table-wrap">
+                        <table data-table="options"></table>
+                    </div>
+                </section>
+
+                <section id="events">
+                    <h2>Events</h2>
+                    <div class="table-wrap">
+                        <table data-table="events"></table>
+                    </div>
+                    <p>
+                        The detail types are <code>SelectDetail</code>,
+                        <code>PointDetail</code> and
+                        <code>HoverDetail</code> from
+                        <code>@overlapmark/core</code>.
+                        <code>highlights</code> in every event follow the
+                        library order: <code>start</code> ascending, then longer
+                        first, then input order. Try it: hover, click,
+                        double-click or select below.
+                    </p>
+                    <div class="card" id="ex-events">
+                        <div class="stage" id="ex-events-stage"></div>
+                        <ol class="log mono" id="ex-events-log"></ol>
+                    </div>
+                </section>
+
+                <section id="overlap-modes">
+                    <h2>Overlap modes</h2>
+                    <p>
+                        With the default <code>layers</code> strategy, each
+                        highlight covering a segment is its own nested
+                        <code>&lt;mark&gt;</code>. The <code>overlap</code>
+                        option decides how those layers combine. It only sets
+                        <code>data-om-overlap</code> on the root; the stylesheet
+                        does the rest. The <code>depth</code> strategy paints
+                        one color per segment, darkened by its overlap count,
+                        and ignores <code>overlap</code>.
+                    </p>
+                    <div class="modes" id="ex-modes">
+                        <figure class="card" data-mode="multiply">
+                            <figcaption class="bar">
+                                overlap: 'multiply'
+                            </figcaption>
+                            <div class="stage"></div>
+                        </figure>
+                        <figure class="card" data-mode="darken">
+                            <figcaption class="bar">
+                                overlap: 'darken'
+                            </figcaption>
+                            <div class="stage"></div>
+                        </figure>
+                        <figure class="card" data-mode="none">
+                            <figcaption class="bar">overlap: 'none'</figcaption>
+                            <div class="stage"></div>
+                        </figure>
+                    </div>
+                    <dl class="defs">
+                        <dt><code>multiply</code> (default)</dt>
+                        <dd>
+                            Each layer multiplies with the layers under it
+                            (<code>mix-blend-mode: multiply</code>), like a
+                            highlighter pen drawn over itself, so every
+                            highlight darkens the spot it covers, for any color
+                            except pure white. The root is isolated, so layers
+                            never blend with the page behind it. Use it on a
+                            light background. A nested layer also tints its own
+                            text and decorations, and on a dark background
+                            pastels fade and light text loses contrast. Mixing
+                            hues from opposite sides of the color wheel turns
+                            stacks gray-brown, so prefer neighbouring hues for
+                            highlights that overlap.
+                        </dd>
+                        <dt><code>darken</code></dt>
+                        <dd>
+                            Each layer takes its own color mixed toward
+                            <code>--om-depth-ink</code> by
+                            <code>--om-depth-step</code> per nesting level, up
+                            to <code>--om-max-depth</code>, painted at
+                            <code>--om-alpha</code>. No blend mode, so text is
+                            never tinted. It darkens reliably only when the
+                            colors have similar lightness: a pale color nested
+                            in a saturated one still comes out lighter. Use it
+                            for dark themes or wherever blending is unwanted.
+                        </dd>
+                        <dt><code>none</code></dt>
+                        <dd>
+                            Plain translucent layers with no depth effect. Use
+                            it when the overlap should not stand out, or when
+                            you draw depth yourself from
+                            <code>[data-om-depth]</code> or
+                            <code>--om-level</code>.
+                        </dd>
+                    </dl>
+                    <p>
+                        For dark themes, keep a light reading surface, or switch
+                        to <code>darken</code> with deeper colors:
+                    </p>
+                    <div class="card">
+                        <pre><code>/* Option 1: the default multiply mode on a light reading surface. */
+.article {
+    background: #fbf8f1;
+    color: #1d1d1f;
+}
+
+/* Option 2: overlap: 'darken' with deeper colors on the dark page. */
+@media (prefers-color-scheme: dark) {
+    .article {
+        --om-default-color: #6d5bd0;
+        --om-alpha: 70%;
+        --om-depth-ink: black;
+    }
+}</code></pre>
+                    </div>
+                </section>
+
+                <section id="styling">
+                    <h2>Styling</h2>
+                    <p>
+                        Import <code>@overlapmark/core/styles.css</code>, then
+                        style at three levels. Every library selector is wrapped
+                        in <code>:where()</code>, so your own class rules always
+                        win. You can also skip the stylesheet and style the DOM
+                        yourself; keep a visible focus style if you do.
+                    </p>
+                    <h3>1. Theme variables</h3>
+                    <p>Set them on <code>.om-root</code> or any ancestor:</p>
+                    <div class="table-wrap">
+                        <table data-table="variables"></table>
+                    </div>
+                    <h3>2. Per highlight</h3>
+                    <p>
+                        Give a highlight a <code>color</code> and a
+                        <code>className</code>, such as a preset:
+                    </p>
+                    <div class="presets" id="ex-styling"></div>
+                    <p>
+                        The presets are made for the <code>layers</code>
+                        strategy, where nesting shows. Write your own CSS
+                        against these classes and attributes:
+                    </p>
+                    <div class="table-wrap">
+                        <table data-table="classes"></table>
+                    </div>
+                    <h3>3. Decorations</h3>
+                    <p>
+                        Add presentational markup after the text of each
+                        highlighted segment, such as an overlap count. It goes
+                        in
+                        <code>&lt;span data-om-skip aria-hidden="true"&gt;</code
+                        >, stays out of offsets, selections and copies, and must
+                        not contain anything focusable.
+                    </p>
+                    <div class="card">
+                        <pre><code>createHighlighter(el, {
+    text,
+    highlights,
+    decorate: (segment) => (segment.depth > 1 ? `×${segment.depth}` : null),
+});</code></pre>
+                    </div>
+                </section>
+
+                <section id="accessibility">
+                    <h2>Accessibility</h2>
+                    <ul>
+                        <li>
+                            <strong>Keyboard.</strong> With
+                            <code>focusable: true</code>, the default, every
+                            highlighted segment is a Tab stop, and Enter or
+                            Space reports <code>click</code>. Tab stops are per
+                            segment, not per highlight, so for densely annotated
+                            text set <code>focusable: false</code>
+                            and offer another way in, such as a list.
+                        </li>
+                        <li>
+                            <strong>Screen readers.</strong> A focusable segment
+                            is <code>role="button"</code> with an
+                            <code>aria-description</code> from
+                            <code>describe</code>, "2 highlights" by default. It
+                            is an attribute, so it never enters the text or the
+                            offsets. <code>aria-description</code> is from the
+                            ARIA 1.3 draft; older Safari with VoiceOver may not
+                            announce it.
+                        </li>
+                        <li>
+                            <strong>Decorations</strong> are
+                            <code>aria-hidden</code>: put what matters in
+                            <code>describe</code>.
+                        </li>
+                        <li>
+                            <strong>Forced colors.</strong> Highlights are
+                            painted in the system <code>Mark</code> colors with
+                            an outline, and depth shows through the outlines of
+                            nested highlights.
+                        </li>
+                    </ul>
+                </section>
+
+                <section id="ssr">
+                    <h2>Server rendering</h2>
+                    <p>
+                        The main entry of <code>@overlapmark/core</code> reads
+                        no <code>window</code> or <code>document</code>, so it
+                        runs on the server. The Vue, React and Svelte components
+                        render the same markup on the server as on the client
+                        and hydrate on it. Import
+                        <code>@overlapmark/core/styles.css</code> on both sides.
+                    </p>
+                    <p>
+                        <code>@overlapmark/react</code> starts with
+                        <code>'use client'</code>. In React Server Components, a
+                        Server Component can render
+                        <code>Highlighter</code> with plain props, but when you
+                        pass functions (handlers, <code>describe</code>,
+                        <code>brush</code>, <code>renderDecoration</code>),
+                        render it from a Client Component of your own.
+                    </p>
+                </section>
+
+                <section id="shadow-dom">
+                    <h2>Shadow DOM and iframes</h2>
+                    <p>
+                        The root may sit inside an open shadow root or in an
+                        iframe's document: selection, focus and offsets are read
+                        from the root's own tree and window.
+                    </p>
+                    <ul>
+                        <li>
+                            In a closed shadow root in Chromium, a drag that
+                            starts on a focusable highlight's first character
+                            selects nothing. Closed shadow roots are not tested.
+                        </li>
+                        <li>Slotted content in the root is not supported.</li>
+                    </ul>
+                </section>
+
+                <section id="limitations">
+                    <h2>Limitations</h2>
+                    <ul>
+                        <li>
+                            <strong>Browsers.</strong> The stylesheet needs
+                            <code>color-mix()</code>: Chrome and Edge 111,
+                            Firefox 113, Safari 16.2. Without it highlights have
+                            no fill. The acceptance tests run in Playwright's
+                            Chromium, Firefox and WebKit, desktop and emulated
+                            Pixel 7 and iPhone 15; no real device is tested.
+                        </li>
+                        <li>
+                            <strong>Framework versions.</strong> React 18+, Vue
+                            3.3+ and Svelte 5+. The lowest versions run a
+                            reduced suite. On Svelte 5.0, esrap 1.4 or later
+                            fails to compile TypeScript components (<code
+                                >Not implemented type annotation</code
+                            >); the tests pin esrap to 1.2.3 for Svelte 5.0.5,
+                            so pin it if you see that error.
+                        </li>
+                        <li>
+                            <strong>Ctrl+drag</strong> that starts on a
+                            focusable highlight's first character selects
+                            nothing in Chromium. Start the drag elsewhere, or
+                            set <code>focusable: false</code>.
+                        </li>
+                        <li>
+                            <strong>Modules.</strong> The Vue, React and Svelte
+                            adapters ship ES modules only; core and dom ship ES
+                            modules and CommonJS.
+                        </li>
+                        <li>
+                            <strong>Svelte.</strong> Every highlighted segment
+                            gets a decoration container when a
+                            <code>decoration</code> snippet is given, and
+                            highlights held in deep <code>$state</code> arrive
+                            in events as state proxies; use
+                            <code>$state.raw</code> to compare with
+                            <code>===</code>.
+                        </li>
+                    </ul>
+                    <p>
+                        The full list is in the
+                        <a
+                            href="https://github.com/edonghyun/overlapmark#known-limitations"
+                            >README</a
+                        >.
+                    </p>
+                </section>
+
+                <section id="migrating">
+                    <h2>Migrating from vue-easy-highlight</h2>
+                    <p>
+                        overlapmark replaces <code>vue-easy-highlight</code>. In
+                        Vue, render <code>Highlighter</code> from
+                        <code>@overlapmark/vue</code>, compute the ranges
+                        yourself and pass them as <code>highlights</code> with
+                        ids.
+                    </p>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>vue-easy-highlight 0.1.14</th>
+                                    <th>overlapmark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>text</code></td>
+                                    <td><code>text</code></td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <code>textsToHighlight</code> (a Set)
+                                    </td>
+                                    <td>
+                                        <code>highlights</code> from
+                                        <code
+                                            >findMatches(text, [...set], {
+                                            overlapping: false })</code
+                                        >, each with an id
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><code>baseColor</code></td>
+                                    <td>
+                                        <code>defaultColor</code>, or
+                                        <code>--om-default-color</code>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><code>textsBaseColorMap</code></td>
+                                    <td>
+                                        <code>color</code> on each highlight
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <code>selectedTextColor</code>,
+                                        <code>selectedTextBackgroundColor</code>
+                                    </td>
+                                    <td>
+                                        Your CSS:
+                                        <code>.om-root ::selection { … }</code>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><code>@text:selected</code></td>
+                                    <td>
+                                        <code
+                                            >@select="({ text, rect, start, end
+                                            }) =&gt; …"</code
+                                        >
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><code>@text:clicked</code></td>
+                                    <td>
+                                        <code
+                                            >@click="({ event, offset, segment,
+                                            highlights }) =&gt; …"</code
+                                        >
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>
+                        The old one-color-per-character darkening is closest to
+                        <code>strategy="depth"</code>. The old
+                        <code>text:selected</code> skipped selections shorter
+                        than 2 characters: use
+                        <code>:min-selection-length="2"</code>.
+                    </p>
+                </section>
+            </main>
+        </div>
+
+        <footer class="footer mono">
+            MIT licensed ·
+            <a href="https://github.com/edonghyun/overlapmark">GitHub</a> ·
+            <a href="https://www.npmjs.com/package/@overlapmark/dom">npm</a>
+        </footer>
+    </body>
+</html>

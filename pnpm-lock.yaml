@@ -78,25 +78,6 @@ importers:
         specifier: ^5.0.5
         version: 5.0.5(@types/node@22.20.5)(@vitest/browser-playwright@5.0.5)(@vitest/ui@5.0.5)(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(yaml@2.9.1))
 
-  examples/vanilla:
-    dependencies:
-      '@overlapmark/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@overlapmark/dom':
-        specifier: workspace:*
-        version: link:../../packages/dom
-    devDependencies:
-      '@fontsource/instrument-sans':
-        specifier: ^5.3.0
-        version: 5.3.0
-      '@fontsource/literata':
-        specifier: ^5.3.0
-        version: 5.3.0
-      vite:
-        specifier: ^8
-        version: 8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(yaml@2.9.1)
-
   packages/adapter-contract:
     dependencies:
       vitest:
@@ -187,6 +168,25 @@ importers:
       vue-tsc:
         specifier: ^3.3.13
         version: 3.3.13(typescript@6.0.3)
+
+  site:
+    dependencies:
+      '@overlapmark/core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@overlapmark/dom':
+        specifier: workspace:*
+        version: link:../packages/dom
+    devDependencies:
+      '@fontsource/inter':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/jetbrains-mono':
+        specifier: ^5.3.0
+        version: 5.3.0
+      vite:
+        specifier: ^8
+        version: 8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(yaml@2.9.1)
 
 packages:
 
@@ -499,11 +499,11 @@ packages:
     resolution: {integrity: sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@fontsource/instrument-sans@5.3.0':
-    resolution: {integrity: sha512-QwXc4hb/px3XvSPS2CPAOgey8nyrQFxgxrmXQQ+pN+P51hKdAcchxpg8rSbjANFfPu6VKXhDqkVDucXMZ9CM5g==}
+  '@fontsource/inter@5.3.0':
+    resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
 
-  '@fontsource/literata@5.3.0':
-    resolution: {integrity: sha512-9JGMT5+YfBK49thoMq9ASaMRJErHT4V4QuMhAEwKHRLreOsIMP2xP6ZRLhPJ0e6YlET+kjWTJuN7LAxt9/gWGQ==}
+  '@fontsource/jetbrains-mono@5.3.0':
+    resolution: {integrity: sha512-fqDfB5I9f1p1TV486aUgB9t8zP84P0O1FtQR5Ol9vjwPy+S+EIGlVYm1cvj2W5shcZMTg2nZFdVMoH5wFu8a1A==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2489,9 +2489,9 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@fontsource/instrument-sans@5.3.0': {}
+  '@fontsource/inter@5.3.0': {}
 
-  '@fontsource/literata@5.3.0': {}
+  '@fontsource/jetbrains-mono@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

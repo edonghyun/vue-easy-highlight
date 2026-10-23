@@ -1,6 +1,6 @@
-// Renders the README images into docs-assets/ from the built demo
-// (examples/vanilla): one per overlap mode and a hero of the inspector.
-// Run with `pnpm docs:images`. The pages are captured in the light theme at
+// Renders the README images into docs-assets/ from the built site (site/):
+// one per overlap mode, from the docs page's overlap examples, and a hero of
+// the demo's opening. Run with `pnpm docs:images`. The pages are captured at
 // twice the pixel density. The mode images are white cards on a transparent
 // page and the hero carries the page's own background, so both read on
 // GitHub's light and dark themes; each is re-encoded as a palette PNG.
@@ -14,12 +14,12 @@ import { preview } from 'vite';
 import { toPalettePng } from './palette-png.ts';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const demo = join(root, 'examples/vanilla');
+const demo = join(root, 'site');
 const out = join(root, 'docs-assets');
 
 const MODES = ['multiply', 'darken', 'none'] as const;
 
-execFileSync('pnpm', ['--filter', 'vanilla-example', 'build'], {
+execFileSync('pnpm', ['--filter', 'overlapmark-site', 'build'], {
     cwd: root,
     stdio: 'inherit',
 });
@@ -36,7 +36,7 @@ if (!url) throw new Error('the demo preview server has no local URL');
 const browser = await chromium.launch();
 const errors: string[] = [];
 
-async function open(width: number): Promise<Page> {
+async function open(path: string, width: number): Promise<Page> {
     const page = await browser.newPage({
         viewport: { width, height: 1200 },
         deviceScaleFactor: 2,
@@ -46,7 +46,7 @@ async function open(width: number): Promise<Page> {
         if (m.type() === 'error') errors.push(m.text());
     });
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(url!, { waitUntil: 'networkidle' });
+    await page.goto(new URL(path, url).href, { waitUntil: 'networkidle' });
     await page.evaluate(async () => {
         await document.fonts.ready;
         // Transparent around the cards, so their rounded corners show.
@@ -65,58 +65,35 @@ async function save(name: string, png: Buffer): Promise<void> {
 mkdirSync(out, { recursive: true });
 
 try {
-    const page = await open(760);
+    const docs = await open('docs/', 760);
     for (const mode of MODES) {
-        await page
-            .locator(`input[name="overlap"][value="${mode}"]`)
-            .check({ force: true });
-        // A caption naming the mode, inside the card the image shows.
-        await page.evaluate((mode) => {
-            const card = document.getElementById('page')!;
-            let caption = card.querySelector<HTMLElement>('.shot-caption');
-            if (!caption) {
-                caption = document.createElement('p');
-                caption.className = 'shot-caption';
-                caption.style.cssText =
-                    'margin:0 0 1rem;font:600 0.9375rem/1.4 var(--sans);color:var(--muted)';
-                card.prepend(caption);
-            }
-            caption.textContent = `overlap: '${mode}'`;
-        }, mode);
         await save(
             `overlap-${mode}.png`,
-            await page
-                .locator('#page')
+            await docs
+                .locator(`#ex-modes [data-mode="${mode}"]`)
                 .screenshot({ omitBackground: true, animations: 'disabled' }),
         );
     }
-    await page.close();
+    await docs.close();
 
-    // Hero: the wordmark, the pitch and the inspector naming the four
-    // analyses under "full canopy", on the page's own background.
-    const hero = await open(1100);
+    // Hero: the title, the pitch, the buttons and the seeded sentence with
+    // its status line, on the page's own background.
+    const hero = await open('', 1100);
     await hero.evaluate(() => {
         document.documentElement.style.background = '';
         document.body.style.background = '';
-        for (const el of document.querySelectorAll<HTMLElement>(
-            '.theme, .install, .links, .controls, .hint, #reset',
-        ))
-            el.style.display = 'none';
     });
-    await hero.locator('#passage .om-seg', { hasText: 'full canopy' }).click();
-    await hero.mouse.move(0, 0);
-    await hero.waitForSelector('#inspector .cards');
     const top = (await hero.locator('.intro').boundingBox())!;
-    const bottom = (await hero.locator('.layout').boundingBox())!;
+    const bottom = (await hero.locator('#hero-status').boundingBox())!;
     await save(
         'hero.png',
         await hero.screenshot({
             animations: 'disabled',
             clip: {
-                x: 0,
-                y: top.y + 8,
-                width: 1100,
-                height: bottom.y + bottom.height + 32 - (top.y + 8),
+                x: top.x - 24,
+                y: top.y + 32,
+                width: top.width + 48,
+                height: bottom.y + bottom.height + 24 - (top.y + 32),
             },
         }),
     );

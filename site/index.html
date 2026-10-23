@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>overlapmark</title>
+        <meta
+            name="description"
+            content="Overlapping text highlights for vanilla JS, Vue, React and Svelte: the more highlights cover a spot, the darker it gets."
+        />
+        <script type="module" src="/src/demo.ts"></script>
+    </head>
+    <body>
+        <header class="topbar">
+            <a class="brand" href="./">overlapmark</a>
+            <nav>
+                <a href="./docs/">Docs</a>
+                <a href="https://github.com/edonghyun/overlapmark">GitHub</a>
+            </nav>
+        </header>
+
+        <main class="demo">
+            <section class="intro">
+                <h1>overlapmark</h1>
+                <p class="tagline">
+                    Overlapping highlights that get darker where they stack.
+                </p>
+                <div class="actions">
+                    <button class="btn" id="add" type="button">
+                        Add a highlight
+                    </button>
+                    <button class="btn ghost" id="reset" type="button">
+                        Reset
+                    </button>
+                    <button
+                        class="chip"
+                        id="install"
+                        type="button"
+                        title="Copy"
+                    >
+                        npm i @overlapmark/dom
+                    </button>
+                </div>
+                <div class="card hero-card">
+                    <div class="stage" id="hero"></div>
+                </div>
+                <p class="mono status" id="hero-status" aria-live="polite"></p>
+            </section>
+
+            <nav class="toc mono" aria-label="Sections">
+                <a href="#overlap">01 Overlap</a>
+                <a href="#click">02 Click</a>
+                <a href="#style">03 Style</a>
+                <a href="#frameworks-section">04 Frameworks</a>
+            </nav>
+
+            <section class="spec" id="overlap">
+                <h2><span>01</span>Overlap gets darker</h2>
+                <p>
+                    Each layer multiplies with the ones under it, whatever its
+                    color.
+                </p>
+                <div class="card">
+                    <div class="bar">
+                        <label for="layers"
+                            >layers <b id="layers-value">3</b></label
+                        >
+                        <input
+                            id="layers"
+                            type="range"
+                            min="1"
+                            max="6"
+                            value="3"
+                        />
+                    </div>
+                    <div class="stage" id="layers-stage"></div>
+                </div>
+            </section>
+
+            <section class="spec" id="click">
+                <h2><span>02</span>Click to see every layer</h2>
+                <p>
+                    A click, or Enter on a focused highlight, reports every
+                    highlight under it, not only the top one.
+                </p>
+                <div class="card">
+                    <div class="stage" id="click-stage"></div>
+                    <div class="bar out" id="click-out" aria-live="polite">
+                        Click a highlighted word.
+                    </div>
+                </div>
+            </section>
+
+            <section class="spec" id="style">
+                <h2><span>03</span>Style it with CSS</h2>
+                <p>
+                    Pick a preset class or write your own. Overlap still reads
+                    as depth.
+                </p>
+                <div class="card">
+                    <div class="bar">
+                        <span>className</span>
+                        <div class="seg" id="style-presets"></div>
+                    </div>
+                    <div class="stage" id="style-stage"></div>
+                </div>
+            </section>
+
+            <section class="spec" id="frameworks-section">
+                <h2><span>04</span>Any framework</h2>
+                <p>The same DOM from vanilla JS, Vue, React and Svelte.</p>
+                <div id="frameworks"></div>
+            </section>
+
+            <p class="next">
+                <a class="btn" href="./docs/">Read the docs →</a>
+            </p>
+        </main>
+
+        <footer class="footer mono">
+            MIT licensed ·
+            <a href="https://github.com/edonghyun/overlapmark">GitHub</a> ·
+            <a href="https://www.npmjs.com/package/@overlapmark/dom">npm</a>
+        </footer>
+    </body>
+</html>

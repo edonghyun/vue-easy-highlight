@@ -25,7 +25,7 @@ Never run `npm publish` or `changeset publish` from a laptop.
 
 The demo links to the npm packages, which return 404 until they are published, and the README images need these files on `main`. So these come last:
 
-2. **Demo site.** Settings, Pages: set the source to GitHub Actions, then add the repository variable `PAGES_ENABLED` with the value `true`. The next push to `main`, or a manual run of the Pages workflow, deploys the demo to <https://edonghyun.github.io/overlapmark/>.
+2. **Demo and docs site.** Settings, Pages: set the source to GitHub Actions, then add the repository variable `PAGES_ENABLED` with the value `true`. The next push to `main`, or a manual run of the Pages workflow, deploys the demo to <https://edonghyun.github.io/overlapmark/> and the docs to <https://edonghyun.github.io/overlapmark/docs/>.
 3. **Repository homepage.** Set the repository website (the About box) to <https://edonghyun.github.io/overlapmark/>.
 4. **Deprecate the old package.** The root README says `vue-easy-highlight` is replaced; make npm say so:
 

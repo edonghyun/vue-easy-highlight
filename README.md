@@ -1,10 +1,10 @@
 # overlapmark
 
-<img src="https://raw.githubusercontent.com/edonghyun/overlapmark/main/docs-assets/hero.png" alt="A paragraph with overlapping highlights in different colors: the spots several analyses cover are darker, and a panel lists the highlights covering the clicked phrase." width="100%">
+<img src="https://raw.githubusercontent.com/edonghyun/overlapmark/main/docs-assets/hero.png" alt="The overlapmark demo: a sentence with three overlapping highlights in yellow, orange and pink, darker where they overlap, under an Add a highlight button." width="100%">
 
 [![npm](https://img.shields.io/npm/v/@overlapmark/core?label=npm)](https://www.npmjs.com/package/@overlapmark/core) [![CI](https://github.com/edonghyun/overlapmark/actions/workflows/ci.yml/badge.svg)](https://github.com/edonghyun/overlapmark/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/edonghyun/overlapmark/blob/main/LICENSE)
 
-**[Live demo](https://edonghyun.github.io/overlapmark/)**
+**[Live demo](https://edonghyun.github.io/overlapmark/)** · **[Docs](https://edonghyun.github.io/overlapmark/docs/)**
 
 Overlapping text highlights for Vue, React, Svelte and plain JS. The more highlights cover a spot, the darker it gets, even when every highlight has its own color, and a click tells you exactly which highlights cover that spot.
 
@@ -101,7 +101,7 @@ highlights = findMatches(text, 'highlights').map((m, i) => ({
 hl.update({ highlights });
 ```
 
-The [live demo](https://edonghyun.github.io/overlapmark/) lives in [`examples/vanilla`](examples/vanilla): `pnpm --filter vanilla-example dev`.
+The [live demo and docs](https://edonghyun.github.io/overlapmark/) live in [`site`](site): `pnpm --filter overlapmark-site dev`.
 
 ## Quick start (Vue)
 
@@ -221,7 +221,7 @@ With the default `layers` strategy, each highlight covering a segment is its own
 
 ### `multiply` (default)
 
-<img src="https://raw.githubusercontent.com/edonghyun/overlapmark/main/docs-assets/overlap-multiply.png" alt="The demo paragraph in multiply mode: every nested highlight darkens the spot it covers." width="100%">
+<img src="https://raw.githubusercontent.com/edonghyun/overlapmark/main/docs-assets/overlap-multiply.png" alt="A sentence with three nested highlights in multiply mode: every nested highlight darkens the spot it covers." width="100%">
 
 Each nested layer multiplies with the layers under it (`mix-blend-mode: multiply`), like a highlighter pen drawn over itself, so every highlight covering a spot darkens it, for any color except pure white (a white layer multiplies to no change). The root is an isolated group (`isolation: isolate`), so the layers never blend with the page behind the root.
 
@@ -229,7 +229,7 @@ Each nested layer multiplies with the layers under it (`mix-blend-mode: multiply
 
 ### `darken`
 
-<img src="https://raw.githubusercontent.com/edonghyun/overlapmark/main/docs-assets/overlap-darken.png" alt="The demo paragraph in darken mode: nested highlights are their own color mixed toward black." width="100%">
+<img src="https://raw.githubusercontent.com/edonghyun/overlapmark/main/docs-assets/overlap-darken.png" alt="The same sentence in darken mode: nested highlights are their own color mixed toward black." width="100%">
 
 Each nested layer takes its own color mixed toward `--om-depth-ink` (default `black`) by `--om-depth-step` (default `12%`) per nesting level, up to `--om-max-depth`, and is painted at `--om-alpha`. It uses no blend mode: the layers are translucent over the page, and the text is not tinted.
 
@@ -237,7 +237,7 @@ Each nested layer takes its own color mixed toward `--om-depth-ink` (default `bl
 
 ### `none`
 
-<img src="https://raw.githubusercontent.com/edonghyun/overlapmark/main/docs-assets/overlap-none.png" alt="The demo paragraph in none mode: plain translucent layers." width="100%">
+<img src="https://raw.githubusercontent.com/edonghyun/overlapmark/main/docs-assets/overlap-none.png" alt="The same sentence in none mode: plain translucent layers." width="100%">
 
 Plain translucent layers, each at `--om-alpha`, with no depth effect. Overlaps of light colors may look the same as, or lighter than, a single highlight.
 

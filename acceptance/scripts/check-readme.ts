@@ -1,12 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { QUICK_STARTS } from '../../site/src/quick-starts.ts';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 interface Framework {
     /** As in the root README heading `## Quick start (<heading>)`. */
-    heading: string;
+    heading: keyof typeof QUICK_STARTS;
     pkg: string;
     /** The acceptance app's quick-start file. */
     file: string;
@@ -72,6 +73,12 @@ for (const { heading, pkg, file } of frameworks) {
             `${pkgReadme}: quick start differs from README.md (${heading})`,
         );
 
+    const site = QUICK_STARTS[heading];
+    if (normalized(site.code).join('\n') !== lines.join('\n'))
+        problems.push(
+            `site/src/quick-starts.ts: quick start differs from README.md (${heading})`,
+        );
+
     const app = join(root, 'acceptance/apps', file);
     if (!existsSync(app)) {
         problems.push(`${relative(root, app)} does not exist (${heading})`);
@@ -87,4 +94,6 @@ if (problems.length > 0) {
     console.error(problems.join('\n'));
     process.exit(1);
 }
-console.log('README quick starts match the package READMEs and the apps');
+console.log(
+    'README quick starts match the package READMEs, the site and the apps',
+);
