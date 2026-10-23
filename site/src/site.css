@@ -1,0 +1,251 @@
+/* Shared by the demo and the docs. Near-monochrome on purpose: the only
+   color on either page is inside highlights. The site is light-only, since
+   `overlap: 'multiply'` needs a light surface under the text. */
+
+:root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --ink: #111111;
+    --muted: #6f6f6f;
+    --soft: #f4f4f4;
+    --rule: #ececec;
+    --code-bg: #fafafa;
+    --sans: 'Inter', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 var(--sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+a {
+    color: inherit;
+}
+
+.mono {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* Top bar */
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    font: 13px var(--mono);
+}
+
+.topbar a {
+    text-decoration: none;
+    color: var(--muted);
+}
+
+.topbar a:hover,
+.topbar a[aria-current='page'] {
+    color: var(--ink);
+}
+
+.topbar nav {
+    display: flex;
+    gap: 20px;
+}
+
+.brand {
+    color: var(--ink) !important;
+    font-weight: 500;
+}
+
+/* Buttons and chips */
+
+.btn {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    font: 500 14px var(--sans);
+    padding: 9px 16px;
+    border-radius: 8px;
+    background: var(--ink);
+    color: #fff;
+    transition: transform 0.08s;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn.ghost {
+    background: var(--soft);
+    color: var(--ink);
+}
+
+.btn:focus-visible,
+.seg button:focus-visible,
+.chip:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font: 13px var(--mono);
+    color: var(--ink);
+    background: var(--soft);
+    border: 0;
+    padding: 9px 14px;
+    border-radius: 8px;
+}
+
+button.chip {
+    cursor: copy;
+}
+
+.swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+    flex: none;
+}
+
+/* Cards */
+
+.card {
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg);
+}
+
+.bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--rule);
+    padding: 8px 12px;
+    font: 12px var(--mono);
+    color: var(--muted);
+    flex-wrap: wrap;
+}
+
+.seg {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+}
+
+.seg button {
+    appearance: none;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font: 12px var(--mono);
+    color: var(--muted);
+    padding: 4px 9px;
+    border-radius: 6px;
+}
+
+.seg button:hover {
+    color: var(--ink);
+}
+
+.seg button[aria-pressed='true'],
+.seg button[aria-selected='true'] {
+    background: var(--soft);
+    color: var(--ink);
+}
+
+.stage {
+    background: #ffffff;
+    color: var(--ink);
+    padding: 28px 24px;
+    font-size: 20px;
+    line-height: 1.6;
+}
+
+.card pre {
+    margin: 0;
+    padding: 20px 24px;
+    font: 13px/1.7 var(--mono);
+    background: var(--code-bg);
+    overflow-x: auto;
+}
+
+pre,
+code {
+    font-variant-ligatures: none;
+}
+
+code {
+    font-family: var(--mono);
+    font-size: 0.875em;
+}
+
+input[type='range'] {
+    accent-color: var(--ink);
+    width: 140px;
+}
+
+/* Highlights: pointer over anything clickable */
+
+.om-seg[data-om-depth] {
+    cursor: pointer;
+}
+
+.om-seg[data-om-depth]:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 1px;
+    border-radius: 2px;
+}
+
+@keyframes om-arrive {
+    from {
+        opacity: 0;
+    }
+}
+
+.arrived {
+    animation: om-arrive 0.35s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .arrived {
+        animation: none;
+    }
+    .btn {
+        transition: none;
+    }
+}
+
+@media (max-width: 520px) {
+    .topbar {
+        padding: 16px;
+    }
+    .stage {
+        padding: 22px 18px;
+        font-size: 18px;
+    }
+    .card pre {
+        padding: 16px 18px;
+    }
+}

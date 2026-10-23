@@ -1,0 +1,146 @@
+.demo {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+}
+
+.intro {
+    padding: 72px 0 40px;
+    text-align: center;
+}
+
+.intro h1 {
+    font-size: 44px;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+    margin: 0;
+}
+
+.tagline {
+    color: var(--muted);
+    margin: 10px 0 28px;
+    font-size: 17px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.hero-card {
+    margin-top: 40px;
+    text-align: left;
+}
+
+.hero-card .stage {
+    padding: 36px 32px;
+    font-size: 22px;
+    min-height: 150px;
+}
+
+.status {
+    margin: 12px 0 0;
+    min-height: 1.6em;
+}
+
+.toc {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    flex-wrap: wrap;
+    font-size: 13px;
+    margin: 8px 0 8px;
+}
+
+.toc a {
+    text-decoration: none;
+}
+
+.toc a:hover {
+    color: var(--ink);
+}
+
+.spec {
+    padding-top: 64px;
+    scroll-margin-top: 16px;
+}
+
+.spec h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    display: flex;
+    gap: 12px;
+}
+
+.spec h2 span {
+    font: 400 13px var(--mono);
+    color: var(--muted);
+    padding-top: 1px;
+}
+
+.spec > p {
+    color: var(--muted);
+    margin: 0 0 18px;
+}
+
+.bar b {
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.out {
+    border-top: 1px solid var(--rule);
+    border-bottom: 0;
+    justify-content: flex-start;
+    min-height: 38px;
+}
+
+.out .layer {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink);
+}
+
+.next {
+    text-align: center;
+    margin: 72px 0 0;
+}
+
+.next .btn {
+    display: inline-block;
+    text-decoration: none;
+}
+
+.footer {
+    text-align: center;
+    padding: 0 16px 48px;
+}
+
+.footer a {
+    text-decoration: none;
+}
+
+.footer a:hover {
+    color: var(--ink);
+}
+
+@media (max-width: 520px) {
+    .demo {
+        padding: 0 16px 72px;
+    }
+    .intro {
+        padding-top: 40px;
+    }
+    .intro h1 {
+        font-size: 36px;
+    }
+    .hero-card .stage {
+        padding: 24px 20px;
+        font-size: 19px;
+    }
+}
