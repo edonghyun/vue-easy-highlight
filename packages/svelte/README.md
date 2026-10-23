@@ -1,6 +1,6 @@
 # @overlapmark/svelte
 
-Svelte 5 component for overlapmark: render overlapping text highlights and listen to selections, clicks and hovers. Built on [`@overlapmark/core`](https://www.npmjs.com/package/@overlapmark/core); renders the same DOM as [`@overlapmark/dom`](https://www.npmjs.com/package/@overlapmark/dom). Overlapping highlights get darker, and a click reports every highlight covering that spot: see the [overlapmark README](https://github.com/edonghyun/overlapmark#readme) and the **[live demo](https://edonghyun.github.io/overlapmark/)**.
+Svelte 5 component for overlapmark: render overlapping text highlights and listen to selections, clicks and hovers. Built on [`@overlapmark/core`](https://www.npmjs.com/package/@overlapmark/core); renders the same DOM as [`@overlapmark/dom`](https://www.npmjs.com/package/@overlapmark/dom). Overlapping highlights get darker, and a click reports every highlight covering that spot: see the [overlapmark README](https://github.com/edonghyun/overlapmark#readme) the **[live demo](https://edonghyun.github.io/overlapmark/)** and the **[docs](https://edonghyun.github.io/overlapmark/docs/)**.
 
 ```sh
 npm install @overlapmark/svelte @overlapmark/core

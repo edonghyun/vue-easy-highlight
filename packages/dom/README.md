@@ -1,6 +1,6 @@
 # @overlapmark/dom
 
-Vanilla JS adapter for [overlapmark](https://github.com/edonghyun/overlapmark#readme): render overlapping text highlights into any element and listen to selections and clicks. Overlapping highlights get darker, and a click reports every highlight covering that spot. Depends only on [`@overlapmark/core`](https://www.npmjs.com/package/@overlapmark/core). **[Live demo](https://edonghyun.github.io/overlapmark/)**
+Vanilla JS adapter for [overlapmark](https://github.com/edonghyun/overlapmark#readme): render overlapping text highlights into any element and listen to selections and clicks. Overlapping highlights get darker, and a click reports every highlight covering that spot. Depends only on [`@overlapmark/core`](https://www.npmjs.com/package/@overlapmark/core). **[Live demo](https://edonghyun.github.io/overlapmark/)** · **[Docs](https://edonghyun.github.io/overlapmark/docs/)**
 
 Install `@overlapmark/core` next to it: you import its stylesheet and types yourself.
 

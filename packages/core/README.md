@@ -1,6 +1,6 @@
 # @overlapmark/core
 
-Framework-agnostic core of [overlapmark](https://github.com/edonghyun/overlapmark#readme): segment computation, text search, the types and event details, DOM offset helpers and the default stylesheet. Overlapping highlights get darker, and a click reports every highlight covering that spot. **[Live demo](https://edonghyun.github.io/overlapmark/)**
+Framework-agnostic core of [overlapmark](https://github.com/edonghyun/overlapmark#readme): segment computation, text search, the types and event details, DOM offset helpers and the default stylesheet. Overlapping highlights get darker, and a click reports every highlight covering that spot. **[Live demo](https://edonghyun.github.io/overlapmark/)** · **[Docs](https://edonghyun.github.io/overlapmark/docs/)**
 
 Most apps want [`@overlapmark/dom`](https://www.npmjs.com/package/@overlapmark/dom) or a framework adapter ([`@overlapmark/vue`](https://www.npmjs.com/package/@overlapmark/vue), [`@overlapmark/react`](https://www.npmjs.com/package/@overlapmark/react), [`@overlapmark/svelte`](https://www.npmjs.com/package/@overlapmark/svelte)) and install this package next to it for the stylesheet and the types.
 
